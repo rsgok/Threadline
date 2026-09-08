@@ -1,0 +1,11 @@
+.build/
+dist/
+.DS_Store
+
+# Local previews, exported conversations and user data
+artifacts/
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
