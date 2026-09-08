@@ -1,0 +1,4 @@
+interface:
+  display_name: "留下当前讨论"
+  short_description: "在 Threadline 思续中留下当前 Codex 会话的讨论，归入思路继续使用"
+  default_prompt: "用 $threadline 打开当前会话的讨论选择页。"
