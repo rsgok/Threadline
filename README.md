@@ -74,3 +74,21 @@ bash scripts/start-web.sh
 以机器人身份发送折叠卡片，群聊需要先加入机器人。最多 100 条消息、2 MB 内容；每张最多 8 个面板、约 24 KB，最多 100 张。超长单条分段，不截断原文。附件默认不选：预览列出文件名、大小和可用性，勾选后图片嵌入对应消息，文件在卡片后单独发送。上传需应用权限 `im:resource`。图片上限 10 MB，普通文件上限 20 MB，总量 100 MB；最多 50 个附件、每条消息最多 8 张图片。预览后文件变化会阻止发送，缺失、空文件和符号链接不可选。上传和文件发送分别缓存回执。预览显示卡片数，有效 20 分钟；逐张记录回执，失败后保持当前预览重试，跳过已成功卡片。预览及回执仅保存在内存中，服务重启后不可继续原预览。断开本机连接会退出该 profile 的用户登录态，不删除远端应用或撤销服务端授权。
 
 开发运行前先执行 `npm ci`。安装脚本会同步 Node 依赖到本机服务目录。扫码创建、企业审批及用户发送权限仍需用真实账号验收；自动化测试使用隔离的模拟飞书服务，不会向群聊投递测试消息。
+
+## Agent runtime：Skill + CLI
+
+```sh
+bash scripts/install-cli.sh    # ~/.local/bin/threadline；可设 THREADLINE_BIN_DIR
+bash scripts/install-skill.sh  # Codex skill
+export PATH="$HOME/.local/bin:$PATH"
+threadline health
+threadline list --query '设计判断'
+threadline save --title '本次进展' --file ./progress.md --source 'Agent Runtime'
+threadline get NOTE_UUID
+```
+
+CLI 只需 Python 3，无第三方依赖，也可直接执行 `python3 skills/threadline/scripts/threadline.py`。将整个 `skills/threadline` 目录复制到其他 runtime 的 skill 目录即可使用。服务仍需按上文启动；CLI 与 UI 共用 HTTP API 和资料库，不直接操作 SQLite。默认地址可用 `THREADLINE_URL` 或全局 `--url` 覆盖，仅接受 loopback HTTP。远程 runtime 需配置 SSH 隧道，或自行部署本地服务；本机 Codex 导入读取服务端机器的记录。
+
+支持 `health`、`panel`、`list`、`get`、`save`、`update`、`delete`、`export`、`sessions`、`session`、`import`、`topics`、`topic-create`。运行 `threadline COMMAND --help` 查看参数。除 help 外 stdout 输出 JSON，错误 JSON 写 stderr；退出码 0 成功、2 参数错误、1 执行失败。更新必须提供 `get` 返回的 `version`；导入必须提供 `session` 输出的快照文件和明确的消息 ID，服务校验指纹并去重。普通保存不幂等，超时后先查询确认再决定是否重试。导出 ZIP 不覆盖已有文件。
+
+笔记支持 `outdated`（已过时）和 `updated`（已更新）标记，必须填写原因。阅读页可以标记并查看历史，CLI 使用 `threadline mark NOTE_UUID --version VERSION --status outdated --reason '新事实与依据'`。原文不被覆盖，每次标记追加时间和原因；资料复用与导出携带当前状态。`updated` 需在原因中说明更正结论或已完成的修订，不代表整篇笔记全面核验。已有笔记无需迁移，未标记也不代表已确认有效。

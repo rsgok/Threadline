@@ -10,6 +10,9 @@ const hash = text => crypto.createHash('sha256').update(text).digest('hex');
 const injected = /^(?:<recommended_plugins>|<environment_context>|<permissions instructions>|<skills_instructions>|# AGENTS\.md instructions|<system-reminder>)/;
 
 function visibleUserText(text) {
+  // Codex injects the selected skill as a separate user-role transport message.
+  // Strip only the recognized envelope; retain any real request after it.
+  text = text.replace(/^\s*(?:<skill>\s*<name>[^<>\n]+<\/name>\s*<path>\/[^<>\n]+\/SKILL\.md<\/path>[\s\S]*?<\/skill>\s*)+/, '');
   // Uploaded images and question replies have their own Codex transport shapes.
   text = text.replace(/<image\s+name=\[Image #\d+\]\s+path="([^"<>]+)"\s*>\s*<\/image>/g, (raw, file) => {
     if (!path.isAbsolute(file)) return raw;

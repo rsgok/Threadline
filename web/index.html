@@ -43,6 +43,7 @@ function inlineBase(s){
   const dest=m[4].replace(/^<|>$/g,'').trim(),local=dest.startsWith('/')&&!dest.startsWith('//'),remote=/^https?:\/\//i.test(dest),label=esc(m[3]);
   if(!local&&!remote){out+=esc(m[0]);continue}
   const href=esc(local?localResourceURL(dest):dest);
+  if(!m[2]&&local&&/\/SKILL\.md$/.test(dest)&&/^\$[^\s]+$/.test(m[3])){out+='<span class="skill-mention" title="已选择的 skill"><span aria-hidden="true">◇</span> '+esc(m[3].slice(1))+'</span>';continue}
   if(m[2])out+='<a class="markdown-image" href="'+href+'" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="'+href+'" alt="'+label+'"><span>'+label+' · 查看原图 ↗</span></a>';
   else if(local)out+='<button type="button" class="local-file-link" data-local-url="'+href+'" title="在 Finder 中显示：'+esc(dest)+'">'+label+' ↗</button>';
   else out+='<a href="'+href+'" target="_blank" rel="noopener noreferrer">'+label+'</a>';

@@ -1,0 +1,68 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { createRewindServer } from './server.mjs';
+
+test('runtime CLI uses real API: CRUD, conflicts, Unicode, export and snapshot import', async t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'threadline-cli-'));
+  const codexHome = path.join(dir, 'codex');
+  const server = createRewindServer({ dataDir: dir, legacyDir: null, ocr: false, codexHome });
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
+  t.after(async () => { await new Promise(r => server.close(r)); fs.rmSync(dir, { recursive: true, force: true }); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  async function cli(args, input = '') {
+    return await new Promise((resolve, reject) => {
+      const p = spawn('python3', ['skills/threadline/scripts/threadline.py', '--url', base, ...args]);
+      let out = '', err = '';
+      p.stdout.on('data', d => out += d); p.stderr.on('data', d => err += d);
+      p.on('error', reject); p.on('close', code => resolve({ code, data: JSON.parse(code ? err : out) }));
+      p.stdin.end(input);
+    });
+  }
+  assert.equal((await cli(['health'])).data.app, 'rewind-web');
+  const { data: { clip } } = await cli(['save', '--title', '判断', '--file', '-'], '中文原文\n```js\nconst n = 1;\n```');
+  assert.equal((await cli(['get', clip.id])).data.clip.body, clip.body);
+  assert.equal((await cli(['list', '--query', '中文原文'])).data.clips.length, 1);
+  assert.equal((await cli(['update', clip.id, '--version', clip.version, '--note', '下一步'])).code, 0);
+  assert.equal((await cli(['update', clip.id, '--version', clip.version, '--note', 'stale'])).data.status, 409);
+  let reviewed = (await cli(['get', clip.id])).data.clip;
+  const mark = ['mark', clip.id, '--version', reviewed.version, '--status', 'outdated', '--reason', '旧限制已失效，依据代码 revision 2'];
+  assert.equal((await cli(mark)).code, 0);
+  assert.equal((await cli(mark)).data.status, 409);
+  reviewed = (await cli(['get', clip.id])).data.clip;
+  assert.equal(reviewed.body, clip.body);
+  assert.equal(reviewed.review.status, 'outdated');
+  assert.equal((await cli(['mark', clip.id, '--version', reviewed.version, '--status', 'updated', '--reason', ' '])).data.status, 400);
+  reviewed = (await cli(['mark', clip.id, '--version', reviewed.version, '--status', 'updated', '--reason', '更正：现已支持附件复制，依据 revision 2'])).data.clip;
+  assert.equal(reviewed.reviewHistory.length, 2);
+  assert.equal(reviewed.reviewHistory[0].status, 'outdated');
+  assert.ok(!Number.isNaN(Date.parse(reviewed.review.at)));
+  const output = path.join(dir, 'export.zip');
+  assert.equal((await cli(['export', clip.id, '--output', output])).code, 0);
+  assert.equal(fs.readFileSync(output).readUInt32LE(0), 0x04034b50);
+  assert.ok(fs.readFileSync(output).includes(Buffer.from('更正：现已支持附件复制')));
+  assert.equal((await cli(['export', clip.id, '--output', output])).code, 1);
+  const topic = (await cli(['topic-create', '--title', '研究'])).data.topic;
+  assert.equal((await cli(['topics'])).data.topics[0].id, topic.id);
+  const id = '11111111-1111-1111-1111-111111111111';
+  fs.mkdirSync(path.join(codexHome, 'sessions'), { recursive: true });
+  const file = path.join(codexHome, 'sessions', `${id}.jsonl`);
+  const records = [{ type: 'session_meta', payload: { id } }, { type: 'response_item', payload: { type: 'message', id: 'm1', role: 'user', content: [{ type: 'input_text', text: '原始问题' }] } }];
+  const write = () => fs.writeFileSync(file, records.map(r => JSON.stringify(r)).join('\n'));
+  write();
+  const snapshot = (await cli(['session', '--thread', id])).data;
+  const snapshotFile = path.join(dir, 'snapshot.json');
+  fs.writeFileSync(snapshotFile, JSON.stringify(snapshot));
+  const args = ['import', '--snapshot', snapshotFile, '--message', 'm1'];
+  assert.equal((await cli(args)).data.duplicate, false);
+  assert.equal((await cli(args)).data.duplicate, true);
+  records[1].payload.content[0].text = '修改后的问题'; write();
+  assert.equal((await cli(args)).data.status, 409);
+  assert.equal((await cli(['panel', '--thread', 'invalid'])).code, 2);
+  assert.equal((await cli(['--url', 'https://example.com', 'health'])).code, 2);
+  assert.equal((await cli(['delete', clip.id])).code, 0);
+  assert.equal((await cli(['get', clip.id])).data.status, 404);
+});

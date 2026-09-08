@@ -339,3 +339,17 @@ test('attachments require explicit selection, detect changes and retry only unfi
   assert.equal(sends.filter(s => s.card).length, 1); assert.equal(sends[0].card.body.elements[0].elements[1].img_key, 'img_test');
   assert.equal(sends[1].requestId, sends[2].requestId);
 });
+
+test('skill transport is hidden while explicit selection and trailing requests survive', () => {
+  const wrap = '<skill>\n<name>threadline</name>\n<path>/skills/threadline/SKILL.md</path>\n---\nname: threadline\n---\nprivate instructions\n</skill>';
+  const messages = extractMessages([
+    { type: 'session_meta', payload: { id: threadID } },
+    { type: 'response_item', payload: { id: 'choice', type: 'message', role: 'user', content: [{ type: 'input_text', text: '[$threadline](/skills/threadline/SKILL.md) 列出笔记' }] } },
+    { type: 'response_item', payload: { id: 'injected', type: 'message', role: 'user', content: [{ type: 'input_text', text: wrap }] } },
+    { type: 'response_item', payload: { id: 'trailing', type: 'message', role: 'user', content: [{ type: 'input_text', text: wrap + '\n继续这个请求' }] } },
+    { type: 'response_item', payload: { id: 'quoted', type: 'message', role: 'user', content: [{ type: 'input_text', text: '解释以下格式：\n```xml\n' + wrap + '\n```' }] } }
+  ], threadID).messages;
+  assert.deepEqual(messages.map(m => m.id), ['choice', 'trailing', 'quoted']);
+  assert.equal(messages[1].text, '继续这个请求');
+  assert.ok(messages[2].text.includes('private instructions'));
+});

@@ -24,6 +24,7 @@ export function markdown(c) {
     ...(c.provenance?.project ? [`项目：${c.provenance.project.name}`, `项目目录：${c.provenance.project.root}`] : []),
     ...(c.provenance?.cwd ? [`工作目录：${c.provenance.cwd}`] : []),
     ...(c.sourceURL ? ['', `会话链接：${c.sourceURL}`] : []),
+    ...(c.review ? ['', '## 核实状态', '', `${c.review.status} · ${c.review.at}`, c.review.reason] : []),
     ...(c.question ? ['', '## 原问题', '', c.question] : []),
     ...(c.note ? ['', '## 我的备注', '', c.note] : []), '', '## 笔记原文', '', c.body,
     ...(c.attachment ? ['', `![笔记原图](attachments/${path.basename(c.attachment)})`] : []), ''].join('\n');
@@ -288,6 +289,17 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         send(201, { clip: publicClip(clip) });
         if (clip.ocrStatus === 'pending') recognize(clip.id);
         return;
+      }
+      const reviewRoute = pathname.match(/^\/api\/clips\/([A-Fa-f0-9-]{36})\/review$/);
+      if (reviewRoute && req.method === 'POST') {
+        const data = await readJSON(req), old = store.get(reviewRoute[1]);
+        if (!old || old.deletedAt) throw error(404, '笔记不存在。');
+        if (data.version !== version(old)) throw error(409, '笔记已变化，请重新读取后再标记。');
+        if (!['outdated', 'updated'].includes(data.status) || typeof data.reason !== 'string' || !data.reason.trim() || data.reason.length > 12000) throw error(400, '请选择已过时或已更新，并填写原因（最多 12000 字）。');
+        const review = { status: data.status, reason: data.reason.trim(), at: new Date().toISOString() };
+        const next = { ...old, review, reviewHistory: [...(old.reviewHistory || []), review], updatedAt: now() };
+        store.put(next);
+        return send(200, { clip: publicClip(next) });
       }
       const route = pathname.match(/^\/api\/clips\/([A-Fa-f0-9-]{36})$/);
       if (route) {
