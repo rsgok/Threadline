@@ -1,3 +1,4 @@
+import { LibraryStore } from './storage.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -5,6 +6,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRewindServer, zip } from './server.mjs';
 import { extractMessages, CodexSessions } from './codex-sessions.mjs';
+
+function persistedNotes(directory) { const store = new LibraryStore(directory); try { return store.list(); } finally { store.close(); } }
+function persistedTopics(directory) { const store = new LibraryStore(directory); try { return store.topics(); } finally { store.close(); } }
 
 async function fixture(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rewind-web-'));
@@ -32,11 +36,11 @@ test('capture, edit, search notes, preserve code, permanently delete', async t =
   assert.equal((await request('/api/library?q=第二版')).data.clips.length, 1);
   const stale = await request('/api/clips/' + clip.id, 'PUT', { version: clip.version, note: 'stale tab' });
   assert.equal(stale.response.status, 409);
-  const persisted = JSON.parse(fs.readFileSync(path.join(directory, 'library.json')));
+  const persisted = persistedNotes(directory);
   assert.equal(persisted[0].note, '第二版参考');
   assert.equal((await request('/api/clips/' + clip.id, 'DELETE')).response.status, 200);
   assert.equal((await request('/api/library')).data.clips.length, 0);
-  assert.ok(!JSON.parse(fs.readFileSync(path.join(directory,'library.json'))).some(c=>c.id===clip.id));
+  assert.ok(!persistedNotes(directory).some(c=>c.id===clip.id));
   assert.equal((await request('/api/clips/'+clip.id+'/restore','POST',{})).response.status,404);
 });
 
@@ -83,12 +87,12 @@ test('legacy import is a copy and does not overwrite later web edits', () => {
     fs.mkdirSync(legacy);
     const original = [{ id: 'D0C7F5A1-9230-4581-A552-564A857C1326', body: 'native', title: 'native', createdAt: 800000000 }];
     fs.writeFileSync(path.join(legacy, 'library.json'), JSON.stringify(original));
-    createRewindServer({ dataDir: web, legacyDir: legacy }).close();
-    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(web, 'library.json'))), original);
+    let store = new LibraryStore(web, legacy); store.close();
+    assert.deepEqual(persistedNotes(web), original);
     const modified = [{ ...original[0], body: 'web edit' }];
-    fs.writeFileSync(path.join(web, 'library.json'), JSON.stringify(modified));
-    createRewindServer({ dataDir: web, legacyDir: legacy }).close();
-    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(web, 'library.json'))), modified);
+    store = new LibraryStore(web, legacy); store.put(modified[0]); store.close();
+    store = new LibraryStore(web, legacy); store.close();
+    assert.deepEqual(persistedNotes(web), modified);
     assert.deepEqual(JSON.parse(fs.readFileSync(path.join(legacy, 'library.json'))), original);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
@@ -162,7 +166,7 @@ test('current-thread import preserves source order, verifies snapshots and dedup
   assert.equal((await request('/api/codex/sessions/not-a-thread')).response.status, 400);
   // The saved copy remains available even when the original session is removed.
   fs.unlinkSync(file);
-  assert.ok(JSON.parse(fs.readFileSync(path.join(directory, 'library.json')))[0].body.includes('let scope = team.id'));
+  assert.ok(persistedNotes(directory)[0].body.includes('let scope = team.id'));
   assert.equal((await request('/api/codex/sessions/' + threadID)).response.status, 404);
 });
 
@@ -189,7 +193,7 @@ test('threads persist independently, notes attach without altering originals, st
   const updated = await request('/api/threads/'+topic.id, 'PUT', { title: '新方向', goal: '保留依据', version: topic.version });
   assert.equal(updated.response.status, 200);
   assert.equal((await request('/api/threads/'+topic.id, 'PUT', { title: '过期覆盖', goal: '', version: topic.version })).response.status, 409);
-  assert.equal(JSON.parse(fs.readFileSync(path.join(directory,'threads.json')))[0].title, '新方向');
+  assert.equal(persistedTopics(directory)[0].title, '新方向');
   assert.equal((await request('/api/threads','POST',{title:' ',goal:''})).response.status,400);
 });
 

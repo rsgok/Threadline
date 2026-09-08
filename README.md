@@ -11,7 +11,7 @@
 
 ## 运行
 
-需要 macOS 13+、Swift 5.9+ 和 Node.js 22+。Mac App 使用系统 WebKit，当前依赖本机 Node 环境，不是包含全部依赖的独立分发包。
+需要 macOS 13+、Swift 5.9+ 和 Node.js 22.13+。Mac App 使用系统 WebKit，当前依赖本机 Node 环境，不是包含全部依赖的独立分发包。
 
 ```sh
 # 启动本地 Web 服务
@@ -31,7 +31,10 @@ Web 入口：<http://127.0.0.1:43127>。`?panel=1` 使用侧边栏布局；`?nat
 ## 本地数据
 
 - 为兼容早期版本，数据目录保留为 `~/Library/Application Support/RewindWeb`。
-- `library.json` 保存笔记，`threads.json` 保存思路，`attachments/` 保存手动上传的图片。
+- `library.sqlite` 使用 Node 内置 SQLite 按条保存笔记和思路；`attachments/` 保存手动上传的图片。
+- 首次启动在事务中迁移旧 `library.json`、`threads.json`，原文件保持不变，作为迁移前备份。迁移完成后不再读写旧 JSON；迁移失败会回滚并停止启动。
+- SQLite 使用 WAL 日志。备份当前资料时先停止服务，再复制整个数据目录（运行中不要只复制 `.sqlite` 文件）。旧 JSON 不包含迁移后的修改。
+- 搜索在数据库中执行，保持中文、Unicode 规范化和多词子串匹配；当前列表接口仍返回匹配笔记全文，尚未分页。
 - 会话引用的本地文件与远程图片只保存引用，不复制文件；原文件失效会影响预览。
 - 删除笔记直接删除记录，没有回收站；引用的原始文件不受影响。
 - 组合草稿保存在当前标签页的 sessionStorage。

@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+node -e 'require("node:sqlite")' || { printf "Threadline requires Node.js 22.13+ with node:sqlite.\n" >&2; exit 1; }
 if curl -fsS http://127.0.0.1:43127/health 2>/dev/null | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("app")=="rewind-web" else 1)' 2>/dev/null; then
   printf 'Rewind is running: http://127.0.0.1:43127\n'
   exit 0
@@ -14,7 +15,7 @@ folder.mkdir(parents=True, exist_ok=True)
 (root / 'Library/Logs').mkdir(parents=True, exist_ok=True)
 app = root / 'Library/Application Support/RewindWeb/app'
 app.mkdir(parents=True, exist_ok=True)
-for name in ['server.mjs', 'index.html', 'ocr.swift', 'codex-sessions.mjs', 'threadline.css', 'threadline.js', 'favicon.svg']:
+for name in ['storage.mjs', 'server.mjs', 'index.html', 'ocr.swift', 'codex-sessions.mjs', 'threadline.css', 'threadline.js', 'favicon.svg']:
     shutil.copy2(pathlib.Path(os.environ['REWIND_ROOT']) / 'web' / name, app / name)
 config = {
     'Label': 'local.rewind.web',
