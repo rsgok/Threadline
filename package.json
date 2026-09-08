@@ -7,5 +7,11 @@
     "start": "node web/server.mjs",
     "test": "node --test web/*.test.mjs"
   },
-  "engines": { "node": ">=22.13.0" }
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.73.3",
+    "qrcode": "^1.5.4"
+  }
 }

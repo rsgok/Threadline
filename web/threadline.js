@@ -281,3 +281,15 @@ if(document.body.classList.contains('native-app')){
  const filters=el('div','native-filter-row');const scope=document.querySelector('.native-scope'),carry=document.querySelector('.native-carry-entry');scope.before(filters);filters.append(scope,carry);
  document.querySelector('.native-collection-title').setAttribute('aria-label','返回资料库');
 }
+
+// Popover puts messages above modal dialogs without adding text to their layout.
+let messageTimer;
+function notifyMessage(text, kind = 'info') {
+  let notice = document.getElementById('notify-message');
+  if (!notice) { notice = document.createElement('div'); notice.id = 'notify-message'; notice.className = 'notify-message'; notice.setAttribute('popover', 'manual'); document.body.append(notice); }
+  notice.dataset.kind = kind; notice.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+  notice.replaceChildren(); const body = document.createElement('span'); body.textContent = text;
+  const close = document.createElement('button'); close.textContent = '×'; close.setAttribute('aria-label', '关闭通知'); close.onclick = () => notice.hidePopover(); notice.append(body, close);
+  if (notice.matches(':popover-open')) notice.hidePopover(); notice.showPopover();
+  clearTimeout(messageTimer); messageTimer = setTimeout(() => notice.hidePopover(), kind === 'error' ? 12000 : 5000);
+}

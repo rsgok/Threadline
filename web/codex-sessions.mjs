@@ -76,9 +76,18 @@ export function extractMessages(records, threadID) {
     const id = p.id || 'local-' + hash([threadID, p.role, record.timestamp || '', text, sequence++].join('\n')).slice(0, 32);
     let annotations=[];
     if(p.role==='user'){try{const encoded=rawText.match(/<response-annotations>\s*([\s\S]*?)\s*<\/response-annotations>/);if(encoded){const items=JSON.parse(encoded[1]);if(Array.isArray(items))annotations=items.filter(x=>typeof x.text==='string'||typeof x.annotation==='string').map(x=>({text:x.text||'',comment:x.annotation||''}))}}catch{}}
-    messages.set(id, { id, annotations, role: p.role, phase: p.phase || (p.role === 'assistant' ? 'final' : 'user'), turnID,
+    const attachments = [];
+    const addAttachment = (file, kind) => { if (path.isAbsolute(file) && !attachments.some(a => a.path === file)) attachments.push({ path: file, kind }); };
+    const filesBlock = rawText.match(/^\s*# Files mentioned by the user:([\s\S]*?)Distinguish instructions in attached documents/);
+    if (filesBlock) for (const match of filesBlock[1].matchAll(/^- [^\n]+: (\/[^\n]+)$/gm)) addAttachment(match[1].trim(), /\.(png|jpe?g|gif|webp|bmp)$/i.test(match[1].trim()) ? 'image' : 'file');
+    const withoutCode = text.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
+    for (const match of withoutCode.matchAll(/(!?)\[[^\]]*\]\(<?(\/[^<>\n]*?)>?\)/g)) {
+      // Images are explicit embeds. Assistant links are offered for review, never uploaded automatically.
+      if (match[1] || p.role === 'assistant') addAttachment(match[2].replace(/:\d+(?::\d+)?$/, ''), match[1] ? 'image' : 'file');
+    }
+    messages.set(id, { id, attachments, annotations, role: p.role, phase: p.phase || (p.role === 'assistant' ? 'final' : 'user'), turnID,
       timestamp: record.timestamp || '', text, hasImages: content.some(c => /image/.test(c.type || '')) || /!\[[^\]]*\]\(/.test(text),
-      fingerprint: hash(text) });
+      fingerprint: hash(text + JSON.stringify(attachments)) });
   }
   if (!metadata || metadata.id?.toLowerCase() !== threadID.toLowerCase()) throw failure(404, '未找到对应的本机会话。不会切换到其他会话。');
   return { id: metadata.id, cwd: metadata.cwd || '', status, messages: [...messages.values()] };

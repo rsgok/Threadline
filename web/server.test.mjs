@@ -10,10 +10,10 @@ import { extractMessages, CodexSessions } from './codex-sessions.mjs';
 function persistedNotes(directory) { const store = new LibraryStore(directory); try { return store.list(); } finally { store.close(); } }
 function persistedTopics(directory) { const store = new LibraryStore(directory); try { return store.topics(); } finally { store.close(); } }
 
-async function fixture(t) {
+async function fixture(t, feishu) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rewind-web-'));
   const codexHome = path.join(directory, 'codex');
-  const server = createRewindServer({ dataDir: directory, legacyDir: null, ocr: false, codexHome });
+  const server = createRewindServer({ dataDir: directory, legacyDir: null, ocr: false, codexHome, feishu });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = 'http://127.0.0.1:' + server.address().port;
   t.after(async () => { await new Promise(resolve => server.close(resolve)); fs.rmSync(directory, { recursive: true, force: true }); });
@@ -267,4 +267,75 @@ test('project resolution distinguishes configured projects from ordinary working
  assert.equal(await reader.projectFor(''),null);
  fs.writeFileSync(path.join(codexHome,'.codex-global-state.json'),JSON.stringify({'electron-saved-workspace-roots':[directory],'electron-workspace-root-labels':{[directory]:'My Project'}}));
  assert.deepEqual(await reader.projectFor(path.join(directory,'src')),{name:'My Project',root:directory,source:'codex-workspace'});
+});
+
+
+test('Feishu preview verifies source and sends only previewed text once', async t => {
+  const deliveries = [];
+  const { request, codexHome, origin } = await fixture(t, { send: async data => { deliveries.push(data); return { chatId: data.chatId, messageId: 'om_sent' }; } });
+  const folder = path.join(codexHome, 'sessions'); fs.mkdirSync(folder, { recursive: true });
+  const file = path.join(folder, `rollout-${threadID}.jsonl`);
+  fs.writeFileSync(file, transcript().map(JSON.stringify).join('\n'));
+  const session = (await request('/api/codex/sessions/' + threadID)).data.session;
+  const payload = { threadID, messageIDs: ['a1', 'q1'], fingerprints: Object.fromEntries(session.messages.map(m => [m.id, m.fingerprint])), note: '请看讨论' };
+  const forged = await request('/api/feishu/preview', 'POST', { ...payload, fingerprints: {} }); assert.equal(forged.response.status, 409);
+  const preview = (await request('/api/feishu/preview', 'POST', payload)).data;
+  assert.ok(preview.text.indexOf('【我】') < preview.text.indexOf('【Codex】'));
+  assert.ok(preview.text.startsWith('请看讨论'));
+  assert.equal(deliveries.length, 0);
+  const crossSite = await fetch(origin + '/api/feishu/send', { method: 'POST', headers: { Origin: 'https://evil.invalid', 'Content-Type': 'application/json' }, body: '{}' });
+  assert.equal(crossSite.status, 403);
+  const data = { previewId: preview.id, chatId: 'oc_test', text: 'forged' };
+  assert.equal((await request('/api/feishu/send', 'POST', data)).response.status, 200);
+  assert.equal((await request('/api/feishu/send', 'POST', data)).response.status, 200);
+  assert.equal(deliveries.length, 1); assert.equal(deliveries[0].text, preview.text);
+  assert.equal(deliveries[0].card.schema, '2.0');
+  assert.equal(deliveries[0].card.body.elements.filter(e => e.tag === 'collapsible_panel').length, 2);
+  const second = (await request('/api/feishu/preview', 'POST', payload)).data;
+  const changed = transcript(); changed.at(-2).payload.content[0].text = 'changed answer';
+  fs.writeFileSync(file, changed.map(JSON.stringify).join('\n'));
+  assert.equal((await request('/api/feishu/send', 'POST', { ...data, previewId: second.id })).response.status, 409);
+  assert.equal(deliveries.length, 1);
+});
+
+test('multi-card retries skip delivered cards and lock destination after partial failure', async t => {
+  const calls = []; let failOnce = true;
+  const { request, codexHome } = await fixture(t, { send: async data => { calls.push(data); if (calls.length === 2 && failOnce) { failOnce = false; throw Error('network'); } return { messageId: 'om_' + calls.length, chatId: data.chatId }; } });
+  const folder = path.join(codexHome, 'sessions'); fs.mkdirSync(folder, { recursive: true });
+  const rows = transcript(); rows.at(-2).payload.content[0].text = '长回答😀'.repeat(12000);
+  fs.writeFileSync(path.join(folder, `rollout-${threadID}.jsonl`), rows.map(JSON.stringify).join('\n'));
+  const session = (await request('/api/codex/sessions/' + threadID)).data.session;
+  const preview = (await request('/api/feishu/preview', 'POST', { threadID, messageIDs: ['a1', 'q1'], fingerprints: Object.fromEntries(session.messages.map(m => [m.id, m.fingerprint])), note: '' })).data;
+  assert.ok(preview.cardCount > 2);
+  const payload = { previewId: preview.id, target: 'self' };
+  assert.equal((await request('/api/feishu/send', 'POST', payload)).response.status, 502);
+  assert.equal((await request('/api/feishu/send', 'POST', { ...payload, target: 'group', chatId: 'oc_other' })).response.status, 409);
+  const result = await request('/api/feishu/send', 'POST', payload);
+  assert.equal(result.response.status, 200); assert.equal(result.data.sentCount, preview.cardCount);
+  assert.equal(calls.length, preview.cardCount + 1); assert.equal(calls[1].requestId, calls[2].requestId); assert.notEqual(calls[0].requestId, calls[1].requestId);
+});
+
+test('attachments require explicit selection, detect changes and retry only unfinished files', async t => {
+  const uploads = [], sends = []; let fileFailure = true;
+  const { request, codexHome } = await fixture(t, {
+    upload: async a => { uploads.push(a); return a.kind === 'image' ? 'img_test' : 'file_test'; },
+    send: async data => { sends.push(data); if (data.fileKey && fileFailure) { fileFailure = false; throw Error('file delivery failed'); } return { messageId: 'om_' + sends.length }; }
+  });
+  fs.mkdirSync(codexHome, { recursive: true });
+  const image = path.join(codexHome, 'photo.png'), file = path.join(codexHome, 'report.txt');
+  fs.writeFileSync(image, 'image fixture'); fs.writeFileSync(file, 'original');
+  const rows = transcript(); rows.at(-2).payload.content[0].text = `图片 ![示例](<${image}>) 文件 [报告](<${file}>)`;
+  const folder = path.join(codexHome, 'sessions'); fs.mkdirSync(folder, { recursive: true }); fs.writeFileSync(path.join(folder, `rollout-${threadID}.jsonl`), rows.map(JSON.stringify).join('\n'));
+  const session = (await request('/api/codex/sessions/' + threadID)).data.session;
+  const payload = { threadID, messageIDs: ['a1'], fingerprints: Object.fromEntries(session.messages.map(m => [m.id, m.fingerprint])), note: '' };
+  const first = (await request('/api/feishu/preview', 'POST', payload)).data; assert.equal(first.attachments.length, 2); assert.equal(first.fileCount, 0); assert.equal(uploads.length, 0); assert.match(first.text, /未发送/);
+  assert.equal((await request('/api/feishu/preview', 'POST', { ...payload, attachmentIDs: ['forged'] })).response.status, 400);
+  const preview = (await request('/api/feishu/preview', 'POST', { ...payload, attachmentIDs: first.attachments.map(a => a.id) })).data;
+  fs.writeFileSync(file, 'modified'); const delivery = { previewId: preview.id, target: 'self' };
+  assert.equal((await request('/api/feishu/send', 'POST', delivery)).response.status, 409); assert.equal(uploads.length, 0);
+  fs.writeFileSync(file, 'original');
+  assert.equal((await request('/api/feishu/send', 'POST', delivery)).response.status, 502); assert.equal(uploads.length, 2);
+  const result = await request('/api/feishu/send', 'POST', delivery); assert.equal(result.response.status, 200); assert.equal(result.data.fileCount, 1); assert.equal(uploads.length, 2);
+  assert.equal(sends.filter(s => s.card).length, 1); assert.equal(sends[0].card.body.elements[0].elements[1].img_key, 'img_test');
+  assert.equal(sends[1].requestId, sends[2].requestId);
 });

@@ -9,3 +9,6 @@ node_modules/
 .env.*
 !.env.example
 *.log
+
+# Browser automation snapshots may contain local conversations
+.playwright-cli/

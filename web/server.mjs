@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { CodexSessions, THREAD_ID } from './codex-sessions.mjs';
 import { LibraryStore } from './storage.mjs';
+import { createFeishu, buildDiscussionCards, discussionAttachments, readSharedAttachment } from './feishu.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const referenceEpoch = 978307200;
@@ -76,7 +77,7 @@ function parseImage(value) {
   return { data, extension: kind === 'jpeg' ? 'jpg' : kind };
 }
 
-export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome } = {}) {
+export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome, feishu: feishuOverride } = {}) {
   fs.mkdirSync(path.join(dataDir, 'attachments'), { recursive: true, mode: 0o700 });
   const store = new LibraryStore(dataDir, legacyDir);
   const publicTopic = t => ({ ...t, version: version(t) });
@@ -84,6 +85,15 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
     if ('topicID' in data && data.topicID && !store.topic(data.topicID)) throw error(400, '这条思路不存在，请刷新后重试。');
   };
   const codex = new CodexSessions(codexHome);
+  const feishu = feishuOverride || createFeishu({ dataDir });
+  const previews = new Map();
+  async function selectedDiscussion(data) {
+    if (!THREAD_ID.test(data.threadID || '') || !Array.isArray(data.messageIDs) || !data.messageIDs.length || data.messageIDs.length > 100 || new Set(data.messageIDs).size !== data.messageIDs.length) throw error(400, '请选择 1 到 100 条消息。');
+    const session = await codex.get(data.threadID, { includeProgress: data.includeProgress === true });
+    const selected = session.messages.filter(m => data.messageIDs.includes(m.id));
+    if (selected.length !== data.messageIDs.length || !data.fingerprints || selected.some(m => data.fingerprints[m.id] !== m.fingerprint)) throw error(409, '消息已变化，请刷新后重新选择。');
+    return { session, selected };
+  }
   const publicClip = c => ({ ...c, version: version(c), date: date(c.createdAt), hasImage: !!c.attachment });
   const imagePath = name => path.join(dataDir, 'attachments', path.basename(name));
 
@@ -123,7 +133,76 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       if (req.method === 'GET' && pathname === '/favicon.svg') return send(200,fs.readFileSync(path.join(here,'favicon.svg')),'image/svg+xml');
       if (req.method === 'GET' && pathname === '/health') return send(200, { app: 'rewind-web', version: '0.2.0' });
       if (req.method === 'GET' && pathname === '/') return send(200, fs.readFileSync(path.join(here, 'index.html')), 'text/html; charset=utf-8');
-      if (req.method === 'GET' && ['/threadline.css', '/threadline.js'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
+      if (req.method === 'GET' && ['/threadline.css', '/threadline.js', '/feishu-ui.js', '/feishu.css'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
+      if (pathname === '/api/feishu/status' && req.method === 'GET') return send(200, await feishu.status(url.searchParams.get('refresh') === '1'));
+      if (pathname === '/api/feishu/users' && req.method === 'GET') return send(200, await feishu.users(url.searchParams.get('q') || ''));
+      if (pathname === '/api/feishu/chats' && req.method === 'GET') return send(200, await feishu.chats((url.searchParams.get('q') || '').slice(0, 100), (url.searchParams.get('page') || '').slice(0, 2000)));
+      if (pathname.startsWith('/api/feishu/') && req.method === 'POST') {
+        const data = await readJSON(req);
+        if (pathname === '/api/feishu/create') return send(202, await feishu.create());
+        if (pathname === '/api/feishu/bind') return send(200, await feishu.bind(data));
+        if (pathname === '/api/feishu/permissions') return send(202, await feishu.permissions(data.kind));
+        if (pathname === '/api/feishu/authorize') return send(202, await feishu.authorize(data.contacts === true));
+        if (pathname === '/api/feishu/cancel') return send(200, feishu.cancel());
+        if (pathname === '/api/feishu/disconnect') return send(200, await feishu.disconnect());
+        if (pathname === '/api/feishu/preview') {
+          if (typeof data.note !== 'string' || data.note.length > 2000) throw error(400, '附言最多 2000 字。');
+          const { session, selected } = await selectedDiscussion(data);
+          const attachments = discussionAttachments(selected);
+          const attachmentIDs = data.attachmentIDs || [];
+          if (!Array.isArray(attachmentIDs) || new Set(attachmentIDs).size !== attachmentIDs.length || attachmentIDs.some(id => !attachments.some(a => a.id === id && a.available))) throw error(400, '请只选择预览中可用的附件。');
+          const chosen = attachments.filter(a => attachmentIDs.includes(a.id));
+          if (chosen.reduce((n, a) => n + a.size, 0) > 100 * 1024 * 1024) throw error(413, '附件总量超过 100 MB，请分批发送。');
+          if (selected.some(m => chosen.filter(a => a.messageId === m.id && a.kind === 'image').length > 8)) throw error(413, '同一条消息最多上传 8 张图片，请减少附件选择。');
+          const shared = selected.map(m => {
+            let body = m.text;
+            const associated = attachments.filter(a => a.messageId === m.id);
+            for (const a of associated) { body = body.replace(/!?\[[^\]]*\]\(<?([^<>\n]*?)>?\)/g, (raw, dest) => dest === a.path ? '' : raw); body = body.split(a.path).join(a.name); }
+            const notes = associated.filter(a => a.kind !== 'image' || !attachmentIDs.includes(a.id)).map(a => `附件：${a.name}（${attachmentIDs.includes(a.id) ? '文件单独发送' : '未发送'}）`);
+            return { ...m, text: [body.trim(), ...notes].filter(Boolean).join('\n\n'), imageCount: chosen.filter(a => a.messageId === m.id && a.kind === 'image').length };
+          });
+          const text = [data.note.trim(), '讨论摘录 · ' + session.title, ...shared.map(m => (m.role === 'user' ? '【我】' : m.phase === 'commentary' ? '【Codex · 过程】' : '【Codex】') + '\n' + m.text)].filter(Boolean).join('\n\n');
+          for (const [id, p] of previews) if (p.expires < Date.now()) previews.delete(id);
+          if (previews.size >= 100) throw error(429, '预览过多，请稍后重试。');
+          const id = crypto.randomUUID();
+          const cards = buildDiscussionCards({ title: session.title, messages: shared, note: data.note });
+          previews.set(id, { text, cards, shared, title: session.title, note: data.note, attachments: chosen, uploads: {}, fileReceipts: [], receipts: [], selection: data, expires: Date.now() + 20 * 60 * 1000 });
+          return send(200, { id, text, attachments: attachments.map(({ digest, ...a }) => a), fileCount: chosen.filter(a => a.kind === 'file').length, cardCount: cards.length, count: selected.length, hasImages: selected.some(m => m.hasImages) });
+        }
+        if (pathname === '/api/feishu/send') {
+          const preview = previews.get(data.previewId);
+          if (!preview || preview.expires < Date.now()) throw error(409, '预览已过期，请重新预览后发送。');
+          await selectedDiscussion(preview.selection);
+          const target = data.target ?? (data.chatId ? 'group' : 'self');
+          if (!['self', 'user', 'group'].includes(target)) throw error(400, '发送目标无效。');
+          const destination = target === 'self' ? 'self' : target === 'user' ? 'user:' + data.userId : 'group:' + data.chatId;
+          if (preview.destination && preview.destination !== destination) throw error(409, '发送已开始，请保持原收件人重试。');
+          if (preview.receipt) { if (preview.destination !== destination) throw error(409, '这份摘录已发送，请重新预览后选择其他群。'); return send(200, preview.receipt); }
+          if (preview.sending) throw error(409, '正在发送，请等待结果。');
+          preview.sending = true;
+          preview.destination = destination;
+          try {
+            // Verify all chosen bytes before uploading anything on the first attempt.
+            if (!Object.keys(preview.uploads).length) for (const a of preview.attachments) {
+              try { if (readSharedAttachment(a).digest !== a.digest) throw Error(); } catch { throw error(409, '附件已变化或不可读取，请重新预览：' + a.name); }
+            }
+            for (const a of preview.attachments) if (!preview.uploads[a.id]) preview.uploads[a.id] = await feishu.upload(a);
+            if (!preview.receipts.length) preview.cards = buildDiscussionCards({ title: preview.title, note: preview.note, messages: preview.shared.map(m => ({ ...m, imageKeys: preview.attachments.filter(a => a.messageId === m.id && a.kind === 'image').map(a => ({ key: preview.uploads[a.id], name: a.name })) })) });
+            for (let i = preview.receipts.length; i < preview.cards.length; i++) {
+              const requestId = crypto.createHash('sha256').update(data.previewId + ':' + i).digest('hex').slice(0, 36).padEnd(36, '0');
+              preview.receipts.push(await feishu.send({ target, userId: data.userId, chatId: data.chatId, text: preview.text, card: preview.cards[i], requestId }));
+            }
+            const files = preview.attachments.filter(a => a.kind === 'file');
+            for (let i = preview.fileReceipts.length; i < files.length; i++) {
+              const requestId = crypto.createHash('sha256').update(data.previewId + ':file:' + i).digest('hex').padEnd(36, '0').slice(0, 36);
+              preview.fileReceipts.push(await feishu.send({ target, userId: data.userId, chatId: data.chatId, fileKey: preview.uploads[files[i].id], requestId }));
+            }
+            preview.receipt = { fileCount: preview.fileReceipts.length, ...preview.receipts.at(-1), sentCount: preview.receipts.length, cardCount: preview.cards.length };
+            return send(200, preview.receipt);
+          } catch (e) { throw error(e.status || 502, `已发送 ${preview.receipts.length}/${preview.cards.length} 张卡片、${preview.fileReceipts.length} 个文件。${e.message} 保持当前预览重试，将从未成功的卡片继续。`); }
+          finally { preview.sending = false; }
+        }
+      }
       if (pathname === '/api/threads' && req.method === 'POST') {
         const data = await readJSON(req);
         if (typeof data.title !== 'string' || !data.title.trim() || data.title.length > 120 || typeof data.goal !== 'string' || data.goal.length > 12000) throw error(400, '请填写思路名称（最多 120 字）与有效的问题描述。');
@@ -255,7 +334,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       throw error(404, '页面不存在。');
     } catch (err) { if (!res.headersSent) send(err.status || 500, { error: err.status ? err.message : '本机保存或读取失败，原数据未被清空。' }); }
   });
-  server.on('close', () => { store.close(); });
+  server.on('close', () => { feishu.close?.(); store.close(); });
   return server;
 }
 
