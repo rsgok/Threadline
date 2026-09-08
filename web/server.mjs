@@ -131,7 +131,8 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       if (req.headers.origin && req.headers.origin !== origin) throw error(403, '拒绝跨站请求。');
       if (!['GET', 'HEAD'].includes(req.method) && req.headers['x-rewind-request'] !== '1') throw error(403, '请求缺少本机页面标记。');
       const url = new URL(req.url, origin), pathname = url.pathname;
-      if (req.method === 'GET' && pathname === '/favicon.svg') return send(200,fs.readFileSync(path.join(here,'favicon.svg')),'image/svg+xml');
+      if (req.method === 'GET' && pathname === '/assets/threadline-icon.png') return send(200,fs.readFileSync(path.join(here,'assets','threadline-icon.png')),'image/png');
+      if (req.method === 'GET' && pathname === '/favicon.svg') return send(200,fs.readFileSync(path.join(here,'assets','threadline-icon.png')),'image/png');
       if (req.method === 'GET' && pathname === '/health') return send(200, { app: 'rewind-web', version: '0.2.0' });
       if (req.method === 'GET' && pathname === '/') return send(200, fs.readFileSync(path.join(here, 'index.html')), 'text/html; charset=utf-8');
       if (req.method === 'GET' && ['/threadline.css', '/threadline.js', '/feishu-ui.js', '/feishu.css'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');

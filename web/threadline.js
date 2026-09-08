@@ -11,7 +11,7 @@ if(embeddedPanel){
 // Workspace: a persistent line of inquiry, its source notes, and a deliberate handoff.
 let workspaceMode='home',currentTopic='',topicEditing='',carryIDs=new Set();
 try { carryIDs=new Set(JSON.parse(sessionStorage.getItem('threadline-carry')||'[]')); } catch {}
-document.querySelector('.main').insertAdjacentHTML('afterbegin', `<div class="panel-header"><button class="panel-brand" onclick="goWorkspace('home')">⌁ Threadline <small>思续</small></button><button class="panel-capture" onclick="openSessionPicker()">留下讨论 ＋</button></div><nav class="panel-tabs" aria-label="侧栏导航"><button data-panel="home" onclick="goWorkspace('home')">思路</button><button data-panel="all" onclick="goWorkspace('all')">笔记</button><button data-panel="inbox" onclick="goWorkspace('inbox')">待整理</button><button data-panel="carry" onclick="openCarry()">接着用 <span id="panel-carry-count">0</span></button></nav><div class="panel-search"><input id="panel-search" aria-label="搜索原文和备注" placeholder="搜索原文和备注…"></div>`);
+document.querySelector('.main').insertAdjacentHTML('afterbegin', `<div class="panel-header"><button class="panel-brand" onclick="goWorkspace('home')"><img class="panel-brand-icon" src="/assets/threadline-icon.png" alt=""> Threadline <small>思续</small></button><button class="panel-capture" onclick="openSessionPicker()">留下讨论 ＋</button></div><nav class="panel-tabs" aria-label="侧栏导航"><button data-panel="home" onclick="goWorkspace('home')">思路</button><button data-panel="all" onclick="goWorkspace('all')">笔记</button><button data-panel="inbox" onclick="goWorkspace('inbox')">待整理</button><button data-panel="carry" onclick="openCarry()">接着用 <span id="panel-carry-count">0</span></button></nav><div class="panel-search"><input id="panel-search" aria-label="搜索原文和备注" placeholder="搜索原文和备注…"></div>`);
 $('panel-search').oninput=e=>send('search',{query:e.target.value});
 const baseUpdateState=window.updateState;
 window.updateState=function(s){baseUpdateState(s);renderWorkspace();};
@@ -58,7 +58,7 @@ function renderWorkspace(){
   if(workspaceMode==='topic'&&!topic){workspaceMode='home';currentTopic='';return renderWorkspace()}
   if(workspaceMode==='home'){
     root.append(el('div','eyebrow','THREADLINE / 思续'));
-    const hero=el('div','workspace-hero');hero.append(el('h1','','把想清楚的，\n带到下一次。'),el('p','','让散落在对话里的判断，成为一条可以继续的思路。'));
+    const hero=el('div','workspace-hero');hero.append(el('h1','','让思考继续'),el('p','','让散落在对话里的判断，成为一条可以继续的思路。'));
     const actions=el('div','hero-actions');actions.append(action('＋ 开始一条思路',()=>openTopic(),'primary'),action('留下当前讨论 ↗',()=>openSessionPicker(),'secondary'));hero.append(actions);root.append(hero);
     const resume=el('button','resume-strip');resume.onclick=()=>openCarry();resume.append(el('span','resume-icon','↗'),el('span','','下一次，你想推进什么？'),el('small','',carryIDs.size?carryIDs.size+' 篇笔记已准备好':'选择笔记 · 写下任务 · 接着用'),el('span','','→'));root.append(resume);
     const heading=el('div','section-heading');heading.append(el('h2','','正在延续的思路'),el('span','',topics.length+' 条'));root.append(heading);
@@ -144,7 +144,7 @@ async function showSessionList(){
 function renderThinkingPanel(topics){
   document.querySelector('.panel-tabs').hidden=true;
   const header=document.querySelector('.panel-header');
-  header.replaceChildren(action('＋ 留下进展',()=>openSessionPicker(),'panel-brand'),action('思路',()=>goWorkspace('home'),'tool'),action('查找',()=>goWorkspace('all'),'tool'));
+  header.replaceChildren(action('收录对话',()=>openSessionPicker(),'panel-brand'),action('思路',()=>goWorkspace('home'),'tool'),action('查找',()=>goWorkspace('all'),'tool'));
   // Existing carry dialog keeps its counter, without exposing a top-level tab.
   const count=el('span','',''+carryIDs.size);count.id='panel-carry-count';count.hidden=true;header.append(count);
   const root=$('workspace');root.hidden=workspaceMode==='note';
@@ -213,7 +213,7 @@ function showSaveNotification(text){let notice=$('save-notification');if(!notice
 const receipt=el('div','session-receipt');receipt.id='session-receipt';receipt.hidden=true;$('session-bottom').prepend(receipt);
 
 
-const sessionBrand=el('div','session-brand');const wordmark=el('span','session-wordmark');wordmark.append(document.createTextNode('Thread'),el('em','','line'));const headerIcon=el('span','header-brand-icon');headerIcon.innerHTML=icon('rewind');sessionBrand.append(headerIcon,wordmark,el('small','','思续 / KEEP THE GOOD PARTS'));$('session-dialog').querySelector('.session-top').prepend(sessionBrand);
+const sessionBrand=el('div','session-brand');const wordmark=el('span','session-wordmark');wordmark.append(document.createTextNode('Thread'),el('em','','line'));const headerIcon=el('span','header-brand-icon');headerIcon.innerHTML='<img src="/assets/threadline-icon.png" alt="">';sessionBrand.append(headerIcon,wordmark,el('small','','Carry your thinking forward.'));$('session-dialog').querySelector('.session-top').prepend(sessionBrand);
 
 function sessionStatusTag(status){const tag=el('span','session-status-tag '+(status||'unknown'),({open:'本轮未结束',complete:'本轮已完成',interrupted:'已中断'})[status]||'状态未知');tag.title='依据本机会话记录，不代表进程实时在线状态';return tag}
 // Two-level header: identity and library, then current conversation and utilities.
@@ -236,7 +236,7 @@ function renderNativeLibrary(){
  if(!notes.some(c=>c.id===state.selectedID))baseUpdateState({...state,selectedID:notes[0]?.id||''});
  const rows=$('native-note-list');rows.replaceChildren();
  for(const c of notes){const b=action('',()=>{editing=false;workspaceMode='note';baseUpdateState({...state,selectedID:c.id});renderNativeLibrary()},'native-note'+(c.id===state.selectedID?' selected':''));b.append(el('span','native-note-meta',c.source+' · '+c.date),el('strong','',c.title||'未命名笔记'),el('p','',(c.note||c.body).replace(/!\[[^\]]*\]\([^)]*\)/g,'[图片]').replace(/[#*`\n]/g,' ').slice(0,110)));if(c.review)b.append(el('small','review-badge',reviewLabel(c)));if(c.note)b.append(el('small','','有自己的判断'));rows.append(b)}
- if(!notes.length)rows.append(el('p','native-list-empty',state.query?'没有匹配内容，换个关键词试试。':'这里还没有内容，点击工具栏「留下进展」。'));
+ if(!notes.length)rows.append(el('p','native-list-empty',state.query?'没有匹配内容，换个关键词试试':'这里还没有内容，点击「收录对话」开始'));
  $('workspace').hidden=true;$('reader').hidden=!notes.length||editing;$('editor').hidden=!notes.length||!editing;$('empty').hidden=!!notes.length;$('toolbar-tools').hidden=!notes.length;$('copy-tools').hidden=!notes.length;
  document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===nativeScope));
  if($('native-context-title'))$('native-context-title').textContent=notes.find(c=>c.id===state.selectedID)?.title||'资料库';
@@ -246,7 +246,7 @@ if(document.body.classList.contains('native-app')){
  const home=document.querySelector('[data-nav="home"]');if(home)home.hidden=true;
  const all=document.querySelector('[data-nav="all"]');if(all)all.textContent='最近留下';
  const inbox=document.querySelector('[data-nav="inbox"]');if(inbox){const count=$('inbox-count');inbox.replaceChildren(document.createTextNode('待整理 '),count)}
- document.querySelector('.tagline').textContent='把想清楚的，带到下一次。';
+ document.querySelector('.tagline').textContent='思续，让思考继续';
  workspaceMode='all';
 }
 
@@ -258,7 +258,7 @@ if(document.body.classList.contains('native-app')){
  context.append(title,el('span','native-header-spacer'),$('toolbar-tools'));
  const runtime=el('details','native-runtime-menu');runtime.append(el('summary','','打开到 ↗'));const options=el('div','native-runtime-options');options.append(action('Codex 侧栏',()=>{runtime.open=false;openInCodexSidebar()}),action('Cursor Agents',()=>{runtime.open=false;openInCodexSidebar('cursor')}));runtime.append(options);context.append(runtime);
  controls.append(collection);header.append(controls,context);document.body.prepend(header);
- const capture=action('＋ 留下进展',()=>openSessionPicker(),'native-sidebar-capture');document.querySelector('.tagline').after(capture);
+ const capture=action('收录对话',()=>openSessionPicker(),'native-sidebar-capture');document.querySelector('.tagline').after(capture);
  document.addEventListener('click',event=>{if(!runtime.contains(event.target))runtime.open=false});
 }
 
@@ -274,12 +274,22 @@ if(document.body.classList.contains('native-app')){
  grip.onkeydown=event=>{if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();apply(width+(event.key==='ArrowRight'?16:-16));persist()}};
  window.addEventListener('resize',()=>apply(width));
  const scope=el('select','native-scope');scope.setAttribute('aria-label','筛选笔记');scope.add(new Option('最近留下','all'));scope.add(new Option('待整理','inbox'));scope.onchange=()=>scope.value.startsWith('topic:')?goWorkspace('topic',scope.value.slice(6)):goWorkspace(scope.value);document.querySelector('.native-sidebar-capture').after(scope);
- const carry=action('接着用',()=>openCarry(),'native-carry-entry');scope.after(carry);
+ const carry=action('组合使用',()=>openCarry(),'native-carry-entry');scope.after(carry);
 }
 
 if(document.body.classList.contains('native-app')){
- const brand=document.querySelector('.sidebar .brand');brand.replaceChildren();const wordmark=el('span','session-wordmark');wordmark.append(document.createTextNode('Thread'),el('em','','line'));brand.append(wordmark);
- const filters=el('div','native-filter-row');const scope=document.querySelector('.native-scope'),carry=document.querySelector('.native-carry-entry');scope.before(filters);filters.append(scope,carry);
+ const brand=document.querySelector('.sidebar .brand');brand.replaceChildren(el('span','native-brand-title','Threadline'));
+ const svg=path=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+path+'</svg>';
+ const capture=document.querySelector('.native-sidebar-capture'),carry=document.querySelector('.native-carry-entry'),scope=document.querySelector('.native-scope');
+ capture.innerHTML=svg('<path d="M12 4H6a3 3 0 0 0-3 3v11a3 3 0 0 0 3 3h11a3 3 0 0 0 3-3v-6"/><path d="m10 14 1-4 8-8 3 3-8 8-4 1Z"/>')+'<span>收录对话</span>';
+ carry.innerHTML=svg('<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><path d="M14 7h3v10h-3m3-5h5m-3-3 3 3-3 3"/>')+'<span>组合使用</span>';
+ capture.after(carry);carry.after(scope);
+ const searchbox=document.querySelector('.sidebar .searchbox');searchbox.classList.add('native-search-header');searchbox.hidden=true;brand.after(searchbox);
+ const searchToggle=action('',()=>setNativeSearch(searchbox.hidden),'native-search-toggle');searchToggle.innerHTML=svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>');searchToggle.setAttribute('aria-label','搜索资料库');searchToggle.setAttribute('aria-expanded','false');brand.append(searchToggle);
+ window.setNativeSearch=open=>{searchbox.hidden=!open;searchToggle.setAttribute('aria-expanded',String(open));if(open){$('search').focus()}else{$('search').value='';send('search',{query:''});searchToggle.focus()}};
+ const closeSearch=action('×',()=>setNativeSearch(false),'native-search-close');closeSearch.setAttribute('aria-label','关闭搜索');searchbox.append(closeSearch);
+ $('search').addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();setNativeSearch(false)}});
+ document.addEventListener('keydown',event=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='f'){event.preventDefault();setNativeSearch(true)}});
  document.querySelector('.native-collection-title').setAttribute('aria-label','返回资料库');
 }
 
@@ -315,3 +325,22 @@ let reviewing;
 function openReview(c){reviewing={id:c.id,version:c.version};$('review-status').value=c.review?.status||'outdated';$('review-reason').value='';$('review-error').textContent='';$('review-dialog').showModal()}
 $('review-cancel').onclick=()=>$('review-dialog').close();
 $('review-form').onsubmit=async e=>{e.preventDefault();$('review-save').disabled=true;try{await api('/api/clips/'+reviewing.id+'/review',{method:'POST',body:JSON.stringify({version:reviewing.version,status:$('review-status').value,reason:$('review-reason').value})});$('review-dialog').close();await reload(state.query||'',reviewing.id)}catch(err){$('review-error').textContent=err.message}finally{$('review-save').disabled=false}};
+
+// Describe the actual blank header/brand areas to the native window, including
+// interactive holes. Resize, sidebar collapse, and search all update geometry.
+if(document.body.classList.contains('native-app') && window.webkit?.messageHandlers?.windowChrome){
+ let chromeFrame=0;
+ const publishChrome=()=>{
+  chromeFrame=0;
+  const visible=node=>node && node.getClientRects().length && getComputedStyle(node).visibility!=='hidden';
+  const rect=node=>{const r=node.getBoundingClientRect();return [r.x,r.y,r.width,r.height]};
+  const regions=[document.querySelector('.native-window-header'),document.querySelector('.sidebar>.brand')].filter(visible);
+  const exclusions=regions.flatMap(node=>[...node.querySelectorAll('button,input,select,summary,a')].filter(visible));
+  window.webkit.messageHandlers.windowChrome.postMessage({regions:regions.map(rect),exclusions:exclusions.map(rect)});
+ };
+ const schedule=()=>{if(!chromeFrame)chromeFrame=requestAnimationFrame(publishChrome)};
+ const observer=new ResizeObserver(schedule);
+ for(const node of [document.body,document.querySelector('.native-window-header'),document.querySelector('.sidebar'),document.querySelector('.sidebar>.brand')])if(node)observer.observe(node);
+ new MutationObserver(schedule).observe(document.body,{attributes:true,attributeFilter:['class']});
+ window.addEventListener('resize',schedule);schedule();
+}

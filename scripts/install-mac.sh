@@ -8,7 +8,7 @@ mkdir -p "$THREADLINE_APP/Contents/MacOS" "$THREADLINE_APP/Contents/Resources" d
 cp .build/release/Threadline "$THREADLINE_APP/Contents/MacOS/Threadline"
 swift scripts/make-icon.swift "$PWD/dist/Threadline.iconset"
 iconutil -c icns dist/Threadline.iconset -o "$THREADLINE_APP/Contents/Resources/Threadline.icns"
-cp dist/TrayIcon.png "$THREADLINE_APP/Contents/Resources/TrayIcon.png"
+rm -f "$THREADLINE_APP/Contents/Resources/TrayIcon.png"
 python3 - <<'PY'
 import plistlib,pathlib
 info={'CFBundleName':'Threadline','CFBundleDisplayName':'Threadline','CFBundleIdentifier':'local.rewind.app','CFBundleExecutable':'Threadline','CFBundlePackageType':'APPL','CFBundleShortVersionString':'0.3.0','CFBundleVersion':'3','CFBundleIconFile':'Threadline','LSMinimumSystemVersion':'13.0','NSHighResolutionCapable':True,'NSAppTransportSecurity':{'NSAllowsLocalNetworking':True}}
