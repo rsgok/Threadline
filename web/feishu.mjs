@@ -25,7 +25,7 @@ export function buildDiscussionCard({ title, messages, note = '', page = '' }) {
     body: { direction: 'vertical', padding: '12px', vertical_spacing: '8px', elements: [
       ...(note.trim() ? [{ tag: 'markdown', content: note.trim() }] : []),
       ...messages.map((m, i) => {
-        const role = m.role === 'user' ? '用户' : m.phase === 'commentary' ? 'Codex · 过程' : 'Codex';
+        const role = m.role === 'user' ? '用户' : m.phase === 'commentary' ? 'AI · 过程' : m.runtime==='cursor'?'Cursor':'Codex';
         const text = plain(m.text.split(/\n\s*\n/)[0].replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`#>]/g, ''));
         const excerpt = clip(text || (m.imageCount ? '图片' : '附件'), 36) + (Array.from(text).length > 36 ? '…' : '');
         return { tag: 'collapsible_panel', expanded: false,

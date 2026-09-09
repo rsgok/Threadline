@@ -3,6 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import readline from 'node:readline';
+import { mediaMarkdown } from './session-assets.mjs';
 
 export const THREAD_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const failure = (status, message) => Object.assign(new Error(message), { status });
@@ -59,13 +60,45 @@ function visibleUserText(text) {
   } catch { return text; }
 }
 
-// Select only conversation messages. Tool calls, tool results, developer/system
-// instructions, event mirrors and reasoning records are never exposed.
-export function extractMessages(records, threadID) {
+// Uploaded-image envelopes and input_image blocks describe the same ordered
+// uploads. Prefer the durable block copy at the envelope's original position.
+function userContent(rawText, content, assetCacheDir) {
+  const envelope=/<image\s+name=\[Image #\d+\]\s+path="([^"<>]+)"\s*>\s*<\/image>/g;
+  const uploads=content.filter(block=>block.type==='input_image');
+  const markers=[...rawText.matchAll(envelope)];
+  if (!markers.length || markers.length!==uploads.length) {
+    return [visibleUserText(rawText),mediaMarkdown(content,assetCacheDir)].filter(Boolean).join('\n\n');
+  }
+  let index=0;
+  const consumed=new Set();
+  const text=rawText.replace(envelope,original=>{
+    const block=uploads[index++];
+    const media=mediaMarkdown(block,assetCacheDir);
+    if (!media) return original;
+    consumed.add(block);
+    return '\n\n'+media+'\n\n';
+  });
+  return [visibleUserText(text),mediaMarkdown(content.filter(block=>!consumed.has(block)),assetCacheDir)].filter(Boolean).join('\n\n');
+}
+
+// Codex appends structured memory attribution after the visible answer.
+// Remove only this recognized trailing envelope, never quoted/code examples.
+function visibleAssistantText(text) {
+  return text.replace(/(?:^|\n)\s*<oai-mem-citation>\s*<citation_entries>[\s\S]*?<\/citation_entries>\s*<rollout_ids>[\s\S]*?<\/rollout_ids>\s*<\/oai-mem-citation>\s*$/, '').trimEnd();
+}
+
+// Select conversation messages and explicit media from tool results. Tool text,
+// developer/system instructions, event mirrors and reasoning stay hidden.
+export function extractMessages(records, threadID, { assetCacheDir } = {}) {
   let metadata, turnID = '', sequence = 0, status = 'unknown';
   const messages = new Map();
   for (const record of records) {
-    const p = record.payload || {};
+    let p = record.payload || {};
+    if (record.type === 'response_item' && ['function_call_output', 'custom_tool_call_output', 'image_generation_call'].includes(p.type)) {
+      const media = mediaMarkdown(p, assetCacheDir);
+      if (!media) continue;
+      p = { type: 'message', id: p.id || 'asset-' + hash(threadID + ':' + (p.call_id || record.timestamp || '') + ':' + media).slice(0, 32), role: 'assistant', phase: 'commentary', content: [{ type: 'output_text', text: media }] };
+    }
     if(record.type==='event_msg'){if(p.type==='task_started')status='open';else if(p.type==='task_complete')status='complete';else if(p.type==='turn_aborted')status='interrupted';continue;}
     if (record.type === 'session_meta') { metadata = p; continue; }
     if (record.type === 'turn_context') { turnID = p.turn_id || ''; continue; }
@@ -74,7 +107,7 @@ export function extractMessages(records, threadID) {
     if (p.channel && !['final', 'commentary'].includes(p.channel)) continue;
     const content = Array.isArray(p.content) ? p.content : [];
     const rawText = content.filter(c => ['input_text', 'output_text'].includes(c.type)).map(c => c.text || '').join('\n');
-    const text = p.role === 'user' ? visibleUserText(rawText) : rawText;
+    const text = p.role === 'user' ? userContent(rawText,content,assetCacheDir) : [visibleAssistantText(rawText),mediaMarkdown(content,assetCacheDir)].filter(Boolean).join('\n\n');
     if (!text.trim() || (p.role === 'user' && injected.test(text.trim()))) continue;
     const id = p.id || 'local-' + hash([threadID, p.role, record.timestamp || '', text, sequence++].join('\n')).slice(0, 32);
     let annotations=[];
@@ -88,7 +121,7 @@ export function extractMessages(records, threadID) {
       // Images are explicit embeds. Assistant links are offered for review, never uploaded automatically.
       if (match[1] || p.role === 'assistant') addAttachment(match[2].replace(/:\d+(?::\d+)?$/, ''), match[1] ? 'image' : 'file');
     }
-    messages.set(id, { id, attachments, annotations, role: p.role, phase: p.phase || (p.role === 'assistant' ? 'final' : 'user'), turnID,
+    messages.set(id, { id, attachments, annotations, role: p.role, phase: p.phase || p.channel || (p.role === 'assistant' ? 'final' : 'user'), turnID,
       timestamp: record.timestamp || '', text, hasImages: content.some(c => /image/.test(c.type || '')) || /!\[[^\]]*\]\(/.test(text),
       fingerprint: hash(text + JSON.stringify(attachments)) });
   }
@@ -97,7 +130,8 @@ export function extractMessages(records, threadID) {
 }
 
 export class CodexSessions {
-  constructor(home = process.env.REWIND_CODEX_HOME || process.env.CODEX_HOME || path.join(os.homedir(), '.codex')) {
+  constructor(home = process.env.REWIND_CODEX_HOME || process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), assetCacheDir) {
+    this.assetCacheDir = assetCacheDir;
     this.home = home;
     this.paths = new Map();
   }
@@ -119,10 +153,10 @@ export class CodexSessions {
     for await (const line of lines) {
       try {
         const record = JSON.parse(line);
-        if ((['session_meta', 'turn_context'].includes(record.type) || (record.type === 'event_msg' && ['task_started','task_complete','turn_aborted'].includes(record.payload?.type))) || (record.type === 'response_item' && record.payload?.type === 'message')) records.push(record);
+        if ((['session_meta', 'turn_context'].includes(record.type) || (record.type === 'event_msg' && ['task_started','task_complete','turn_aborted'].includes(record.payload?.type))) || (record.type === 'response_item' && ['message', 'function_call_output', 'custom_tool_call_output', 'image_generation_call'].includes(record.payload?.type))) records.push(record);
       } catch { /* A live session can end with an incomplete final JSONL record. */ }
     }
-    return extractMessages(records, id);
+    return extractMessages(records, id, { assetCacheDir: this.assetCacheDir });
   }
 
   async recent() {

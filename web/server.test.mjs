@@ -353,3 +353,70 @@ test('skill transport is hidden while explicit selection and trailing requests s
   assert.equal(messages[1].text, '继续这个请求');
   assert.ok(messages[2].text.includes('private instructions'));
 });
+
+test('generated media and documents survive source removal, export with portable links and delete with note', async t => {
+  const { request, codexHome, directory } = await fixture(t);
+  const sessions = path.join(codexHome, 'sessions'); fs.mkdirSync(sessions, { recursive: true });
+  const pdf = path.join(directory, 'report.pdf'); fs.writeFileSync(pdf, 'generated report bytes');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aCWQAAAAASUVORK5CYII=', 'base64');
+  const records = [{ type: 'session_meta', payload: { id: threadID } },
+    { type: 'response_item', payload: { type: 'custom_tool_call_output', call_id: 'generate', output: [{ type: 'input_text', text: 'private tool log' }, { type: 'input_image', image_url: 'data:image/png;base64,' + png.toString('base64') }] } },
+    message('document', 'assistant', `[报告](<${pdf}>)`, 'final')];
+  const file = path.join(sessions, `rollout-${threadID}.jsonl`); fs.writeFileSync(file, records.map(JSON.stringify).join('\n'));
+  const normal = (await request('/api/codex/sessions/' + threadID)).data.session;
+  assert.deepEqual(normal.messages.map(m => m.id), ['document']);
+  const session = (await request('/api/codex/sessions/' + threadID + '?progress=1')).data.session;
+  assert.equal(session.messages.length, 2);
+  const payload = { threadID, includeProgress: true, messageIDs: session.messages.map(m => m.id), fingerprints: Object.fromEntries(session.messages.map(m => [m.id, m.fingerprint])) };
+  const imported = await request('/api/codex/import', 'POST', payload);
+  assert.equal(imported.response.status, 201);
+  const clip = imported.data.clip; assert.equal(clip.assets.length, 2); assert.deepEqual(clip.assetWarnings, []);
+  assert.equal((await request('/api/codex/import', 'POST', payload)).data.duplicate, true);
+  const img = clip.assets.find(a => a.kind === 'image');
+  fs.unlinkSync(img.originalPath); fs.unlinkSync(pdf); fs.unlinkSync(file);
+  const preview = await request('/api/local-resource?' + new URLSearchParams({ path: img.originalPath, clip: clip.id, thread: threadID }));
+  assert.equal(preview.response.status, 200); assert.deepEqual(preview.data, png);
+  const exported = await request('/api/export/' + clip.id);
+  assert.equal(exported.response.status, 200);
+  for (const a of clip.assets) assert.ok(exported.data.includes(Buffer.from('attachments/' + a.storedName)));
+  assert.ok(exported.data.includes(Buffer.from('generated report bytes')));
+  assert.ok(exported.data.includes(Buffer.from('![图片](attachments/' + img.storedName + ')')));
+  assert.equal((await request('/api/local-resource?' + new URLSearchParams({ path: '/etc/hosts', clip: clip.id }))).response.status, 404);
+  await request('/api/clips/' + clip.id, 'DELETE');
+  for (const a of clip.assets) assert.equal(fs.existsSync(path.join(directory, 'attachments', a.storedName)), false);
+});
+
+test('reimport upgrades an old reference-only note without duplicating it', async t => {
+  const { request, codexHome, directory } = await fixture(t);
+  const sessions = path.join(codexHome, 'sessions'); fs.mkdirSync(sessions, { recursive: true });
+  const document = path.join(directory, 'old-report.pdf'); fs.writeFileSync(document, 'old report');
+  fs.writeFileSync(path.join(sessions, `rollout-${threadID}.jsonl`), [{ type: 'session_meta', payload: { id: threadID } }, message('old', 'assistant', `[报告](<${document}>)`, 'final')].map(JSON.stringify).join('\n'));
+  const session = (await request('/api/codex/sessions/' + threadID)).data.session;
+  const payload = { threadID, messageIDs: ['old'], fingerprints: { old: session.messages[0].fingerprint } };
+  const clip = (await request('/api/codex/import', 'POST', payload)).data.clip;
+  const store = new LibraryStore(directory);
+  const old = store.get(clip.id);
+  for (const a of old.assets) fs.unlinkSync(path.join(directory, 'attachments', a.storedName));
+  delete old.assets; delete old.assetWarnings;
+  store.put(old); store.close();
+  const updated = (await request('/api/codex/import', 'POST', payload)).data;
+  assert.equal(updated.duplicate, true); assert.equal(updated.clip.id, clip.id); assert.equal(updated.clip.assets.length, 1);
+  assert.equal((await request('/api/library')).data.total, 1);
+});
+
+test('unified sharing previews, stages selected attachments and exports without importing notes', async t => {
+  const { request, codexHome, directory } = await fixture(t);
+  const sessions=path.join(codexHome,'sessions');fs.mkdirSync(sessions,{recursive:true});
+  const file=path.join(directory,'share-report.txt');fs.writeFileSync(file,'share document bytes');
+  fs.writeFileSync(path.join(sessions,`rollout-${threadID}.jsonl`),[{type:'session_meta',payload:{id:threadID}},message('share','assistant',`[文档](<${file}>)`,'final')].map(JSON.stringify).join('\n'));
+  const m=(await request('/api/codex/sessions/'+threadID)).data.session.messages[0];
+  const selection={threadID,messageIDs:[m.id],fingerprints:{[m.id]:m.fingerprint},platform:'export'};
+  const first=await request('/api/share/preview','POST',selection);assert.equal(first.response.status,201);
+  const next=await request('/api/share/preview','POST',{...selection,attachmentIDs:[first.data.attachments[0].id]});
+  const result=await request(`/api/share/jobs/${next.data.id}/export`);assert.equal(result.response.status,200);assert.ok(result.data.includes(Buffer.from('share document bytes')));
+  assert.equal((await request('/api/library')).data.total,0);
+  assert.equal((await request('/api/share/preview','POST',{...selection,fingerprints:{[m.id]:'stale'}})).response.status,409);
+  const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aCWQAAAAASUVORK5CYII=';
+  assert.equal((await request(`/api/share/jobs/${next.data.id}/cards`,'POST',{index:0,total:1,image:'data:image/png;base64,'+png})).response.status,200);
+  const cards=await request(`/api/share/jobs/${next.data.id}/cards`);assert.equal(cards.response.status,200);assert.ok(cards.data.includes(Buffer.from('Threadline-001.png')));
+});

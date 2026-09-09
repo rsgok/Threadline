@@ -6,6 +6,9 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { CodexSessions, THREAD_ID } from './codex-sessions.mjs';
+import { CursorSessions } from './cursor-sessions.mjs';
+import { archiveAssets, portableBody } from './session-assets.mjs';
+import { Sharing } from './sharing.mjs';
 import { LibraryStore } from './storage.mjs';
 import { createFeishu, buildDiscussionCards, discussionAttachments, readSharedAttachment } from './feishu.mjs';
 
@@ -26,7 +29,7 @@ export function markdown(c) {
     ...(c.sourceURL ? ['', `会话链接：${c.sourceURL}`] : []),
     ...(c.review ? ['', '## 核实状态', '', `${c.review.status} · ${c.review.at}`, c.review.reason] : []),
     ...(c.question ? ['', '## 原问题', '', c.question] : []),
-    ...(c.note ? ['', '## 我的备注', '', c.note] : []), '', '## 笔记原文', '', c.body,
+    ...(c.note ? ['', '## 我的备注', '', c.note] : []), '', '## 笔记原文', '', portableBody(c),
     ...(c.attachment ? ['', `![笔记原图](attachments/${path.basename(c.attachment)})`] : []), ''].join('\n');
 }
 
@@ -78,25 +81,38 @@ function parseImage(value) {
   return { data, extension: kind === 'jpeg' ? 'jpg' : kind };
 }
 
-export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome, feishu: feishuOverride } = {}) {
+export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome, cursorHome, feishu: feishuOverride } = {}) {
   fs.mkdirSync(path.join(dataDir, 'attachments'), { recursive: true, mode: 0o700 });
   const store = new LibraryStore(dataDir, legacyDir);
   const publicTopic = t => ({ ...t, version: version(t) });
   const validateTopic = data => {
     if ('topicID' in data && data.topicID && !store.topic(data.topicID)) throw error(400, '这条思路不存在，请刷新后重试。');
   };
-  const codex = new CodexSessions(codexHome);
+  const codex = new CodexSessions(codexHome, path.join(dataDir, 'session-assets'));
+  const cursor = new CursorSessions(cursorHome, path.join(dataDir, 'session-assets'));
+  const provider = runtime => { if (!runtime || runtime==='codex') return codex; if(runtime==='cursor')return cursor; throw error(400,'不支持的 Runtime。'); };
   const feishu = feishuOverride || createFeishu({ dataDir });
   const previews = new Map();
+  const sharing = new Sharing({ dataDir });
   async function selectedDiscussion(data) {
     if (!THREAD_ID.test(data.threadID || '') || !Array.isArray(data.messageIDs) || !data.messageIDs.length || data.messageIDs.length > 100 || new Set(data.messageIDs).size !== data.messageIDs.length) throw error(400, '请选择 1 到 100 条消息。');
-    const session = await codex.get(data.threadID, { includeProgress: data.includeProgress === true });
+    const session = await provider(data.runtime).get(data.threadID, { includeProgress: data.includeProgress === true });
     const selected = session.messages.filter(m => data.messageIDs.includes(m.id));
     if (selected.length !== data.messageIDs.length || !data.fingerprints || selected.some(m => data.fingerprints[m.id] !== m.fingerprint)) throw error(409, '消息已变化，请刷新后重新选择。');
     return { session, selected };
   }
   const publicClip = c => ({ ...c, version: version(c), date: date(c.createdAt), hasImage: !!c.attachment });
   const imagePath = name => path.join(dataDir, 'attachments', path.basename(name));
+
+  function preserveAttachments(clip, selected) {
+    const archived = archiveAssets(selected, dataDir);
+    clip.assets = archived.assets;
+    clip.assetWarnings = archived.warnings;
+    clip.provenance.imagesCopied = selected.some(m => m.hasImages) && !archived.warnings.length && archived.assets.some(a => a.kind === 'image');
+    clip.provenance.filesCopied = archived.assets.length;
+    try { store.put(clip); }
+    catch (err) { for (const a of clip.assets) { try { fs.unlinkSync(imagePath(a.storedName)); } catch {} } throw err; }
+  }
 
   function recognize(id) {
     const original = store.get(id);
@@ -135,7 +151,43 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       if (req.method === 'GET' && pathname === '/favicon.svg') return send(200,fs.readFileSync(path.join(here,'assets','threadline-icon.png')),'image/png');
       if (req.method === 'GET' && pathname === '/health') return send(200, { app: 'rewind-web', version: '0.2.0' });
       if (req.method === 'GET' && pathname === '/') return send(200, fs.readFileSync(path.join(here, 'index.html')), 'text/html; charset=utf-8');
-      if (req.method === 'GET' && ['/threadline.css', '/threadline.js', '/feishu-ui.js', '/feishu.css'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
+      if (req.method === 'GET' && ['/threadline.css', '/buttons.css', '/threadline.js', '/feishu-ui.js', '/feishu.css', '/sharing-ui.js', '/sharing-cards.js', '/sharing.css'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
+      if (pathname.startsWith('/api/share/')) {
+        if (req.headers['sec-fetch-site'] === 'cross-site') throw error(403, '拒绝跨站请求。');
+        if (req.method === 'GET' && pathname === '/api/share/status') return send(200, sharing.status());
+        if (req.method === 'GET' && pathname === '/api/share/channels') return send(200, await sharing.channels(url.searchParams.get('cursor') || ''));
+        if (req.method === 'GET' && pathname === '/api/share/history') return send(200, { jobs: sharing.history() });
+        if (req.method === 'POST' && pathname === '/api/share/connect') return send(200, await sharing.connect(await readJSON(req)));
+        if (req.method === 'POST' && pathname === '/api/share/disconnect') return send(200, sharing.disconnect((await readJSON(req)).platform));
+        if (req.method === 'POST' && pathname === '/api/share/preview') {
+          const data = await readJSON(req), { session, selected } = await selectedDiscussion(data);
+          return send(201, sharing.prepare({ session, selected, platform: data.platform, target: data.target, note: data.note, attachmentIDs: data.attachmentIDs }));
+        }
+        const shareRoute = pathname.match(/^\/api\/share\/jobs\/([a-f0-9-]{36})(?:\/(send|resolve|export|cards|assets)(?:\/([a-f0-9]{24}))?)?$/);
+        if (shareRoute) {
+          const [, id, action, assetId] = shareRoute;
+          if (!action && req.method === 'GET') return send(200, sharing.public(sharing.load(id)));
+          if (action === 'send' && req.method === 'POST') return send(200, await sharing.send(id));
+          if (action === 'resolve' && req.method === 'POST') { const d = await readJSON(req); return send(200, sharing.resolve(id, d.stepId, d.delivered)); }
+          if (action === 'assets' && req.method === 'GET') { const a = sharing.asset(id, assetId); return send(200, a.bytes, a.mime); }
+          if (action === 'export' && req.method === 'GET') { res.setHeader('Content-Disposition', 'attachment; filename="Threadline-share.zip"'); return send(200, zip(sharing.exportEntries(id)), 'application/zip'); }
+          if (action === 'cards' && req.method === 'POST') {
+            const d = await readJSON(req), job = sharing.load(id);
+            if (!Number.isInteger(d.index) || !Number.isInteger(d.total) || d.index < 0 || d.index >= d.total || d.total > 200) throw error(400, '图卡页码无效');
+            if (d.index === 0) job.cardPages = [];
+            const image = parseImage(d.image); if (image.extension !== 'png') throw error(400, '图卡需要 PNG 格式');
+            const file = path.join(path.dirname(sharing.file(id)), 'card-' + d.index + '.png');
+            fs.writeFileSync(file, image.data, { mode: 0o600 }); job.cardCount = d.total; job.cardPages = [...new Set([...(job.cardPages || []), d.index])]; sharing.save(job);
+            return send(200, { saved: true });
+          }
+          if (action === 'cards' && req.method === 'GET') {
+            const job = sharing.load(id); if (!job.cardCount || Array.from({length:job.cardCount}, (_,i)=>i).some(i=>!job.cardPages?.includes(i))) throw error(409, '请先生成完整图卡');
+            const entries = Array.from({length:job.cardCount}, (_,i)=>['Threadline-'+String(i+1).padStart(3,'0')+'.png', fs.readFileSync(path.join(path.dirname(sharing.file(id)), 'card-'+i+'.png'))]);
+            res.setHeader('Content-Disposition', 'attachment; filename="Threadline-cards.zip"'); return send(200, zip(entries), 'application/zip');
+          }
+        }
+        throw error(404, '分享接口不存在');
+      }
       if (pathname === '/api/feishu/status' && req.method === 'GET') return send(200, await feishu.status(url.searchParams.get('refresh') === '1'));
       if (pathname === '/api/feishu/users' && req.method === 'GET') return send(200, await feishu.users(url.searchParams.get('q') || ''));
       if (pathname === '/api/feishu/chats' && req.method === 'GET') return send(200, await feishu.chats((url.searchParams.get('q') || '').slice(0, 100), (url.searchParams.get('page') || '').slice(0, 2000)));
@@ -161,9 +213,9 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
             const associated = attachments.filter(a => a.messageId === m.id);
             for (const a of associated) { body = body.replace(/!?\[[^\]]*\]\(<?([^<>\n]*?)>?\)/g, (raw, dest) => dest === a.path ? '' : raw); body = body.split(a.path).join(a.name); }
             const notes = associated.filter(a => a.kind !== 'image' || !attachmentIDs.includes(a.id)).map(a => `附件：${a.name}（${attachmentIDs.includes(a.id) ? '文件单独发送' : '未发送'}）`);
-            return { ...m, text: [body.trim(), ...notes].filter(Boolean).join('\n\n'), imageCount: chosen.filter(a => a.messageId === m.id && a.kind === 'image').length };
+            return { ...m, runtime:data.runtime||'codex', text: [body.trim(), ...notes].filter(Boolean).join('\n\n'), imageCount: chosen.filter(a => a.messageId === m.id && a.kind === 'image').length };
           });
-          const text = [data.note.trim(), '讨论摘录 · ' + session.title, ...shared.map(m => (m.role === 'user' ? '【我】' : m.phase === 'commentary' ? '【Codex · 过程】' : '【Codex】') + '\n' + m.text)].filter(Boolean).join('\n\n');
+          const text = [data.note.trim(), '讨论摘录 · ' + session.title, ...shared.map(m => (m.role === 'user' ? '【我】' : m.phase === 'commentary' ? '【AI · 过程】' : data.runtime==='cursor'?'【Cursor】':'【Codex】') + '\n' + m.text)].filter(Boolean).join('\n\n');
           for (const [id, p] of previews) if (p.expires < Date.now()) previews.delete(id);
           if (previews.size >= 100) throw error(429, '预览过多，请稍后重试。');
           const id = crypto.randomUUID();
@@ -228,50 +280,65 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         if (!path.isAbsolute(requested) || requested.includes('\0')) throw error(400, '无效的文件路径。');
         const sources = [];
         const thread = url.searchParams.get('thread');
-        if (thread) sources.push(...(await codex.get(thread, {includeProgress:true})).messages.map(m=>m.text));
+
         const clip = store.get(url.searchParams.get('clip') || '');
         if (clip && !clip.deletedAt) sources.push(clip.body || '');
-        const referenced = sources.some(text=>[...text.matchAll(/!?\[[^\]]*\]\((<[^>]+>|[^)]+)\)/g)].some(m=>m[1].replace(/^<|>$/g,'').trim()===requested));
+        const references = text=>[...text.matchAll(/!?\[[^\]]*\]\((<[^>]+>|[^)]+)\)/g)].some(m=>m[1].replace(/^<|>$/g,'').trim().replace(/:\d+(?::\d+)?$/, '')===requested.replace(/:\d+(?::\d+)?$/, ''));
+        if (!sources.some(references) && !clip?.assets?.some(a => a.originalPath === requested) && thread) sources.push(...(await provider(url.searchParams.get('runtime')).get(thread, {includeProgress:true})).messages.map(m=>m.text));
+        const referenced = sources.some(references) || (clip && !clip.deletedAt && clip.assets?.some(a => a.originalPath === requested));
         if (!referenced) throw error(404, '这段内容未引用该文件。');
-        let stat;try {stat=fs.statSync(requested)} catch {throw error(404,'文件已移动或删除。')}
+        const savedAsset = clip && !clip.deletedAt && clip.assets?.find(a => a.originalPath === requested.replace(/:\d+(?::\d+)?$/, ''));
+        const resourcePath = savedAsset ? imagePath(savedAsset.storedName) : requested.replace(/:\d+(?::\d+)?$/, '');
+        let stat;try {stat=fs.statSync(resourcePath)} catch {throw error(404,'文件已移动或删除。')}
         if (req.method === 'POST') {
-          await new Promise((resolve,reject)=>execFile('/usr/bin/open',['-R',requested],err=>err?reject(error(500,'无法在 Finder 中显示文件。')):resolve()));
+          await new Promise((resolve,reject)=>execFile('/usr/bin/open',['-R',resourcePath],err=>err?reject(error(500,'无法在 Finder 中显示文件。')):resolve()));
           return send(200,{ok:true});
         }
-        const mime={'.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.gif':'image/gif'}[path.extname(requested).toLowerCase()];
+        const mime={'.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.gif':'image/gif'}[path.extname(resourcePath).toLowerCase()];
         if (!mime || !stat.isFile() || stat.size>25*1024*1024) throw error(415,'该文件不支持图片预览。');
-        return send(200,fs.readFileSync(requested),mime);
+        return send(200,fs.readFileSync(resourcePath),mime);
       }
-      if (req.method === 'GET' && pathname === '/api/codex/recent') return send(200, { sessions: await codex.recent() });
-      const sessionRoute = pathname.match(/^\/api\/codex\/sessions\/([^/]+)$/);
+      if (req.method === 'GET' && pathname === '/api/sessions/recent') {
+        const results=await Promise.allSettled([codex.recent(),cursor.recent()]);
+        const sessions=results.flatMap((r,i)=>r.status==='fulfilled'?r.value.map(s=>({...s,runtime:i?'cursor':'codex'})):[]);
+        return send(200,{sessions:sessions.sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||'')),
+          errors:results.flatMap((r,i)=>r.status==='rejected'?[{runtime:i?'cursor':'codex',message:r.reason.message}]:[])});
+      }
+      if (req.method === 'GET' && /^\/api\/(codex|cursor)\/recent$/.test(pathname)) return send(200, { sessions: await provider(pathname.split('/')[2]).recent() });
+      const sessionRoute = pathname.match(/^\/api\/(codex|cursor)\/sessions\/([^/]+)$/);
       if (req.method === 'GET' && sessionRoute) {
-        const session = await codex.get(sessionRoute[1], { includeProgress: url.searchParams.get('progress') === '1' });
-        const saved = store.by('provenance.threadID', session.id).flatMap(c=>c.provenance.messages||[]);
+        const session = await provider(sessionRoute[1]).get(sessionRoute[2], { includeProgress: url.searchParams.get('progress') === '1' });
+        session.runtime=sessionRoute[1];
+        const saved = store.by('provenance.threadID', session.id).filter(c=>(c.provenance.runtime||'codex')===session.runtime).flatMap(c=>c.provenance.messages||[]);
         session.messages = session.messages.map(m=>({...m,saved:saved.some(old=>old.id===m.id || (old.fingerprint===m.fingerprint && old.role===m.role) || (m.timestamp && old.timestamp===m.timestamp && old.role===m.role))}));
         return send(200, { session });
       }
-      if (req.method === 'POST' && pathname === '/api/codex/import') {
+      if (req.method === 'POST' && /^\/api\/(codex|cursor)\/import$/.test(pathname)) {
         const data = await readJSON(req);
+        data.runtime=pathname.split('/')[2];
         if (!THREAD_ID.test(data.threadID || '') || !Array.isArray(data.messageIDs) || !data.messageIDs.length || data.messageIDs.length > 100 || data.messageIDs.some(id => typeof id !== 'string')) throw error(400, '请选择 1 到 100 条消息。');
         if (new Set(data.messageIDs).size !== data.messageIDs.length) throw error(400, '消息选择有重复。');
         validateFields(data); validateTopic(data);
-        const session = await codex.get(data.threadID, { includeProgress: data.includeProgress === true });
+        const session = await provider(data.runtime).get(data.threadID, { includeProgress: data.includeProgress === true });
         const selected = session.messages.filter(m => data.messageIDs.includes(m.id));
         if (selected.length !== data.messageIDs.length) throw error(409, '部分消息已变化或不属于这条会话，请刷新后重新选择。');
         if (!data.fingerprints || selected.some(m => data.fingerprints[m.id] !== m.fingerprint)) throw error(409, '消息正文已变化，请刷新预览后重新选择。');
-        const importedKey = crypto.createHash('sha256').update(JSON.stringify([session.id, selected.map(m => [m.id, m.fingerprint])])).digest('hex');
+        const importedKey = crypto.createHash('sha256').update(JSON.stringify([...(data.runtime==='cursor'?['cursor']:[]),session.id, selected.map(m => [m.id, m.fingerprint])])).digest('hex');
         const existing = store.by('codexImportKey', importedKey)[0];
-        if (existing) return send(200, { clip: publicClip(existing), duplicate: true });
+        if (existing) {
+          if (!Array.isArray(existing.assets)) { existing.updatedAt = now(); preserveAttachments(existing, selected); }
+          return send(200, { clip: publicClip(existing), duplicate: true });
+        }
         const body = selected.map(m => `### ${m.role === 'user' ? '我的问题' : m.phase === 'commentary' ? 'AI 过程消息' : 'AI 回答'}${m.timestamp ? ' · ' + m.timestamp.replace('T', ' ').replace(/\.\d+Z$/, ' UTC') : ''}\n\n${m.text}`).join('\n\n---\n\n');
         if (body.length > 2_000_000) throw error(413, '所选消息过长，请分批收藏。');
         const timestamp = now();
         const clip = { id: crypto.randomUUID().toUpperCase(), title: data.title?.trim() || session.title,
-          body, topicID: data.topicID || '', note: data.note || '', question: '', source: 'Codex', sourceURL: `http://${req.headers.host}/?thread=${session.id}&view=import`,
+          body, topicID: data.topicID || '', note: data.note || '', question: '', source: data.runtime==='cursor'?'Cursor':'Codex', sourceURL: `http://${req.headers.host}/?thread=${session.id}&runtime=${data.runtime}&view=import`,
           createdAt: timestamp, updatedAt: timestamp, codexImportKey: importedKey,
-          provenance: { runtime: 'codex', threadID: session.id, threadTitle: session.title, cwd:session.cwd || '', project:session.project || null,
+          provenance: { runtime: data.runtime, threadID: session.id, threadTitle: session.title, cwd:session.cwd || '', project:session.project || null,
             messages: selected.map(m => ({ id: m.id, role: m.role, timestamp: m.timestamp, fingerprint: m.fingerprint })),
             imagesCopied: false, containsImageReferences: selected.some(m => m.hasImages) } };
-        store.put(clip);
+        preserveAttachments(clip, selected);
         return send(201, { clip: publicClip(clip), duplicate: false });
       }
       if (req.method === 'GET' && pathname === '/api/library') {
@@ -318,6 +385,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         }
         if (req.method === 'DELETE') {
           store.remove(existing.id);
+          for (const a of existing.assets || []) { try { fs.unlinkSync(imagePath(a.storedName)); } catch (err) { if (err.code !== 'ENOENT') console.error('Attachment cleanup failed:', err.message); } }
           if(existing.attachment && !store.by('attachment', existing.attachment, false).length) {
             try { fs.unlinkSync(imagePath(existing.attachment)); } catch(err) { if(err.code!=='ENOENT')console.error('Attachment cleanup failed:',err.message); }
           }
@@ -339,6 +407,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         for (const c of selection) {
           const safeTitle = Array.from(c.title.replace(/[\/\\:?%*|"<>\r\n]/g, '-')).slice(0, 24).join('');
           entries.push([`${safeTitle}-${c.id}.md`, Buffer.from(markdown(c))]);
+          for (const a of c.assets || []) entries.push([`attachments/${a.storedName}`, fs.readFileSync(imagePath(a.storedName))]);
           if (c.attachment) entries.push([`attachments/${path.basename(c.attachment)}`, fs.readFileSync(imagePath(c.attachment))]);
         }
         res.setHeader('Content-Disposition', 'attachment; filename="Threadline-export.zip"');
