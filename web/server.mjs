@@ -152,6 +152,13 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       const url = new URL(req.url, origin), pathname = url.pathname;
       if (req.method === 'GET' && pathname === '/assets/threadline-icon.png') return send(200,fs.readFileSync(path.join(here,'assets','threadline-icon.png')),'image/png');
       if (req.method === 'GET' && pathname === '/favicon.svg') return send(200,fs.readFileSync(path.join(here,'assets','threadline-icon.png')),'image/png');
+      if (req.method === 'POST' && pathname === '/api/app/open') {
+        if (process.platform !== 'darwin') throw error(400, '此入口用于打开 Mac 应用');
+        const app = [path.join(os.homedir(), 'Applications/Threadline.app'), '/Applications/Threadline.app'].find(file => fs.existsSync(file));
+        if (!app) throw error(404, '尚未安装 Threadline 应用，请先运行安装脚本');
+        await new Promise((resolve, reject) => execFile('/usr/bin/open', [app], err => err ? reject(error(500, '无法打开 Threadline 应用')) : resolve()));
+        return send(200, { opened: true });
+      }
       if (req.method === 'GET' && pathname === '/health') return send(200, { app: 'rewind-web', version: '0.2.0' });
       if (req.method === 'GET' && pathname === '/') return send(200, fs.readFileSync(path.join(here, 'index.html')), 'text/html; charset=utf-8');
       if (req.method === 'GET' && pathname === '/api/share/card-themes') return send(200, { themes: cardThemes });

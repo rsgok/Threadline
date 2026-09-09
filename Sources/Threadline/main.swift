@@ -27,6 +27,7 @@ final class ThreadlineWindow: NSWindow {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate, WKScriptMessageHandler, NSToolbarDelegate {
+    var statusItem: NSStatusItem?
     var window: NSWindow!
     var web: WKWebView!
     var hotKeys: [EventHotKeyRef] = []
@@ -71,6 +72,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             return self.dragRegions.contains { $0.contains(cssPoint) }
                 && !self.dragExclusions.contains { $0.contains(cssPoint) }
         }
+        // Use the same full-color artwork as the app, including its original background.
+        let status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        let artwork = Bundle.main.url(forResource: "TrayIcon", withExtension: "png").flatMap { NSImage(contentsOf: $0) } ?? NSApp.applicationIconImage
+        artwork?.size = NSSize(width: 20, height: 20)
+        artwork?.isTemplate = false
+        status.button?.image = artwork
+        status.button?.toolTip = "Threadline · 思续"
+        status.button?.setAccessibilityLabel("Threadline")
+        let statusMenu = menu.copy() as! NSMenu
+        statusMenu.addItem(.separator())
+        statusMenu.addItem(withTitle: "退出 Threadline", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        status.menu = statusMenu
+        statusItem = status
         registerKeys();show();connect(attempt:0)
     }
     func toolbarAllowedItemIdentifiers(_ toolbar:NSToolbar)->[NSToolbarItem.Identifier]{toolbarDefaultItemIdentifiers(toolbar)}
