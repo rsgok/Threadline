@@ -1,4 +1,5 @@
 import { cardThemes } from './card-themes.mjs';
+import { serveFrontend } from './frontend.mjs';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -85,7 +86,7 @@ function parseImage(value) {
   return { data, extension: kind === 'jpeg' ? 'jpg' : kind };
 }
 
-export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome, cursorHome, feishu: feishuOverride } = {}) {
+export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome, cursorHome, feishu: feishuOverride, frontendDir = path.resolve(here, '../build/client') } = {}) {
   fs.mkdirSync(path.join(dataDir, 'attachments'), { recursive: true, mode: 0o700 });
   const store = new LibraryStore(dataDir, legacyDir);
   const relations = new ThoughtRelations(store);
@@ -177,9 +178,8 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       if (req.method === 'GET' && pathname === '/health') return send(200, { app: 'rewind-web', version: '0.2.0' });
       if (req.method === 'GET' && ['/landing', '/landing/', '/landing.html'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, 'landing.html')), 'text/html; charset=utf-8');
       if (req.method === 'GET' && ['/landing.css', '/landing.js'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
-      if (req.method === 'GET' && pathname === '/') return send(200, fs.readFileSync(path.join(here, 'index.html')), 'text/html; charset=utf-8');
+      if (serveFrontend(req, res, url, frontendDir)) return;
       if (req.method === 'GET' && pathname === '/api/share/card-themes') return send(200, { themes: cardThemes });
-      if (req.method === 'GET' && ['/thoughts-ui.js', '/i18n.js', '/i18n-catalog.js', '/threadline.css', '/buttons.css', '/threadline.js', '/feishu-ui.js', '/feishu.css', '/sharing-ui.js', '/sharing.css'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
       if (pathname.startsWith('/api/share/')) {
         if (req.headers['sec-fetch-site'] === 'cross-site') throw error(403, '拒绝跨站请求。');
         if (req.method === 'GET' && pathname === '/api/share/status') return send(200, sharing.status());
@@ -471,4 +471,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const port = Number(process.env.REWIND_WEB_PORT || 43127);
   server.on('error', err => { console.error(err.message); process.exitCode = 1; });
   server.listen(port, '127.0.0.1', () => console.log(`Rewind: http://127.0.0.1:${port}`));
+  const stop = () => { server.close(() => process.exit(0)); server.closeIdleConnections(); };
+  process.once('SIGTERM', stop);
+  process.once('SIGINT', stop);
 }

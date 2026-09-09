@@ -1,0 +1,227 @@
+/* React owns page composition; shared modal geometry and buttons remain in web/. */
+.boot-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+}
+body.react-app {
+  overflow: hidden;
+}
+body.react-app .route-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+body.react-app .workspace.route-scroll {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px clamp(20px, 4vw, 56px);
+}
+body.react-app.managing-topics .main > .workspace {
+  display: block !important;
+}
+body.react-app .settings-page {
+  position: static;
+  inset: auto;
+  width: 100%;
+  padding: 0;
+}
+body.react-app .note-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 24px;
+  flex-shrink: 0;
+}
+body.react-app .editor.route-scroll {
+  width: 100%;
+}
+.reading-spacer {
+  height: 24px;
+}
+.reading .article {
+  margin: 18px 0;
+}
+.article pre {
+  overflow: auto;
+  padding: 16px;
+  background: #f1f3ed;
+  border-radius: 8px;
+}
+.article pre code {
+  padding: 0;
+  background: transparent;
+  font:
+    12px/1.8 ui-monospace,
+    monospace;
+}
+.article table {
+  display: block;
+  max-width: 100%;
+  overflow: auto;
+  border-collapse: collapse;
+}
+.article th,
+.article td {
+  border: 1px solid var(--line);
+  padding: 7px 12px;
+}
+.markdown-image-content {
+  display: block;
+  max-width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+}
+.image-unavailable {
+  min-height: 28px;
+}
+.message-collapse {
+  max-height: 250px;
+  overflow: hidden;
+  mask-image: linear-gradient(#000 75%, transparent);
+}
+.message-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+.native-note {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+.native-list-head .searchbox {
+  margin: 8px 0;
+}
+.manual-capture {
+  margin: 10px 0;
+  flex-shrink: 0;
+}
+.selection-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+body.react-app #session-view .session-back {
+  margin: 0;
+  flex-shrink: 0;
+}
+body.react-app #session-view .session-top h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+body.react-app .react-notice {
+  display: flex;
+  gap: 12px;
+  z-index: 100;
+}
+.carry-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 0;
+}
+.carry-row input {
+  flex-shrink: 0;
+}
+.platform-connection input {
+  width: 100%;
+}
+.platform-connection label {
+  display: grid;
+  gap: 6px;
+}
+body.react-app .annotation-popover {
+  position: static;
+  display: block;
+  margin: 12px 0;
+}
+body.react-app .panel-header {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  body.react-app .app {
+    display: flex;
+    height: 100dvh;
+  }
+  body.react-app .sidebar,
+  body.react-app .native-window-header,
+  body.react-app .native-resizer {
+    display: none;
+  }
+  body.react-app .main {
+    width: 100%;
+    height: 100dvh;
+    padding-top: 0;
+  }
+  body.react-app .panel-header {
+    display: flex;
+    flex-shrink: 0;
+    gap: 8px;
+    min-height: 54px;
+    padding: 8px 12px;
+  }
+  body.react-app .panel-navigation {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+  }
+  body.react-app #session-view .session-top {
+    padding: 16px 18px;
+  }
+  body.react-app #session-view .session-messages {
+    padding: 14px;
+  }
+  body.react-app #session-view .message-card {
+    padding: 14px;
+  }
+  body.react-app .note-toolbar {
+    padding: 6px 12px;
+  }
+  body.react-app .topic-management-row {
+    flex-wrap: wrap;
+  }
+  body.react-app .topic-management-row > div {
+    flex-basis: 100%;
+  }
+  body.react-app .reading {
+    padding: 20px;
+  }
+}
+html[data-surface="panel"] body.react-app .app {
+  display: flex;
+  height: 100dvh;
+}
+html[data-surface="panel"]
+  body.react-app
+  :is(.sidebar, .native-window-header, .native-resizer) {
+  display: none;
+}
+html[data-surface="panel"] body.react-app .main {
+  width: 100%;
+  height: 100dvh;
+  padding-top: 0;
+}
+html[data-surface="panel"] body.react-app .panel-header {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  min-height: 54px;
+  padding: 8px 12px;
+}
+html[data-surface="panel"] body.react-app .panel-navigation {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+body.react-app.collecting .native-window-header {
+  width: var(--native-sidebar-width, 300px);
+}
+body.react-app.collecting .native-context-header {
+  display: none;
+}

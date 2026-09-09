@@ -1,6 +1,6 @@
 # Modal implementation contract
 
-Existing owners: `web/threadline.css` (Shared modal system), `setupModal()` in `web/threadline.js`, and `web/buttons.css` (button appearance)
+Existing owners: `web/threadline.css` (Shared modal system), `Modal` in `app/components/modal.tsx`, `setupModal()` in `app/lib/modal.ts`, and `web/buttons.css` (button appearance)
 
 New dialogs must use the existing surface and content structure:
 
@@ -17,7 +17,7 @@ New dialogs must use the existing surface and content structure:
 </dialog>
 ```
 
-- Call `setupModal(dialog, { canDismiss })`; it adds `modal-surface` and provides backdrop/Escape dismissal behavior
+- Use the shared React `Modal` component, which calls `setupModal(dialog, { canDismiss, dismiss })`; it adds `modal-surface` and provides backdrop/Escape dismissal behavior
 - Do not add the legacy `compact-dialog` class to new dialogs
 - Shared styles own centering, viewport margins, radius, backdrop, padding, typography, fields, keyboard focus and action appearance
 - Set `--modal-width` only when the content needs a different width; default is 560px. Do not introduce another width variable or override the surface geometry

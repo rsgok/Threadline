@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-bash scripts/start-web.sh
+bash scripts/start-web.sh --restart
 swift build -c release --product Threadline
 THREADLINE_APP="$PWD/dist/Threadline.app"
 mkdir -p "$THREADLINE_APP/Contents/MacOS" "$THREADLINE_APP/Contents/Resources" dist/Threadline.iconset
