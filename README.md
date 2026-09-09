@@ -139,3 +139,7 @@ See [local data and backups](docs/local-data.md) for storage details, attachment
 Bug reports, workflow feedback, and focused pull requests are welcome. [Open an issue](https://github.com/rsgok/Threadline/issues) with the behavior you expected, what happened, and steps to reproduce it. Use sample conversations when reporting a problem.
 
 Before changing the app, read [AGENTS.md](AGENTS.md) and the [development guide](docs/development.md). Keep the English and Chinese READMEs aligned when changing product claims or installation instructions.
+
+## License
+
+Threadline is licensed under the [Apache License 2.0](LICENSE). Third-party dependencies retain their respective licenses.

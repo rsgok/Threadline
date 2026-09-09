@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {EventEmitter} from 'node:events';
+import {PassThrough} from 'node:stream';
+import {LibraryStore} from './storage.mjs';
+import {ThoughtRelations} from './thought-relations.mjs';
+import {ThoughtAnalysis} from './thought-analysis.mjs';
+function fixture(t){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'thought-run-test-')),store=new LibraryStore(dir),relations=new ThoughtRelations(store);store.putTopic({id:'t',title:'Topic'});for(const id of ['a','b'])store.put({id,title:id,body:id+' evidence',topicID:'t'});const children=[];const runner=new ThoughtAnalysis(relations,{spawnProcess:(binary,args,options)=>{const child=new EventEmitter();child.stdin=new PassThrough();child.kill=()=>{child.killed=true};children.push({child,binary,args,options});return child}});t.after(()=>{runner.close();store.close();fs.rmSync(dir,{recursive:true,force:true})});return {store,relations,runner,children};}
+const relation={from:'a',to:'b',type:'related',reason:'Same topic',fromQuote:'a evidence',toQuote:'b evidence'};
+test('one-click analysis deduplicates running jobs and validates suggestions before completion',t=>{const {runner,relations,children}=fixture(t),job=runner.start('t');assert.equal(job.status,'running');assert.equal(runner.start('t').id,job.id);assert.equal(children.length,1);const {child,args,options}=children[0];assert.ok(args.includes('read-only'));assert.ok(args.includes('--ignore-user-config'));assert.ok(!child.stdin.read().toString().includes('undefined'));const output=args[args.indexOf('--output-last-message')+1];fs.writeFileSync(output,JSON.stringify({relations:[relation]}));child.emit('close',0);assert.equal(relations.get(job.id).status,'completed');assert.equal(relations.list('t')[0].status,'suggested');assert.equal(fs.existsSync(options.cwd),false);});
+test('changed evidence is rejected and missing Codex becomes a retryable failure',t=>{const {runner,relations,store,children}=fixture(t),job=runner.start('t'),{child,args}=children[0];store.put({...store.get('a'),body:'changed'});fs.writeFileSync(args[args.indexOf('--output-last-message')+1],JSON.stringify({relations:[relation]}));child.emit('close',0);assert.equal(relations.get(job.id).status,'failed');assert.equal(relations.list('t').length,0);const next=runner.start('t');children[1].child.emit('error',Error('ENOENT'));children[1].child.emit('close',-2);assert.equal(relations.get(next.id).error,'unavailable');});
+test('server shutdown stops running analysis and startup marks interrupted jobs',t=>{const {runner,relations,children}=fixture(t),job=runner.start('t');runner.close();assert.equal(children[0].child.killed,true);assert.equal(relations.get(job.id).error,'interrupted');const pending=relations.create('t');relations.save('thought_analysis',{...pending,status:'running'});new ThoughtAnalysis(relations);assert.equal(relations.get(pending.id).error,'interrupted');});

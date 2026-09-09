@@ -12,6 +12,7 @@ import { archiveAssets, portableBody } from './session-assets.mjs';
 import { Sharing } from './sharing.mjs';
 import { CardRenderer } from './card-renderer.mjs';
 import { ThoughtRelations } from './thought-relations.mjs';
+import { ThoughtAnalysis } from './thought-analysis.mjs';
 import { LibraryStore } from './storage.mjs';
 import { createFeishu, buildDiscussionCards, discussionAttachments, readSharedAttachment } from './feishu.mjs';
 
@@ -88,6 +89,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
   fs.mkdirSync(path.join(dataDir, 'attachments'), { recursive: true, mode: 0o700 });
   const store = new LibraryStore(dataDir, legacyDir);
   const relations = new ThoughtRelations(store);
+  const analysis = new ThoughtAnalysis(relations);
   const publicTopic = t => ({ ...t, version: version(t) });
   const validateTopic = data => {
     if ('topicID' in data && data.topicID && !store.topic(data.topicID)) throw error(400, '这条思路不存在，请刷新后重试。');
@@ -152,6 +154,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       if (req.headers.origin && req.headers.origin !== origin) throw error(403, '拒绝跨站请求。');
       if (!['GET', 'HEAD'].includes(req.method) && req.headers['x-rewind-request'] !== '1') throw error(403, '请求缺少本机页面标记。');
       const url = new URL(req.url, origin), pathname = url.pathname;
+      if (req.method === 'GET' && ['/assets/landing-collect.png', '/assets/landing-library.png'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname)), 'image/png');
       if (req.method === 'GET' && ['/assets/threadline-icon.png','/assets/user-avatar.png','/assets/codex-avatar.png','/assets/cursor-avatar.png'].includes(pathname)) return send(200,fs.readFileSync(path.join(here,pathname)),'image/png');
       if (req.method === 'GET' && pathname === '/favicon.svg') return send(200,fs.readFileSync(path.join(here,'assets','threadline-icon.png')),'image/png');
       if (req.method === 'POST' && pathname === '/api/app/open') {
@@ -161,10 +164,11 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         await new Promise((resolve, reject) => execFile('/usr/bin/open', [app], err => err ? reject(error(500, '无法打开 Threadline 应用')) : resolve()));
         return send(200, { opened: true });
       }
-      const relationsRoute=pathname.match(/^\/api\/thoughts\/([^/]+)\/(relations|analyze)$/);
+      const relationsRoute=pathname.match(/^\/api\/thoughts\/([^/]+)\/(relations|analyze|prepare)$/);
       if(relationsRoute && req.method==='POST' && relationsRoute[2]==='relations') return send(201,{relation:relations.manual(relationsRoute[1],await readJSON(req))});
-      if(relationsRoute && req.method==='GET' && relationsRoute[2]==='relations') return send(200,{relations:relations.list(relationsRoute[1])});
-      if(relationsRoute && req.method==='POST' && relationsRoute[2]==='analyze') return send(201,{job:relations.create(relationsRoute[1]),cliPath:fs.existsSync(path.join(here,'plugins/threadline/scripts/threadline.mjs'))?path.join(here,'plugins/threadline/scripts/threadline.mjs'):path.join(here,'../plugins/threadline/scripts/threadline.mjs')});
+      if(relationsRoute && req.method==='GET' && relationsRoute[2]==='relations') return send(200,{relations:relations.list(relationsRoute[1]),job:analysis.latest(relationsRoute[1])});
+      if(relationsRoute && req.method==='POST' && relationsRoute[2]==='analyze') return send(202,{job:analysis.start(relationsRoute[1])});
+      if(relationsRoute && req.method==='POST' && relationsRoute[2]==='prepare') return send(201,{job:relations.create(relationsRoute[1])});
       const analysisRoute=pathname.match(/^\/api\/analysis\/([^/]+)$/);
       if(analysisRoute && req.method==='GET') return send(200,relations.input(analysisRoute[1]));
       if(analysisRoute && req.method==='POST') return send(200,{job:relations.submit(analysisRoute[1],(await readJSON(req)).relations)});
@@ -457,7 +461,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       throw error(404, '页面不存在。');
     } catch (err) { if (!res.headersSent) send(err.status || 500, { error: err.status ? err.message : '本机保存或读取失败，原数据未被清空。' }); }
   });
-  server.on('close', () => { feishu.close?.(); store.close(); });
+  server.on('close', () => { analysis.close(); feishu.close?.(); store.close(); });
   server.on('close', () => cardRenderer.close());
   return server;
 }

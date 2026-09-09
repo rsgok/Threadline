@@ -139,3 +139,7 @@ bash scripts/install-skill.sh
 欢迎提交问题、使用反馈和范围明确的 Pull Request。[创建 Issue](https://github.com/rsgok/Threadline/issues) 时，请描述预期行为、实际结果和复现步骤，并使用示例对话说明问题
 
 修改应用前，请先阅读 [AGENTS.md](AGENTS.md) 和[开发指南](docs/development.md)。调整产品说明或安装步骤时，请同步维护中英文 README
+
+## 许可证
+
+Threadline 采用 [Apache License 2.0](LICENSE) 许可证，第三方依赖保留各自的许可证
