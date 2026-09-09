@@ -47,10 +47,25 @@ export class ThoughtRelations {
     }catch(e){this.store.db.exec('ROLLBACK');throw e;}
     return this.get(id);
   }
+  manual(topicID,data,id=null) {
+    if(!this.store.topic(topicID))fail('Thought not found',404);
+    const notes=new Map(this.notes(topicID).map(n=>[n.id,n]));
+    if(!data||!notes.has(data.from)||!notes.has(data.to)||data.from===data.to||!['supports','extends','contradicts','related'].includes(data.type))fail('Select two different conversations and a relation type');
+    for(const k of ['reason','fromQuote','toQuote'])if(typeof data[k]!=='string'||!data[k].trim()||data[k].length>2000)fail('Reason and exact source quotes are required');
+    if(!notes.get(data.from).body.includes(data.fromQuote)||!notes.get(data.to).body.includes(data.toQuote))fail('Quotes must exist in the original conversations');
+    const versions=Object.fromEntries([data.from,data.to].map(id=>[id,this.fingerprint(notes.get(id))]));
+    const records=this.records('thought_relations'),old=id?records.find(r=>r.id===id&&r.topicID===topicID):null;
+    if(id&&!old)fail('Relation not found',404);
+    if(old&&data.revision!==(old.revision||0))fail('Relation changed; refresh before editing',409);
+    const duplicate=records.find(r=>r.id!==id&&r.topicID===topicID&&r.from===data.from&&r.to===data.to&&r.type===data.type&&r.status!=='dismissed'&&r.versions[data.from]===versions[data.from]&&r.versions[data.to]===versions[data.to]);
+    if(duplicate)fail('This relation already exists; edit the existing relation',409);
+    const key=id||digest([topicID,data.from,data.to,data.type,versions[data.from],versions[data.to]]);
+    return this.save('thought_relations',{...old,id:key,topicID,from:data.from,to:data.to,type:data.type,reason:data.reason,fromQuote:data.fromQuote,toQuote:data.toQuote,versions,status:'confirmed',origin:'manual',revision:(old?.revision||0)+1,createdAt:old?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()});
+  }
   review(id,status) {
     if(!['confirmed','dismissed'].includes(status))fail('Invalid review status');
     const r=this.records('thought_relations').find(r=>r.id===id);if(!r)fail('Relation not found',404);
     if(status==='confirmed'&&!this.list(r.topicID).some(x=>x.id===id&&!x.stale))fail('Source changed; analyze again',409);
-    return this.save('thought_relations',{...r,status});
+    return this.save('thought_relations',{...r,status,revision:(r.revision||0)+1});
   }
 }

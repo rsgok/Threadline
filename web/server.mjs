@@ -162,13 +162,14 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         return send(200, { opened: true });
       }
       const relationsRoute=pathname.match(/^\/api\/thoughts\/([^/]+)\/(relations|analyze)$/);
+      if(relationsRoute && req.method==='POST' && relationsRoute[2]==='relations') return send(201,{relation:relations.manual(relationsRoute[1],await readJSON(req))});
       if(relationsRoute && req.method==='GET' && relationsRoute[2]==='relations') return send(200,{relations:relations.list(relationsRoute[1])});
       if(relationsRoute && req.method==='POST' && relationsRoute[2]==='analyze') return send(201,{job:relations.create(relationsRoute[1]),cliPath:fs.existsSync(path.join(here,'plugins/threadline/scripts/threadline.mjs'))?path.join(here,'plugins/threadline/scripts/threadline.mjs'):path.join(here,'../plugins/threadline/scripts/threadline.mjs')});
       const analysisRoute=pathname.match(/^\/api\/analysis\/([^/]+)$/);
       if(analysisRoute && req.method==='GET') return send(200,relations.input(analysisRoute[1]));
       if(analysisRoute && req.method==='POST') return send(200,{job:relations.submit(analysisRoute[1],(await readJSON(req)).relations)});
       const relationRoute=pathname.match(/^\/api\/relations\/([a-f0-9]{64})$/);
-      if(relationRoute && req.method==='PUT') return send(200,{relation:relations.review(relationRoute[1],(await readJSON(req)).status)});
+      if(relationRoute && req.method==='PUT'){const data=await readJSON(req);return send(200,{relation:data.status?relations.review(relationRoute[1],data.status):relations.manual(data.topicID,data,relationRoute[1])});}
       if (req.method === 'GET' && pathname === '/health') return send(200, { app: 'rewind-web', version: '0.2.0' });
       if (req.method === 'GET' && ['/landing', '/landing/', '/landing.html'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, 'landing.html')), 'text/html; charset=utf-8');
       if (req.method === 'GET' && ['/landing.css', '/landing.js'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');

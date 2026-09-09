@@ -18,3 +18,18 @@ test('relation jobs validate evidence, preserve review, reject stale sources and
  store.remove('b');assert.equal(service.list('t').length,0);
  }finally{store.close();fs.rmSync(dir,{recursive:true,force:true});}
 });
+test('manual edits confirm suggestions, guard concurrent changes and resist AI overwrite',()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'thought-manual-'));const store=new LibraryStore(dir);
+ try{
+  store.putTopic({id:'t',title:'Topic',goal:''});for(const [id,body]of [['a','First evidence'],['b','Second evidence']])store.put({id,title:id,body,topicID:'t'});
+  const service=new ThoughtRelations(store),data={from:'a',to:'b',type:'related',reason:'Same question',fromQuote:'First',toQuote:'Second'};
+  const r=service.manual('t',data);assert.equal(r.status,'confirmed');assert.equal(r.origin,'manual');
+  assert.throws(()=>service.manual('t',data),/already exists/);
+  const edited=service.manual('t',{...data,reason:'User clarification',revision:r.revision},r.id);
+  assert.throws(()=>service.manual('t',{...data,revision:r.revision},r.id),/changed/);
+  const job=service.create('t');service.submit(job.id,[data]);assert.equal(service.list('t')[0].reason,'User clarification');
+  service.review(r.id,'dismissed');assert.throws(()=>service.manual('t',{...data,revision:edited.revision},r.id),/changed/);
+  assert.throws(()=>service.manual('t',{...data,fromQuote:'invented'}),/Quotes/);
+  assert.throws(()=>service.manual('t',{...data,to:'a'}),/different/);
+ }finally{store.close();fs.rmSync(dir,{recursive:true,force:true});}
+});
