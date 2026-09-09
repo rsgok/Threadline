@@ -124,9 +124,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let options:[String:(String,String,Selector)]=["captureProgress":("收录对话","plus.bubble",#selector(progress)),"library":("资料库","books.vertical",#selector(library)),"search":("搜索","magnifyingglass",#selector(search)),"cursor":("Cursor Agents","link",#selector(openInCursor)),"codex":("在 Codex 打开","sidebar.right",#selector(openInCodex))]
         guard let option=options[id.rawValue] else{return nil};item.label=tr(option.0);item.toolTip=tr(option.0);item.image=NSImage(systemSymbolName:option.1,accessibilityDescription:option.0);item.target=self;item.action=option.2;return item
     }
-    @objc func languageSettings(){show();web.evaluateJavaScript("openLanguageSettings()") }
-    @objc func progress(){show();web.evaluateJavaScript("openSessionPicker()")}
-    @objc func library(){show();web.evaluateJavaScript("if(!sessionSaving){document.getElementById('save-session-dialog').close();hideSessionView();goWorkspace('all')}")}
+    @objc func languageSettings(){show();web.evaluateJavaScript("window.Threadline?.settings()") }
+    @objc func progress(){show();web.evaluateJavaScript("window.Threadline?.collect()")}
+    @objc func library(){show();web.evaluateJavaScript("window.Threadline?.library()")}
     func connect(attempt:Int){
         var request=URLRequest(url:base.appendingPathComponent("health"));request.timeoutInterval=1
         URLSession.shared.dataTask(with:request){data,response,_ in
@@ -140,10 +140,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         }.resume()
     }
     @objc func show(){window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
-    @objc func search(){show();web.evaluateJavaScript("focusSessionSearch()")}
-    @objc func capture(){show();let text=NSPasteboard.general.string(forType:.string) ?? "";let data=try! JSONSerialization.data(withJSONObject:[text]);let argument=String(data:data,encoding:.utf8)!;web.evaluateJavaScript("openCapture();document.getElementById('capture-body').value=\(argument)[0]")}
-    @objc func openInCodex(){web.evaluateJavaScript("openInCodexSidebar()")}
-    @objc func openInCursor(){web.evaluateJavaScript("openInCodexSidebar(\"cursor\")")}
+    @objc func search(){show();web.evaluateJavaScript("window.Threadline?.search()")}
+    @objc func capture(){show();let text=NSPasteboard.general.string(forType:.string) ?? "";let data=try! JSONSerialization.data(withJSONObject:[text]);let argument=String(data:data,encoding:.utf8)!;web.evaluateJavaScript("window.Threadline?.capture(\(argument)[0])")}
+    @objc func openInCodex(){web.evaluateJavaScript("window.Threadline?.openInRuntime('codex')")}
+    @objc func openInCursor(){web.evaluateJavaScript("window.Threadline?.openInRuntime('cursor')")}
     func userContentController(_ userContentController:WKUserContentController,didReceive message:WKScriptMessage){
         if message.name == "language" {
             guard message.frameInfo.isMainFrame,

@@ -12,3 +12,7 @@ node_modules/
 
 # Browser automation snapshots may contain local conversations
 .playwright-cli/
+build/
+.react-router/
+playwright-report/
+test-results/

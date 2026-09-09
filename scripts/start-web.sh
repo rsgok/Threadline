@@ -2,30 +2,32 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 node -e 'require("node:sqlite")' || { printf "Threadline requires Node.js 22.13+ with node:sqlite.\n" >&2; exit 1; }
-if [ ! -d node_modules/@larksuiteoapi/node-sdk ] || [ ! -d node_modules/qrcode ] || [ ! -d node_modules/playwright-core ] || [ ! -d node_modules/markdown-it ] || [ ! -d node_modules/@fontsource-variable/noto-sans-sc ] || [ ! -d node_modules/@fontsource/jetbrains-mono ]; then
-  npm ci --omit=dev
+if [ ! -d node_modules/@react-router/dev ]; then
+  npm ci
 fi
+npm run build
 if curl -fsS http://127.0.0.1:43127/health 2>/dev/null | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("app")=="rewind-web" else 1)' 2>/dev/null; then
-  printf 'Rewind is running: http://127.0.0.1:43127\n'
-  exit 0
+  if [ "${1:-}" != "--restart" ]; then
+    printf 'Rewind is running: http://127.0.0.1:43127\n'
+    exit 0
+  fi
+  # The new native bridge and frontend must be installed together.
+  launchctl bootout "gui/$(id -u)/local.rewind.web"
+
 fi
 if [ "$(uname)" = "Darwin" ]; then
+  node scripts/package-runtime.mjs "$HOME/Library/Application Support/RewindWeb/app"
   REWIND_NODE="$(command -v node)" REWIND_ROOT="$PWD" python3 - <<'PY'
-import os, pathlib, plistlib, shutil
+import os, pathlib, plistlib
 root = pathlib.Path.home()
 folder = root / 'Library/LaunchAgents'
 folder.mkdir(parents=True, exist_ok=True)
 (root / 'Library/Logs').mkdir(parents=True, exist_ok=True)
 app = root / 'Library/Application Support/RewindWeb/app'
 app.mkdir(parents=True, exist_ok=True)
-for name in ['thought-relations.mjs', 'thought-analysis.mjs', 'thoughts-ui.js', 'i18n.js', 'i18n-catalog.js', 'sharing.mjs', 'sharing-ui.js', 'card-themes.mjs', 'card-renderer.mjs', 'card-worker.mjs', 'card-template.mjs', 'card-template.css', 'card-layout.js', 'sharing.css', 'session-assets.mjs', 'storage.mjs', 'server.mjs', 'index.html', 'ocr.swift', 'codex-sessions.mjs', 'cursor-sessions.mjs', 'threadline.css', 'buttons.css', 'threadline.js', 'feishu.mjs', 'feishu-ui.js', 'feishu.css']:
-    shutil.copy2(pathlib.Path(os.environ['REWIND_ROOT']) / 'web' / name, app / name)
-shutil.copytree(pathlib.Path(os.environ['REWIND_ROOT']) / 'plugins', app / 'plugins', dirs_exist_ok=True)
-shutil.copytree(pathlib.Path(os.environ['REWIND_ROOT']) / 'web/assets', app / 'assets', dirs_exist_ok=True)
-shutil.copytree(pathlib.Path(os.environ['REWIND_ROOT']) / 'node_modules', app / 'node_modules', dirs_exist_ok=True)
 config = {
     'Label': 'local.rewind.web',
-    'ProgramArguments': [os.environ['REWIND_NODE'], str(app / 'server.mjs')],
+    'ProgramArguments': [os.environ['REWIND_NODE'], str(app / 'web/server.mjs')],
     'WorkingDirectory': str(app),
     'RunAtLoad': False,
     'KeepAlive': False,

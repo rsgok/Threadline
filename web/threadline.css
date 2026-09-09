@@ -388,7 +388,7 @@ body.native-app #session-view.modal-surface .session-shell { width: 100%; max-wi
 
 /* The collection workspace lives in the main grid column. */
 body.collecting .main { position: relative; min-width: 0; min-height: 0; }
-body.collecting .main > :not(#session-view):not(.panel-header) { display: none !important; }
+
 body #session-view { position: static; inset: auto; width: 100%; max-width: none; height: 100%; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: #fcfcfa; box-shadow: none; overflow: hidden; flex: 1; }
 body #session-view[hidden] { display: none !important; }
 body.native-app #session-view .session-shell, body #session-view .session-shell { position: relative; width: 100%; max-width: none; height: 100%; min-height: 0; margin: 0; }
@@ -437,7 +437,7 @@ body #session-view .runtime-badge { display: inline-block; margin-top: 7px; padd
 body.native-app .native-sidebar-capture,body.native-app .native-thoughts-entry { height: 44px; padding: 11px 12px; font-size: 15px; font-weight: 550; gap: 12px; }
 body.native-app .native-sidebar-capture svg,body.native-app .native-thoughts-entry svg { width: 21px; height: 21px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 body .manage-topics { display: block; text-align: right; width: 100%; font-size: 11px; color: #78866d; padding: 2px 8px 12px; }
-body.managing-topics .main > :not(#topic-manager):not(.panel-header) { display: none !important; }
+/* React Router mounts only the active workspace. */
 
 
 

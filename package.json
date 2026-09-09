@@ -5,7 +5,13 @@
   "type": "module",
   "scripts": {
     "start": "node web/server.mjs",
-    "test": "node --test web/*.test.mjs"
+    "test": "node --test web/*.test.mjs && node --experimental-strip-types --test app/lib/*.test.ts",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "react-router dev --host 127.0.0.1",
+    "build": "react-router build",
+    "typecheck": "react-router typegen && tsc --noEmit",
+    "test:e2e": "playwright test",
+    "check": "npm run typecheck && npm test && npm run build && npm run test:e2e"
   },
   "engines": {
     "node": ">=22.13.0"
@@ -16,7 +22,20 @@
     "@larksuiteoapi/node-sdk": "^1.73.3",
     "markdown-it": "15.0.1",
     "playwright-core": "1.63.0",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "7.18.3"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@react-router/dev": "7.18.3",
+    "@types/markdown-it": "14.2.0",
+    "@types/node": "22.20.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.6"
+  }
 }
