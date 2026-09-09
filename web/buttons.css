@@ -263,3 +263,4 @@ body button.settings-entry{width:28px!important;min-width:28px!important;height:
 body button.settings-entry svg{width:18px;height:18px}
 body button.settings-integration-action{justify-content:flex-start!important;text-align:left!important;padding:12px 0!important;border-radius:0!important;border-bottom:1px solid var(--button-line)!important}
 body .settings-connection input{border:1px solid var(--button-line);border-radius:7px;background:#fff;padding:10px;font-size:13px}
+body .thought-controls button[aria-pressed=true]{background:#edf2e7!important;border-color:#708b60!important;color:#3e5534!important}

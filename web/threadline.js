@@ -99,7 +99,7 @@ reload().then(async()=>{
   if(await restoreLanguageSession())return;
   const route=new URL(location.href).searchParams;
   if(route.get('workspace')==='note'&&state.clips.some(c=>c.id===route.get('note')))await send('select',{id:route.get('note')});
-  else if(['home','all','inbox','topic'].includes(route.get('workspace')))await goWorkspace(route.get('workspace'),route.get('topic')||'');
+  else if(['home','all','inbox','topic'].includes(route.get('workspace'))){await goWorkspace(route.get('workspace'),route.get('topic')||'');return;}
   initializeSessionLink();
 }).catch(notifyError);
 

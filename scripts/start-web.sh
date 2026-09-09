@@ -18,8 +18,9 @@ folder.mkdir(parents=True, exist_ok=True)
 (root / 'Library/Logs').mkdir(parents=True, exist_ok=True)
 app = root / 'Library/Application Support/RewindWeb/app'
 app.mkdir(parents=True, exist_ok=True)
-for name in ['i18n.js', 'i18n-catalog.js', 'sharing.mjs', 'sharing-ui.js', 'card-themes.mjs', 'card-renderer.mjs', 'card-worker.mjs', 'card-template.mjs', 'card-template.css', 'card-layout.js', 'sharing.css', 'session-assets.mjs', 'storage.mjs', 'server.mjs', 'index.html', 'ocr.swift', 'codex-sessions.mjs', 'cursor-sessions.mjs', 'threadline.css', 'buttons.css', 'threadline.js', 'feishu.mjs', 'feishu-ui.js', 'feishu.css']:
+for name in ['thought-relations.mjs', 'thoughts-ui.js', 'i18n.js', 'i18n-catalog.js', 'sharing.mjs', 'sharing-ui.js', 'card-themes.mjs', 'card-renderer.mjs', 'card-worker.mjs', 'card-template.mjs', 'card-template.css', 'card-layout.js', 'sharing.css', 'session-assets.mjs', 'storage.mjs', 'server.mjs', 'index.html', 'ocr.swift', 'codex-sessions.mjs', 'cursor-sessions.mjs', 'threadline.css', 'buttons.css', 'threadline.js', 'feishu.mjs', 'feishu-ui.js', 'feishu.css']:
     shutil.copy2(pathlib.Path(os.environ['REWIND_ROOT']) / 'web' / name, app / name)
+shutil.copytree(pathlib.Path(os.environ['REWIND_ROOT']) / 'plugins', app / 'plugins', dirs_exist_ok=True)
 shutil.copytree(pathlib.Path(os.environ['REWIND_ROOT']) / 'web/assets', app / 'assets', dirs_exist_ok=True)
 shutil.copytree(pathlib.Path(os.environ['REWIND_ROOT']) / 'node_modules', app / 'node_modules', dirs_exist_ok=True)
 config = {

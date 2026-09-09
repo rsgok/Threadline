@@ -11,6 +11,7 @@ import { CursorSessions } from './cursor-sessions.mjs';
 import { archiveAssets, portableBody } from './session-assets.mjs';
 import { Sharing } from './sharing.mjs';
 import { CardRenderer } from './card-renderer.mjs';
+import { ThoughtRelations } from './thought-relations.mjs';
 import { LibraryStore } from './storage.mjs';
 import { createFeishu, buildDiscussionCards, discussionAttachments, readSharedAttachment } from './feishu.mjs';
 
@@ -86,6 +87,7 @@ function parseImage(value) {
 export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome, cursorHome, feishu: feishuOverride } = {}) {
   fs.mkdirSync(path.join(dataDir, 'attachments'), { recursive: true, mode: 0o700 });
   const store = new LibraryStore(dataDir, legacyDir);
+  const relations = new ThoughtRelations(store);
   const publicTopic = t => ({ ...t, version: version(t) });
   const validateTopic = data => {
     if ('topicID' in data && data.topicID && !store.topic(data.topicID)) throw error(400, '这条思路不存在，请刷新后重试。');
@@ -159,12 +161,20 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         await new Promise((resolve, reject) => execFile('/usr/bin/open', [app], err => err ? reject(error(500, '无法打开 Threadline 应用')) : resolve()));
         return send(200, { opened: true });
       }
+      const relationsRoute=pathname.match(/^\/api\/thoughts\/([^/]+)\/(relations|analyze)$/);
+      if(relationsRoute && req.method==='GET' && relationsRoute[2]==='relations') return send(200,{relations:relations.list(relationsRoute[1])});
+      if(relationsRoute && req.method==='POST' && relationsRoute[2]==='analyze') return send(201,{job:relations.create(relationsRoute[1]),cliPath:fs.existsSync(path.join(here,'plugins/threadline/scripts/threadline.mjs'))?path.join(here,'plugins/threadline/scripts/threadline.mjs'):path.join(here,'../plugins/threadline/scripts/threadline.mjs')});
+      const analysisRoute=pathname.match(/^\/api\/analysis\/([^/]+)$/);
+      if(analysisRoute && req.method==='GET') return send(200,relations.input(analysisRoute[1]));
+      if(analysisRoute && req.method==='POST') return send(200,{job:relations.submit(analysisRoute[1],(await readJSON(req)).relations)});
+      const relationRoute=pathname.match(/^\/api\/relations\/([a-f0-9]{64})$/);
+      if(relationRoute && req.method==='PUT') return send(200,{relation:relations.review(relationRoute[1],(await readJSON(req)).status)});
       if (req.method === 'GET' && pathname === '/health') return send(200, { app: 'rewind-web', version: '0.2.0' });
       if (req.method === 'GET' && ['/landing', '/landing/', '/landing.html'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, 'landing.html')), 'text/html; charset=utf-8');
       if (req.method === 'GET' && ['/landing.css', '/landing.js'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
       if (req.method === 'GET' && pathname === '/') return send(200, fs.readFileSync(path.join(here, 'index.html')), 'text/html; charset=utf-8');
       if (req.method === 'GET' && pathname === '/api/share/card-themes') return send(200, { themes: cardThemes });
-      if (req.method === 'GET' && ['/i18n.js', '/i18n-catalog.js', '/threadline.css', '/buttons.css', '/threadline.js', '/feishu-ui.js', '/feishu.css', '/sharing-ui.js', '/sharing.css'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
+      if (req.method === 'GET' && ['/thoughts-ui.js', '/i18n.js', '/i18n-catalog.js', '/threadline.css', '/buttons.css', '/threadline.js', '/feishu-ui.js', '/feishu.css', '/sharing-ui.js', '/sharing.css'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
       if (pathname.startsWith('/api/share/')) {
         if (req.headers['sec-fetch-site'] === 'cross-site') throw error(403, '拒绝跨站请求。');
         if (req.method === 'GET' && pathname === '/api/share/status') return send(200, sharing.status());
@@ -286,6 +296,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
           finally { preview.sending = false; }
         }
       }
+      if (pathname === '/api/threads' && req.method === 'GET') return send(200,{topics:store.topics().map(publicTopic)});
       if (pathname === '/api/threads' && req.method === 'POST') {
         const data = await readJSON(req);
         if (typeof data.title !== 'string' || !data.title.trim() || data.title.length > 120 || typeof data.goal !== 'string' || data.goal.length > 12000) throw error(400, '请填写思路名称（最多 120 字）与有效的问题描述。');
