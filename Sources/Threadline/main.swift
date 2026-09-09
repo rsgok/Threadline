@@ -35,8 +35,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     var dragRegions: [NSRect] = []
     var dragExclusions: [NSRect] = []
     let base = URL(string: "http://127.0.0.1:43127")!
+    var interfaceLocale: String {
+        let saved = UserDefaults.standard.string(forKey: "threadline-language") ?? "system"
+        return saved == "system" ? ((Locale.preferredLanguages.first ?? "en").hasPrefix("zh") ? "zh-CN" : "en") : saved
+    }
+    func tr(_ text: String) -> String {
+        guard interfaceLocale == "en" else { return text }
+        return ["设置…":"Settings…", "关于 Threadline":"About Threadline", "退出 Threadline":"Quit Threadline", "编辑":"Edit", "撤销":"Undo", "剪切":"Cut", "复制":"Copy", "粘贴":"Paste", "全选":"Select All", "窗口":"Window", "打开 Threadline":"Open Threadline", "在 Codex 侧栏打开":"Open in Codex Sidebar", "复制链接到 Cursor Agents":"Copy Link for Cursor Agents", "搜索笔记  ⌃⌥R":"Search Notes  ⌃⌥R", "添加剪贴板文字  ⌃⌥S":"Add Clipboard Text  ⌃⌥S", "打开数据文件夹":"Open Data Folder", "Threadline · 思续":"Threadline", "收录对话":"Collect Conversations", "资料库":"Library", "搜索":"Search", "在 Codex 打开":"Open in Codex", "Threadline 本机服务未能启动":"Threadline could not start its local service", "笔记仍保存在本机。请重新运行安装脚本，或重试。":"Your notes are still stored locally. Run the installer again or retry.", "重试":"Retry", "关闭":"Close", "未能打开":"Could not open", "请确认已安装对应应用；Cursor 请使用 Agents 的 Browser 入口。":"Make sure the app is installed. For Cursor, use the Browser in Agents."][text] ?? text
+    }
+    func localizeMenus(_ menu: NSMenu?) {
+        guard let menu else { return }
+        for item in menu.items {
+            if !item.isSeparatorItem {
+                let source = item.representedObject as? String ?? item.title
+                item.representedObject = source
+                item.title = tr(source)
+            }
+            localizeMenus(item.submenu)
+            if !item.title.isEmpty { item.submenu?.title = item.title }
+        }
+    }
+    func refreshLanguage() {
+        localizeMenus(NSApp.mainMenu);localizeMenus(statusItem?.menu)
+        window?.title = tr("Threadline · 思续")
+        statusItem?.button?.toolTip = tr("Threadline · 思续")
+    }
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let main = NSMenu(), appMenu = NSMenu(), item = NSMenuItem()
+        let main = NSMenu(), appMenu = NSMenu(title:"Threadline"), item = NSMenuItem(title:"Threadline",action:nil,keyEquivalent:"")
         appMenu.addItem(withTitle: "关于 Threadline", action: #selector(about), keyEquivalent: "")
         appMenu.addItem(withTitle: "退出 Threadline", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.submenu = appMenu; main.addItem(item)
@@ -50,6 +75,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         menu.addItem(withTitle:"搜索笔记  ⌃⌥R",action:#selector(search),keyEquivalent:"")
         menu.addItem(withTitle:"添加剪贴板文字  ⌃⌥S",action:#selector(capture),keyEquivalent:"")
         menu.addItem(withTitle:"打开数据文件夹",action:#selector(openData),keyEquivalent:"")
+        menu.addItem(withTitle:"设置…",action:#selector(languageSettings),keyEquivalent:",")
         for item in menu.items {item.target=self}
         let windowMenuItem=NSMenuItem(title:"窗口",action:nil,keyEquivalent:"");menu.title="窗口";windowMenuItem.submenu=menu;main.addItem(windowMenuItem)
         window=ThreadlineWindow(contentRect:NSRect(x:0,y:0,width:1120,height:780),styleMask:[.titled,.closable,.miniaturizable,.resizable,.fullSizeContentView],backing:.buffered,defer:false)
@@ -59,7 +85,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         window.titlebarAppearsTransparent=true;window.titleVisibility = .hidden;window.isMovableByWindowBackground=true
         window.titlebarSeparatorStyle = .none
         window.toolbar=nil
-        let config=WKWebViewConfiguration();config.userContentController.add(self,name:"openInCodex");config.userContentController.add(self,name:"windowChrome")
+        let config=WKWebViewConfiguration();config.userContentController.add(self,name:"openInCodex");config.userContentController.add(self,name:"windowChrome");config.userContentController.add(self,name:"language")
+        let systemLanguage = (Locale.preferredLanguages.first ?? "en").hasPrefix("zh") ? "zh-CN" : "en"
+        config.userContentController.addUserScript(WKUserScript(source:"window.THREADLINE_SYSTEM_LANGUAGE = '\(systemLanguage)';",injectionTime:.atDocumentStart,forMainFrameOnly:true))
         web=WKWebView(frame:.zero,configuration:config);web.navigationDelegate=self;web.uiDelegate=self;let content=NSView(frame:NSRect(x:0,y:0,width:1120,height:780))
         web.frame=content.bounds;web.autoresizingMask=[.width,.height];content.addSubview(web)
         window.contentView=content
@@ -85,15 +113,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         statusMenu.addItem(withTitle: "退出 Threadline", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         status.menu = statusMenu
         statusItem = status
-        registerKeys();show();connect(attempt:0)
+        refreshLanguage();registerKeys();show();connect(attempt:0)
     }
     func toolbarAllowedItemIdentifiers(_ toolbar:NSToolbar)->[NSToolbarItem.Identifier]{toolbarDefaultItemIdentifiers(toolbar)}
     func toolbarDefaultItemIdentifiers(_ toolbar:NSToolbar)->[NSToolbarItem.Identifier]{[.init("captureProgress"),.init("library"),.init("search"),.flexibleSpace,.init("codex"),.init("cursor")]}
     func toolbar(_ toolbar:NSToolbar,itemForItemIdentifier id:NSToolbarItem.Identifier,willBeInsertedIntoToolbar flag:Bool)->NSToolbarItem?{
         let item=NSToolbarItem(itemIdentifier:id)
         let options:[String:(String,String,Selector)]=["captureProgress":("收录对话","plus.bubble",#selector(progress)),"library":("资料库","books.vertical",#selector(library)),"search":("搜索","magnifyingglass",#selector(search)),"cursor":("Cursor Agents","link",#selector(openInCursor)),"codex":("在 Codex 打开","sidebar.right",#selector(openInCodex))]
-        guard let option=options[id.rawValue] else{return nil};item.label=option.0;item.toolTip=option.0;item.image=NSImage(systemSymbolName:option.1,accessibilityDescription:option.0);item.target=self;item.action=option.2;return item
+        guard let option=options[id.rawValue] else{return nil};item.label=tr(option.0);item.toolTip=tr(option.0);item.image=NSImage(systemSymbolName:option.1,accessibilityDescription:option.0);item.target=self;item.action=option.2;return item
     }
+    @objc func languageSettings(){show();web.evaluateJavaScript("openLanguageSettings()") }
     @objc func progress(){show();web.evaluateJavaScript("openSessionPicker()")}
     @objc func library(){show();web.evaluateJavaScript("if(!sessionSaving){document.getElementById('save-session-dialog').close();hideSessionView();goWorkspace('all')}")}
     func connect(attempt:Int){
@@ -104,7 +133,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
                 if valid?["app"] as? String == "rewind-web" {self.web.load(URLRequest(url:URL(string:"http://127.0.0.1:43127/?native=1")!));return}
                 if attempt==0 {let p=Process();p.executableURL=URL(fileURLWithPath:"/bin/launchctl");p.arguments=["kickstart","gui/\(getuid())/local.rewind.web"];try? p.run()}
                 if attempt<20 {DispatchQueue.main.asyncAfter(deadline:.now()+0.3){self.connect(attempt:attempt+1)}}
-                else {let alert=NSAlert();alert.messageText="Threadline 本机服务未能启动";alert.informativeText="笔记仍保存在本机。请重新运行安装脚本，或重试。";alert.addButton(withTitle:"重试");alert.addButton(withTitle:"关闭");if alert.runModal() == .alertFirstButtonReturn{self.connect(attempt:0)}}
+                else {let alert=NSAlert();alert.messageText=self.tr("Threadline 本机服务未能启动");alert.informativeText=self.tr("笔记仍保存在本机。请重新运行安装脚本，或重试。");alert.addButton(withTitle:self.tr("重试"));alert.addButton(withTitle:self.tr("关闭"));if alert.runModal() == .alertFirstButtonReturn{self.connect(attempt:0)}}
             }
         }.resume()
     }
@@ -114,6 +143,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     @objc func openInCodex(){web.evaluateJavaScript("openInCodexSidebar()")}
     @objc func openInCursor(){web.evaluateJavaScript("openInCodexSidebar(\"cursor\")")}
     func userContentController(_ userContentController:WKUserContentController,didReceive message:WKScriptMessage){
+        if message.name == "language" {
+            guard message.frameInfo.isMainFrame,
+                  message.frameInfo.securityOrigin.host == "127.0.0.1",
+                  message.frameInfo.securityOrigin.port == 43127,
+                  let body = message.body as? [String:String],
+                  let preference = body["preference"], ["system", "zh-CN", "en"].contains(preference) else { return }
+            UserDefaults.standard.set(preference, forKey: "threadline-language")
+            refreshLanguage()
+            return
+        }
         if message.name == "windowChrome" {
             guard message.frameInfo.isMainFrame,
                   message.frameInfo.securityOrigin.host == "127.0.0.1",
@@ -143,10 +182,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         }
         var link=URLComponents();link.scheme=runtime;link.host="browser";link.queryItems=[URLQueryItem(name:"url",value:url.absoluteString)]
         guard let target=link.url else{return}
-        if !NSWorkspace.shared.open(target){let alert=NSAlert();alert.messageText="未能打开 \(runtime)";alert.informativeText="请确认已安装对应应用；Cursor 请使用 Agents 的 Browser 入口。";alert.runModal()}
+        if !NSWorkspace.shared.open(target){let alert=NSAlert();alert.messageText=tr("未能打开")+" "+runtime;alert.informativeText=self.tr("请确认已安装对应应用；Cursor 请使用 Agents 的 Browser 入口。");alert.runModal()}
     }
     @objc func openData(){NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/RewindWeb"))}
-    @objc func about(){NSApp.orderFrontStandardAboutPanel(options:[.applicationName:"Threadline · 思续",.applicationVersion:"0.3.0",.credits:NSAttributedString(string:"思续，让思考继续\nCarry your thinking forward.")])}
+    @objc func about(){NSApp.orderFrontStandardAboutPanel(options:[.applicationName:tr("Threadline · 思续"),.applicationVersion:"0.3.0",.credits:NSAttributedString(string:"思续，让思考继续\nCarry your thinking forward.")])}
     func applicationShouldHandleReopen(_ sender:NSApplication,hasVisibleWindows flag:Bool)->Bool{show();return true}
     func windowShouldClose(_ sender:NSWindow)->Bool{sender.orderOut(nil);return false}
     func registerKeys(){

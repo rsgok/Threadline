@@ -634,3 +634,52 @@ body #session-view .selection-footer { flex-wrap: nowrap; gap: 8px; }
 body #session-view .selection-status { white-space: nowrap; }
 /* Feishu's send composer now uses the shared inner wrapper. */
 body dialog.feishu-send-dialog.modal-surface { padding:0; }
+
+body #session-view .message-card .message-role::before{content:none;display:none}
+body #session-view .message-select{display:flex;align-items:center}
+body #session-view .message-avatar{width:30px;height:30px;flex:0 0 30px;border-radius:8px;object-fit:contain}
+body #session-view .message-date{margin-left:auto}
+body #session-view .message-selection-state{min-width:28px;font-size:11px;color:#899080;font-weight:400}
+body #session-view .chosen .message-selection-state{color:#536b40;font-weight:550}
+body #session-view .message-card.chosen{background:#f2f6ee;border-color:#a3b692}
+
+/* Library rows prioritize saved content; provenance occupies one quiet line. */
+body.native-app .native-list-head:has(.searchbox[hidden]){display:none}
+body.native-app .native-list-head{padding:0 12px}
+body.native-app .native-scope{margin-bottom:2px}
+body.native-app .native-note-list{padding-top:0}
+body.native-app .native-note-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;line-height:1.5;margin:0 0 6px}
+body.native-app .native-note p.native-note-excerpt{-webkit-line-clamp:3;font-size:12px;line-height:1.6;margin:0;color:#707969}
+body.native-app .native-note .native-note-meta{display:flex;align-items:center;gap:7px;margin:9px 0 0;font-size:10px;line-height:16px;color:#899080}
+body.native-app .native-note-source{display:inline-flex;align-items:center;gap:4px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+body.native-app .native-note-runtime{height:14px;width:14px;object-fit:contain;border-radius:3px}
+body.native-app .native-note-kind{border-left:1px solid #d8ddd2;padding-left:7px;white-space:nowrap}
+body.native-app .native-note-date{margin-left:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+html[lang=en] .tagline{letter-spacing:0}
+html[lang=en] .dialog-bottom{flex-wrap:wrap}
+html[lang=en] .session-more-body{min-width:200px}
+html[lang=en] .native-context-title{max-width:45%}
+html[lang=en] .panel-tabs button{letter-spacing:0}
+
+.settings-page{position:fixed;inset:0 0 0 310px;z-index:60;background:var(--paper);overflow-y:auto;overscroll-behavior:contain}
+.settings-content{max-width:720px;margin:0 auto;padding:30px 36px 60px}
+.settings-heading{display:flex;align-items:center;gap:18px;margin-bottom:30px}
+.settings-heading h1{font-size:24px;font-weight:600;line-height:1.4;margin:0}
+.settings-section{padding:22px 0;border-top:1px solid var(--line);display:grid;gap:12px}
+.settings-section h2{margin:0;font-size:16px}
+.settings-section p{margin:0;line-height:1.7}
+.settings-section>select{max-width:320px}
+.settings-section>button{justify-self:start}
+.settings-integrations{display:grid;gap:14px}
+.settings-connection{border-top:1px solid var(--line);padding-top:16px;display:grid;gap:12px}
+.settings-connection summary{cursor:pointer;font-weight:550}
+.settings-connection label{display:grid;gap:6px;font-size:12px}
+.settings-connection input{width:100%;box-sizing:border-box}
+body.native-app .settings-page{left:var(--native-sidebar-width);top:0}
+body.native-app.native-nav-hidden .settings-page{left:0;padding-top:32px}
+body.native-app .sidebar>.brand{gap:4px}
+body.native-app .native-brand-title{margin-right:auto}
+body.native-app .settings-entry{flex-shrink:0}
+@media(max-width:700px){.settings-page{inset:0}.settings-content{padding:20px 20px 40px}.settings-heading{margin-bottom:20px}}
+html[data-surface=panel] .settings-page{inset:0}

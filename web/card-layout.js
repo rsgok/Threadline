@@ -1,5 +1,7 @@
 // Executed in the isolated Chromium page. All dimensions come from real layout.
 async function paginateCards() {
+  const english=document.documentElement.lang==='en';
+  const roleLabel=role=>role==='user'?(english?'My question':'我的提问'):(english?'AI answer':'AI 回答');
   await document.fonts.ready;
   await Promise.all([...document.images].map(async image => { await image.decode(); if (!image.naturalWidth) throw Error('图片无法读取'); }));
   const pages = document.querySelector('#pages'), template = document.querySelector('#page-template');
@@ -12,7 +14,7 @@ async function paginateCards() {
     pages.append(sheet); body = sheet.querySelector('.card-body');
     if (currentRole) {
       const line = document.createElement('div'); line.className = 'continuation';
-      line.textContent = `${currentRole} · 接上页`; body.append(line);
+      line.textContent = `${currentRole} · ${english?'Continued':'接上页'}`; body.append(line);
     }
   }
   function fits(node, reserve = 0) {
@@ -76,7 +78,7 @@ async function paginateCards() {
     if (node.classList.contains('message-heading')) currentRole = '';
     const keep = /^(H[1-6])$/.test(node.tagName) || node.classList.contains('message-heading');
     if (fits(node, keep ? 54 : 0)) {
-      if (node.classList.contains('message-heading')) currentRole = node.dataset.role === 'user' ? '我的提问' : 'AI 回答';
+      if (node.classList.contains('message-heading')) currentRole = roleLabel(node.dataset.role);
       return;
     }
     if (node.tagName === 'TABLE' && node.querySelector('tbody')) { tableRows(node); return; }
@@ -86,7 +88,7 @@ async function paginateCards() {
       return;
     }
     placeFragment(node, keep);
-    if (node.classList.contains('message-heading')) currentRole = node.dataset.role === 'user' ? '我的提问' : 'AI 回答';
+    if (node.classList.contains('message-heading')) currentRole = roleLabel(node.dataset.role);
   }
   function placeFragment(node, keep = false) {
     if (fits(node, keep ? 54 : 0)) return;

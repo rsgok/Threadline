@@ -150,7 +150,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       if (req.headers.origin && req.headers.origin !== origin) throw error(403, '拒绝跨站请求。');
       if (!['GET', 'HEAD'].includes(req.method) && req.headers['x-rewind-request'] !== '1') throw error(403, '请求缺少本机页面标记。');
       const url = new URL(req.url, origin), pathname = url.pathname;
-      if (req.method === 'GET' && pathname === '/assets/threadline-icon.png') return send(200,fs.readFileSync(path.join(here,'assets','threadline-icon.png')),'image/png');
+      if (req.method === 'GET' && ['/assets/threadline-icon.png','/assets/user-avatar.png','/assets/codex-avatar.png','/assets/cursor-avatar.png'].includes(pathname)) return send(200,fs.readFileSync(path.join(here,pathname)),'image/png');
       if (req.method === 'GET' && pathname === '/favicon.svg') return send(200,fs.readFileSync(path.join(here,'assets','threadline-icon.png')),'image/png');
       if (req.method === 'POST' && pathname === '/api/app/open') {
         if (process.platform !== 'darwin') throw error(400, '此入口用于打开 Mac 应用');
@@ -164,7 +164,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       if (req.method === 'GET' && ['/landing.css', '/landing.js'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
       if (req.method === 'GET' && pathname === '/') return send(200, fs.readFileSync(path.join(here, 'index.html')), 'text/html; charset=utf-8');
       if (req.method === 'GET' && pathname === '/api/share/card-themes') return send(200, { themes: cardThemes });
-      if (req.method === 'GET' && ['/threadline.css', '/buttons.css', '/threadline.js', '/feishu-ui.js', '/feishu.css', '/sharing-ui.js', '/sharing.css'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
+      if (req.method === 'GET' && ['/i18n.js', '/i18n-catalog.js', '/threadline.css', '/buttons.css', '/threadline.js', '/feishu-ui.js', '/feishu.css', '/sharing-ui.js', '/sharing.css'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
       if (pathname.startsWith('/api/share/')) {
         if (req.headers['sec-fetch-site'] === 'cross-site') throw error(403, '拒绝跨站请求。');
         if (req.method === 'GET' && pathname === '/api/share/status') return send(200, sharing.status());
@@ -174,7 +174,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         if (req.method === 'POST' && pathname === '/api/share/disconnect') return send(200, sharing.disconnect((await readJSON(req)).platform));
         if (req.method === 'POST' && pathname === '/api/share/preview') {
           const data = await readJSON(req), { session, selected } = await selectedDiscussion(data);
-          return send(201, sharing.prepare({ session, selected, platform: data.platform, target: data.target, note: data.note, attachmentIDs: data.attachmentIDs, cardTheme: data.cardTheme, cardMode: data.cardMode }));
+          return send(201, sharing.prepare({ session, selected, platform: data.platform, target: data.target, note: data.note, attachmentIDs: data.attachmentIDs, cardTheme: data.cardTheme, cardMode: data.cardMode, locale: data.locale }));
         }
         const renderRoute = pathname.match(/^\/api\/share\/jobs\/([a-f0-9-]{36})\/render(?:\/(cancel|pages)(?:\/(\d+))?)?$/);
         if (renderRoute) {

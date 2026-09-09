@@ -103,7 +103,8 @@ export class Sharing {
   history() {
     return fs.readdirSync(this.root).filter(id => ID.test(id)).map(id => this.public(this.load(id))).filter(j => j.platform !== 'export' && j.startedAt).sort((a, b) => b.createdAt - a.createdAt).slice(0, 30).map(({ messages, text, attachments, ...j }) => ({ ...j, attachmentCount: attachments.filter(a => a.selected).length }));
   }
-  prepare({ session, selected, platform = 'export', target = '', note = '', attachmentIDs = [], cardTheme = 'sage', cardMode = 'pages' }) {
+  prepare({ session, selected, platform = 'export', target = '', note = '', attachmentIDs = [], cardTheme = 'sage', cardMode = 'pages', locale = 'zh-CN' }) {
+    locale = locale === 'en' ? 'en' : 'zh-CN';
     resolveCardTheme(cardTheme);
     if (!['pages','long'].includes(cardMode)) throw fail(400, '图卡模式无效');
     for (const old of fs.readdirSync(this.root).filter(id => ID.test(id))) { const previous = this.load(old); if (previous.expires < Date.now() && previous.steps.every(s => s.status === 'pending')) fs.rmSync(path.dirname(this.file(old)), { recursive: true, force: true }); }
@@ -148,7 +149,7 @@ export class Sharing {
       if (text.length > 2_000_000) throw fail(413, '内容超过 2 MB，请分批分享');
       const steps = platform === 'export' ? [] : [...splitText(text, capability.textLimit).map((text, i) => ({ id: crypto.randomUUID(), type: 'text', text, label: `文字 ${i + 1}`, status: 'pending' })), ...attachments.filter(a => a.selected).map(a => ({ id: crypto.randomUUID(), type: 'file', assetId: a.id, label: a.name, status: 'pending' }))];
       if (steps.length > 150) throw fail(413, '将产生超过 150 次发送，请减少所选内容');
-      const job = { id, cardTheme, cardMode, platform, target, targetLabel: platform === 'discord' ? `${this.config.discord.name} · ${this.config.discord.channel}` : target, configHash: platform === 'export' ? '' : hash(JSON.stringify(this.config[platform])), title: session.title || '讨论摘录', note, text, messages, attachments, steps, createdAt: Date.now(), expires: Date.now() + 24 * 60 * 60 * 1000 };
+      const job = { id, locale, cardTheme, cardMode, platform, target, targetLabel: platform === 'discord' ? `${this.config.discord.name} · ${this.config.discord.channel}` : target, configHash: platform === 'export' ? '' : hash(JSON.stringify(this.config[platform])), title: session.title || '讨论摘录', note, text, messages, attachments, steps, createdAt: Date.now(), expires: Date.now() + 24 * 60 * 60 * 1000 };
       fs.mkdirSync(dir, { recursive: true, mode: 0o700 }); this.save(job); return this.public(job);
     } catch (e) { fs.rmSync(dir, { recursive: true, force: true }); throw e; }
   }
