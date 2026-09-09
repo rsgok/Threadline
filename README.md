@@ -1,119 +1,141 @@
-# Threadline · 思续
+<p align="center">
+  <img src="web/assets/threadline-icon.png" width="96" height="96" alt="Threadline icon">
+</p>
 
-**Carry your thinking forward.**
+<h1 align="center">Threadline</h1>
 
-**思续，让思考继续**
+<p align="center"><strong>Carry your thinking forward.</strong></p>
 
-保留 AI 对话中的进展、判断和原文，再带回下一次讨论。
+<p align="center">
+  A local home for the ideas, decisions, and context in your AI conversations.<br>
+  Keep what matters. Add your perspective. Pick up where you left off.
+</p>
 
-## 两种使用方式
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="docs/agent-runtime.md">Agent integration</a> ·
+  <a href="#documentation">Documentation</a> ·
+  <a href="https://github.com/rsgok/Threadline/issues">Issues</a>
+</p>
 
-- **Runtime 侧边栏**：选择本机 Codex 会话，勾选消息，留下进展。页面可见时每 5 秒检查更新。
-- **Mac App**：两栏资料库，左侧搜索和筛选，右侧阅读、编辑和组合笔记；左栏可折叠、拖动调宽。
+<p align="center"><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
 
-支持 Markdown、引用评论、本地图片预览和文件定位。保存时携带消息来源、项目与工作目录（能够识别时）。思路是可选的组织方式；“接着用”可组合多篇笔记，复制给下一次 AI 对话。
+<p align="center"><sub>macOS 13+ · Local storage · Codex &amp; Cursor · Early development</sub></p>
 
-## 运行
+![Threadline’s current Mac interface: select useful messages from a conversation and keep them in a local library.](web/assets/landing-collect.png)
 
-需要 macOS 13+、Swift 5.9+ 和 Node.js 22.13+。Mac App 使用系统 WebKit，当前依赖本机 Node 环境，不是包含全部依赖的独立分发包。
+<p align="center"><sub>The current app interface, shown with an example conversation.</sub></p>
+
+## Why Threadline?
+
+An AI conversation can move your work forward: a design decision, a useful explanation, a direction you finally agree on. But the next conversation often starts with searching the history and explaining it all again.
+
+Threadline gives that work somewhere to continue. Save the messages that matter with their original context, add what you think, and bring the relevant notes into your next discussion.
+
+It works alongside your AI tools. You decide what belongs in your library and what to carry forward.
+
+## How it works
+
+### 1. Keep the useful part
+
+Browse local **Codex** and **Cursor Agent** conversations. Select specific messages and save them with source references and available project context. Supported local images and files can be copied into your library with the note.
+
+### 2. Make the thinking yours
+
+Read the original words, add your own take, and organize related notes into threads. Search your library when you need to return to a decision. Mark a note as outdated or updated, with a reason, as your understanding changes.
+
+### 3. Start the next conversation further along
+
+Combine notes and copy them into your next AI chat. Export Markdown and attachments, turn selected messages into image cards, or share a discussion through Feishu, Slack, or Discord.
+
+<details>
+<summary><strong>See the saved-note view</strong></summary>
+
+![Threadline’s saved-note view with the original conversation, a personal takeaway, and an action to continue with the note.](web/assets/landing-library.png)
+
+</details>
+
+## Built around your workflow
+
+| Capability | What you can do |
+| --- | --- |
+| **Mac app** | Browse a two-pane library, read and edit notes, resize or collapse the sidebar. |
+| **Runtime sidebar** | Keep Threadline close to the conversation you are working in. |
+| **Original context** | Retain source messages, references, and project details when available. |
+| **Local library** | Store notes and saved attachments on your Mac; export Markdown in a ZIP. |
+| **Sharing** | Copy text, export files and PNG cards, or send selected content to a connected service. |
+| **Skill + CLI** | Let an agent save, find, and reuse notes through the same local service. |
+
+The app supports English and Simplified Chinese. Choose a language in **Settings**; the initial choice follows your system language.
+
+## Quick start
+
+Threadline currently installs **from source**. The Mac app uses your local Node.js installation; a standalone installer is not available yet.
+
+### Requirements
+
+- **macOS 13 or later**
+- **Node.js 22.13 or later** and npm
+- **Swift 5.9 or later**, available through Xcode or Xcode Command Line Tools
+- **Python 3**, used by the installation scripts and optional CLI
+
+### Install the Mac app
 
 ```sh
-# 启动本地 Web 服务
-bash scripts/start-web.sh
-
-# 构建并安装到 ~/Applications/Threadline.app
+git clone https://github.com/rsgok/Threadline.git
+cd Threadline
+npm ci
 bash scripts/install-mac.sh
+open "$HOME/Applications/Threadline.app"
+```
 
-# 安装 Codex 技能
+The installer starts the local service, builds the app, and installs it into `~/Applications/Threadline.app`. The web interface is also available at [127.0.0.1:43127](http://127.0.0.1:43127).
+
+### Add Threadline to Codex
+
+```sh
 bash scripts/install-skill.sh
 ```
 
-Web 入口：<http://127.0.0.1:43127>。`?panel=1` 使用侧边栏布局；`?native=1` 使用桌面布局；`thread=<Codex 会话 UUID>` 定位来源会话。
+Start a new Codex session and use `$threadline` to open Threadline for the current conversation. For CLI setup and other agent runtimes, see the [agent integration guide](docs/agent-runtime.md).
 
-在 Codex 使用 `$threadline` 打开对应会话。Mac App 也支持打开 Codex 侧栏；Cursor Agents 当前通过复制链接到其 Browser 使用，不会自动读取 Cursor 会话。
+### Save your first conversation
 
-## 本地数据
+1. Open **Collect conversations** and choose a local Codex or Cursor conversation.
+2. Select the messages you want to keep, then choose **Save**.
+3. Open the saved note, add your perspective, and use **Continue with this** when you are ready for the next discussion.
 
-- 为兼容早期版本，数据目录保留为 `~/Library/Application Support/RewindWeb`。
-- `library.sqlite` 使用 Node 内置 SQLite 按条保存笔记和思路；`attachments/` 保存手动上传的图片和收录时复制的图片、文件；`session-assets/` 缓存会话里的内嵌图片。
-- 首次启动在事务中迁移旧 `library.json`、`threads.json`，原文件保持不变，作为迁移前备份。迁移完成后不再读写旧 JSON；迁移失败会回滚并停止启动。
-- SQLite 使用 WAL 日志。备份当前资料时先停止服务，再复制整个数据目录（运行中不要只复制 `.sqlite` 文件）。旧 JSON 不包含迁移后的修改。
-- 搜索在数据库中执行，保持中文、Unicode 规范化和多词子串匹配；当前列表接口仍返回匹配笔记全文，尚未分页。
-- 收录会话时自动复制已识别的本地图片和文件，原路径保留在正文与附件来源中，预览和 Finder 定位优先使用保存副本。ZIP 导出包含副本，并将 Markdown 链接改为包内相对路径。每次最多 50 个附件，单文件 25 MB、总量 100 MB；缺失、空文件、符号链接或超限附件保留引用并在笔记中显示原因。远程图片仍仅保留链接，不自动下载。
-- Codex 支持无文字图片消息，以及工具结果中的显式图片、文件资源块（含内嵌 Base64 图片）；不将工具日志正文当作对话或扫描日志中的任意路径。Cursor 支持消息里的图片块和本地文件链接。已有收藏不会自动重写，需要从会话重新收录以保存附件副本。
-- 删除笔记直接删除记录，没有回收站；附件副本随笔记删除，引用的原始文件不受影响。
-- 组合草稿保存在当前标签页的 sessionStorage。
-- 安装脚本会归档旧应用包，保留用户笔记数据。
+## Your data, on your Mac
 
-## 开发与验证
+Your library lives in `~/Library/Application Support/RewindWeb`. The directory name is retained for compatibility with earlier versions.
 
-```sh
-npm test
-swift test
-swift build -c release --product Threadline
-```
+- Notes and threads are stored in a local SQLite database.
+- Recognized local attachments can be saved as copies; remote images remain links.
+- Sharing sends content only when you confirm a send to a connected service.
+- ZIP exports include Markdown and saved attachments so your work can leave the app.
 
-`web/` 包含本地 HTTP 服务、Codex 记录读取及网页界面；`Sources/Threadline/` 是当前 Mac 外壳；`Sources/Rewind/` 和 `Sources/RewindCore/` 保留早期原型与兼容代码；`skills/` 和 `scripts/` 提供技能及本机安装工具。
+See [local data and backups](docs/local-data.md) for storage details, attachment limits, and migration behavior.
 
-运行中的服务使用安装副本。修改网页后通过以下命令重新部署：
+## Current scope
 
-```sh
-bash scripts/stop-web.sh
-bash scripts/start-web.sh
-```
+- Conversation collection reads **local Codex and Cursor Agent transcripts**. It does not download cloud history or recover older Cursor IDE databases.
+- The Mac app currently requires a source build and an installed Node.js runtime.
+- PNG card export downloads its Chromium rendering component on first use. Once installed, rendering runs locally.
+- Feishu, Slack, and Discord require their own connection setup. Feishu also requires `lark-cli` on the local machine.
 
-刷新页面或重启 Mac App 即可加载新版本。开发截图、导出记录和构建产物不纳入版本控制。
+## Documentation
 
-### 统一分享
+| Guide | Contents |
+| --- | --- |
+| [Agent integration](docs/agent-runtime.md) | Install the CLI and skill; connect other runtimes; save and reuse notes. |
+| [Local data and backups](docs/local-data.md) | Storage, exports, attachment handling, and safe backups. |
+| [Development](docs/development.md) | Run from source, validate changes, and understand the project layout. |
+| [Sharing guide — 简体中文](docs/sharing.md) | Configure sharing destinations, image cards, limits, and retry behavior. |
+| [Interface languages](docs/i18n.md) | Language preferences and translation conventions. |
 
-勾选会话消息后点击「分享」，可选择复制文字、导出所选附件、生成分页 PNG 图卡，或发送到飞书、Slack、Discord。Slack 使用用户配置的 Bot Token，Discord 使用指定频道 Webhook；连接验证不发送消息。Slack、Discord 的分段回执持久保存，支持重启后继续发送及核对未知送达状态。图卡和附件可手动分享到微信、WhatsApp 等应用。图卡采用本机 Chromium 排版及随附中文字体，首次生成才下载独立引擎（不进入 `.app`，macOS arm64 当前安装约 198 MB），之后可离线使用；预览与导出使用同一份高清 PNG。
+## Contributing
 
-连接步骤、大小限制、重试规则和当前范围见 [分享说明](docs/sharing.md)。
+Bug reports, workflow feedback, and focused pull requests are welcome. [Open an issue](https://github.com/rsgok/Threadline/issues) with the behavior you expected, what happened, and steps to reproduce it. Use sample conversations when reporting a problem.
 
-### 分享到飞书
-
-在会话里勾选消息后，可以选择「留下」或在「分享」中选择飞书。默认私聊发给当前用户，也可搜索选择同事或切换群聊。预览后点击「发送」才会实际投递。
-
-首次点击「连接飞书」：
-
-1. 选择「扫码创建专属应用」，通过飞书官方 SDK 创建自己的应用；也可填写已有应用的 App ID / Secret。
-2. 接续用户授权，申请 用户权限 `im:chat:read`、`offline_access`，以及应用权限 `im:message:send_as_bot`；搜索同事时按需授权 `contact:user:search`。若企业需要审批，先完成权限开通和发布。
-3. 授权完成后，可验证群列表，再回到消息选择器发送。
-
-本版需要本机安装 `lark-cli`。每个 Threadline 数据目录使用独立的 `threadline-…` CLI profile，凭证由 CLI 管理（macOS 使用其配置的凭证存储），不会读取 Peer profile 作为替代。`feishu.json` 只保存 App ID 和 profile 名称；Threadline 网页不接收应用密钥或用户 token 的回传。绑定已有应用时，用户输入的密钥通过本地服务与子进程 stdin 传递。可通过 `THREADLINE_LARK_CLI` 指定 CLI 可执行文件。
-
-以机器人身份发送折叠卡片，群聊需要先加入机器人。最多 100 条消息、2 MB 内容；每张最多 8 个面板、约 24 KB，最多 100 张。超长单条分段，不截断原文。附件默认不选：预览列出文件名、大小和可用性，勾选后图片嵌入对应消息，文件在卡片后单独发送。上传需应用权限 `im:resource`。图片上限 10 MB，普通文件上限 20 MB，总量 100 MB；最多 50 个附件、每条消息最多 8 张图片。预览后文件变化会阻止发送，缺失、空文件和符号链接不可选。上传和文件发送分别缓存回执。预览显示卡片数，有效 20 分钟；逐张记录回执，失败后保持当前预览重试，跳过已成功卡片。预览及回执仅保存在内存中，服务重启后不可继续原预览。断开本机连接会退出该 profile 的用户登录态，不删除远端应用或撤销服务端授权。
-
-开发运行前先执行 `npm ci`。安装脚本会同步 Node 依赖到本机服务目录。扫码创建、企业审批及用户发送权限仍需用真实账号验收；自动化测试使用隔离的模拟飞书服务，不会向群聊投递测试消息。
-
-## Agent runtime：Skill + CLI
-
-```sh
-bash scripts/install-cli.sh    # ~/.local/bin/threadline；可设 THREADLINE_BIN_DIR
-bash scripts/install-skill.sh  # Codex skill
-export PATH="$HOME/.local/bin:$PATH"
-threadline health
-threadline list --query '设计判断'
-threadline save --title '本次进展' --file ./progress.md --source 'Agent Runtime'
-threadline get NOTE_UUID
-```
-
-CLI 只需 Python 3，无第三方依赖，也可直接执行 `python3 skills/threadline/scripts/threadline.py`。将整个 `skills/threadline` 目录复制到其他 runtime 的 skill 目录即可使用。服务仍需按上文启动；CLI 与 UI 共用 HTTP API 和资料库，不直接操作 SQLite。默认地址可用 `THREADLINE_URL` 或全局 `--url` 覆盖，仅接受 loopback HTTP。远程 runtime 需配置 SSH 隧道，或自行部署本地服务；本机 Codex 导入读取服务端机器的记录。
-
-支持 `health`、`panel`、`list`、`get`、`save`、`update`、`delete`、`export`、`sessions`、`session`、`import`、`topics`、`topic-create`。运行 `threadline COMMAND --help` 查看参数。除 help 外 stdout 输出 JSON，错误 JSON 写 stderr；退出码 0 成功、2 参数错误、1 执行失败。更新必须提供 `get` 返回的 `version`；导入必须提供 `session` 输出的快照文件和明确的消息 ID，服务校验指纹并去重。普通保存不幂等，超时后先查询确认再决定是否重试。导出 ZIP 不覆盖已有文件。
-
-笔记支持 `outdated`（已过时）和 `updated`（已更新）标记，必须填写原因。阅读页可以标记并查看历史，CLI 使用 `threadline mark NOTE_UUID --version VERSION --status outdated --reason '新事实与依据'`。原文不被覆盖，每次标记追加时间和原因；资料复用与导出携带当前状态。`updated` 需在原因中说明更正结论或已完成的修订，不代表整篇笔记全面核验。已有笔记无需迁移，未标记也不代表已确认有效。
-
-### Cursor Agents 本机会话
-
-收录页的「全部 Runtime / Codex / Cursor」会按实际来源筛选。Cursor 适配器只读扫描
-`~/.cursor/projects/*/agent-transcripts/` 下的 UUID JSONL 主会话（包含嵌套目录），
-过滤工具结果、系统消息和思考块，不把子 Agent 会话混入主列表。支持消息选择、
-快照校验、去重收录、原文图片引用和飞书预览；保存时保留 Cursor 来源与 Runtime。
-没有时间或运行状态的记录显示未知，不推测为“已完成”。
-
-这不包含云端历史下载或旧 IDE 数据库恢复。目录中没有本地记录时显示明确的空状态。
-解析器和 API 的隔离样例测试不等于用户真实会话已成功读取。
-
-标题旁搜索和 ⌘F / ⌃⌥R 进入收录页的会话搜索。鼠标点击不显示额外焦点光圈，
-键盘 Tab / 方向键导航保留可见焦点。
+Before changing the app, read [AGENTS.md](AGENTS.md) and the [development guide](docs/development.md). Keep the English and Chinese READMEs aligned when changing product claims or installation instructions.
