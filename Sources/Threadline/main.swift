@@ -61,6 +61,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         statusItem?.button?.toolTip = tr("Threadline · 思续")
     }
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let iconURL = Bundle.main.url(forResource: "ThreadlineGreen", withExtension: "icns"),
+           let icon = NSImage(contentsOf: iconURL) { NSApp.applicationIconImage = icon }
         let main = NSMenu(), appMenu = NSMenu(title:"Threadline"), item = NSMenuItem(title:"Threadline",action:nil,keyEquivalent:"")
         appMenu.addItem(withTitle: "关于 Threadline", action: #selector(about), keyEquivalent: "")
         appMenu.addItem(withTitle: "退出 Threadline", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -100,11 +102,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             return self.dragRegions.contains { $0.contains(cssPoint) }
                 && !self.dragExclusions.contains { $0.contains(cssPoint) }
         }
-        // Use the same full-color artwork as the app, including its original background.
+        // A separate hollow vector template adapts to light and dark menu bars.
         let status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        let artwork = Bundle.main.url(forResource: "TrayIcon", withExtension: "png").flatMap { NSImage(contentsOf: $0) } ?? NSApp.applicationIconImage
+        let artwork = Bundle.main.url(forResource: "MenuIcon", withExtension: "pdf").flatMap { NSImage(contentsOf: $0) }
         artwork?.size = NSSize(width: 20, height: 20)
-        artwork?.isTemplate = false
+        artwork?.isTemplate = true
         status.button?.image = artwork
         status.button?.toolTip = "Threadline · 思续"
         status.button?.setAccessibilityLabel("Threadline")
