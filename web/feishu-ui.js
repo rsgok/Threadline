@@ -24,15 +24,16 @@
   const notify = (text, kind = 'info') => { if (!text) return; if (text === lastNotice && Date.now() - lastNoticeAt < 6000) return; lastNotice = text; lastNoticeAt = Date.now(); notifyMessage(text, kind); };
   const post = async (route, data = {}) => { const result = await api('/api/feishu/' + route, { method: 'POST', body: JSON.stringify(data) }); const messages = { bind: '飞书应用已绑定', disconnect: '已断开本机飞书连接', cancel: '已取消连接操作' }; if (messages[route]) notify(messages[route], 'success'); return result; };
   const dialog = node('dialog', '', 'feishu-dialog compact-dialog'); dialog.setAttribute('aria-label', '连接飞书');
-  const heading = node('div', '', 'feishu-heading'); heading.append(node('h2', '连接飞书'), button('关闭', () => dialog.close()));
+  const heading = node('div', '', 'feishu-heading'); heading.append(node('h2', '连接飞书'));
   const content = node('div');
   dialog.append(heading, content); document.body.append(dialog);
   let timer, lastView = '', working = false;
+  setupModal(dialog, { canDismiss: () => !working });
   const attempt = async fn => { if (working) return; working = true; try { await fn(); } catch (e) { notify(e.message, 'error'); } finally { working = false; } };
   const connectionButton = button('连接飞书', () => openConnection()); connectionButton.classList.add('feishu-connect');
-  (document.querySelector('.native-context-header') || document.querySelector('.toolbar')).append(connectionButton);
+  registerAppUtility(connectionButton);
   // A visible entry remains available inside a narrow Codex panel.
-  const panelEntry = button('飞书', () => openConnection()); panelEntry.classList.add('feishu-panel-connect'); document.querySelector('.panel-header')?.append(panelEntry);
+
   function link(text, url) { const a = node('a', text); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; return a; }
   async function refresh() {
     if (!dialog.open) return;
@@ -70,17 +71,17 @@
           if (!s.userAuthorized || s.missingScopes?.length) content.append(button(s.userAuthorized ? '补充群列表授权' : '授权群列表', () => attempt(async () => { await post('authorize'); lastView = ''; await refresh(); }), 'primary'));
         }
         content.append(node('p', '机器人需要加入目标群。开通权限并按飞书要求发布后，点击下方刷新。', 'feishu-muted'), link('打开应用后台 ↗', s.consoleUrl), button('刷新权限状态', () => attempt(async () => { await api('/api/feishu/status?refresh=1'); lastView = ''; await refresh(); })));
-        content.append(button('断开本机连接', () => attempt(async () => { await post('disconnect'); lastView = ''; await refresh(); })));
+        const disconnect=button('断开本机连接', () => attempt(async () => { await post('disconnect'); lastView = ''; await refresh(); }));disconnect.dataset.intent='danger';content.append(disconnect);
         content.append(node('p', '断开会清除本机用户登录态，不删除飞书应用，也不撤销服务端授权。', 'feishu-muted'));
       }
     } catch (e) { notify(e.message, 'error'); }
   }
-  async function openConnection() { lastView = ''; dialog.showModal(); await refresh(); clearInterval(timer); timer = setInterval(refresh, 2000); }
+  async function openConnection() { lastView = ''; dialog.showModal(); await refresh(); clearInterval(timer); if (dialog.open) timer = setInterval(refresh, 2000); }
   dialog.addEventListener('close', () => { clearInterval(timer); if (sendDialog.open) loadChats(); });
 
-  const sendDialog = node('dialog', '', 'feishu-dialog compact-dialog feishu-send-dialog'); sendDialog.setAttribute('aria-label', '发送讨论到飞书');
+  const sendDialog = node('dialog', '', 'feishu-dialog feishu-send-dialog'); sendDialog.setAttribute('aria-label', '发送讨论到飞书');
   const sendHeading = node('div', '', 'feishu-heading'); let sending = false;
-  sendHeading.append(node('h2', '发到飞书'), button('关闭', () => { if (!sending) sendDialog.close(); }));
+  sendHeading.append(node('h2', '发到飞书'));
   const identity = node('p', '', 'feishu-muted');
   const targetSwitch = node('div', '', 'feishu-target-switch'); targetSwitch.setAttribute('role', 'group'); targetSwitch.setAttribute('aria-label', '发送目标');
   let target = 'self', targetReady = false;
@@ -105,7 +106,7 @@
   userQuery.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); searchUsers(); } };
   const recipientLabel = node('p', '', 'feishu-muted');
   const hasTarget = () => targetReady && (target === 'self' || !!select.value);
-  function changeTarget(value) { if (sending) return; target = value; targetReady = false; selfTarget.setAttribute('aria-pressed', String(target === 'self')); groupTarget.setAttribute('aria-pressed', String(target === 'group')); for (const e of [userQuery, userSelect, userSearch]) e.hidden = target === 'group'; contactAuth.hidden = true; for (const e of [query, search, select]) e.hidden = target === 'self'; more.hidden = true; loadChats(); }
+  function changeTarget(value) { if (sending) return; target = value; targetReady = false;colleagueSearch.hidden=target==='group'; selfTarget.setAttribute('aria-pressed', String(target === 'self')); groupTarget.setAttribute('aria-pressed', String(target === 'group')); for (const e of [userQuery, userSelect, userSearch]) e.hidden = target === 'group'; contactAuth.hidden = true; for (const e of [query, search, select]) e.hidden = target === 'self'; more.hidden = true; loadChats(); }
   const query = node('input'); query.placeholder = '搜索群聊'; query.setAttribute('aria-label', '搜索飞书群聊');
   const search = button('搜索', () => loadChats());
   const select = recipientMenu('发送到哪个群'); select.setAttribute('aria-label', '发送到哪个群');
@@ -113,12 +114,22 @@
   const note = node('textarea'); note.placeholder = '附一句说明（可选）'; note.maxLength = 2000; note.setAttribute('aria-label', '发送附言');
   const attachmentsBox = node('div', '', 'feishu-attachments'); let attachmentIDs = new Set();
   const preview = node('pre', '', 'feishu-preview'); const hint = node('p', '以折叠卡片发送原文；请先将机器人加入目标群。图片和本地文件不会上传。', 'feishu-muted');
-  const refreshPreview = button('更新预览', () => prepare());
+  const refreshPreview = button('重试预览', () => prepare());refreshPreview.hidden=true;
   const send = button('发送', () => deliver(), 'primary'); send.disabled = true;
   const connection = button('连接 / 管理飞书', () => openConnection());
-  sendDialog.append(sendHeading, identity, connection, targetSwitch, recipientLabel, userSelect, userQuery, userSearch, contactAuth, query, search, select, more, note, refreshPreview, hint, attachmentsBox, preview, send); document.body.append(sendDialog);
+  let shareBack, previewAttachments=[];
+  const backToMethods=button('← 更换分享方式',()=>{if(sending||!shareBack)return;const state={note:note.value,paths:previewAttachments.filter(a=>attachmentIDs.has(a.id)).map(a=>a.path)};sendDialog.close();shareBack(state);});
+  const sendInner=node('div','','dialog-inner');
+  const recipientSection=node('section','','share-recipient-section');const colleagueSearch=node('details');colleagueSearch.append(node('summary','查找其他同事'),userQuery,userSearch,contactAuth);
+  recipientSection.append(node('h3','发送到'),targetSwitch,recipientLabel,userSelect,colleagueSearch,query,search,select,more);
+  const connectionDetails=node('details','','share-connection-details');connectionDetails.append(node('summary','飞书连接'),identity,connection);
+  const noteLabel=node('label','附言（可选）','field-label');note.id='feishu-share-note';noteLabel.htmlFor=note.id;
+  const previewDetails=node('details','','share-preview-details');previewDetails.append(node('summary','查看完整内容'),preview);
+  const sendActions=node('div','','dialog-bottom');sendActions.append(send);
+  sendInner.append(sendHeading,backToMethods,recipientSection,connectionDetails,node('h3','分享内容'),noteLabel,note,attachmentsBox,previewDetails,hint,refreshPreview,sendActions);
+  sendDialog.append(sendInner);document.body.append(sendDialog);
   let snapshot, previewId, pageToken = '', searchGeneration = 0, previewGeneration = 0, previewTimer;
-  function schedulePreview() { clearTimeout(previewTimer); previewGeneration++; previewId = null; send.disabled = true; send.textContent = '正在更新预览…'; previewTimer = setTimeout(() => prepare(), 250); }
+  function schedulePreview() { clearTimeout(previewTimer);refreshPreview.hidden=true; previewGeneration++; previewId = null; send.disabled = true; send.textContent = '正在更新预览…'; previewTimer = setTimeout(() => prepare(), 250); }
   note.oninput = schedulePreview;
   async function loadChats(append = false) {
     if (sending) return;
@@ -126,6 +137,7 @@
     try {
       const s = await api('/api/feishu/status'); identity.textContent = (target === 'self' ? s.privateReady : s.ready) ? '发送身份：' + (s.botName || 'Threadline 机器人') + '（机器人）' : '请先开通机器人发送权限，并授权群列表。';
       if (id !== searchGeneration) return;
+      connectionDetails.open=!(target==='self'?s.privateReady:s.ready);
       targetReady = target === 'self' ? s.privateReady : s.ready;
       recipientLabel.textContent = target === 'self' ? '收件人：' + (userSelect.value === 'self' ? (s.userName || '当前飞书用户') + '（我）' : userSelect.selectedOptions[0].textContent) : '请选择已加入机器人的群聊';
       if (!targetReady) return;
@@ -142,8 +154,8 @@
   select.onchange = () => { send.disabled = !previewId || !hasTarget() || sending; };
   query.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); loadChats(); } };
   async function prepare() {
-    if (sending) return; clearTimeout(previewTimer); const generation = ++previewGeneration; send.disabled = true; send.textContent = '正在更新预览…'; previewId = null; 
-    try { const result = await post('preview', { ...snapshot, note: note.value, attachmentIDs: [...attachmentIDs] }); if (generation !== previewGeneration || !sendDialog.open) return; attachmentsBox.replaceChildren();
+    if (sending) return;refreshPreview.hidden=true; clearTimeout(previewTimer); const generation = ++previewGeneration; send.disabled = true; send.textContent = '正在更新预览…'; previewId = null;
+    try { const result = await post('preview', { ...snapshot, note: note.value, attachmentIDs: [...attachmentIDs] }); if (generation !== previewGeneration || !sendDialog.open) return; attachmentsBox.replaceChildren();previewAttachments=result.attachments||[];
       if (result.attachments?.length) {
         attachmentsBox.append(node('p', '附件（勾选后上传；未选附件只注明未发送）'));
         for (const a of result.attachments) {
@@ -155,7 +167,7 @@
       }
       preview.textContent = result.text; hint.textContent = `${result.count} 条消息 · 将发送 ${result.cardCount} 张折叠卡片 + ${result.fileCount || 0} 个文件。长消息分段保留原文。`; previewId = result.id; send.disabled = !hasTarget(); }
     catch (e) { if (generation === previewGeneration) notify(e.message, 'error'); }
-    finally { if (generation === previewGeneration) { send.textContent = '发送'; send.disabled = !previewId || !hasTarget() || sending; } }
+    finally { if (generation === previewGeneration) { refreshPreview.hidden=!!previewId;refreshPreview.textContent='重试预览';send.textContent = '确认发送到飞书'; send.disabled = !previewId || !hasTarget() || sending; } }
   }
   async function deliver() {
     if (sending || !previewId || !hasTarget()) return;
@@ -164,17 +176,21 @@
       const receipt = await post('send', { previewId, target: target === 'self' && userSelect.value !== 'self' ? 'user' : target, userId: userSelect.value, ...(target === 'group' ? { chatId: select.value } : {}) });
       notify('已发送到「' + (target === 'self' ? userSelect.selectedOptions[0].textContent : select.selectedOptions[0].textContent) + '」，共 ' + receipt.sentCount + ' 张卡片。原来的消息选择仍然保留，可以继续“留下”。', 'success'); previewId = null;
     } catch (e) { notify(e.message, 'error'); }
-    finally { sending = false; send.textContent = '发送'; attachmentsBox.querySelectorAll('input').forEach(e => e.disabled = e.dataset.available !== 'true'); userSelect.disabled = userQuery.disabled = userSearch.disabled = note.disabled = select.disabled = query.disabled = false; send.disabled = !previewId || !hasTarget(); }
+    finally { sending = false; send.textContent = '确认发送到飞书'; attachmentsBox.querySelectorAll('input').forEach(e => e.disabled = e.dataset.available !== 'true'); userSelect.disabled = userQuery.disabled = userSearch.disabled = note.disabled = select.disabled = query.disabled = false; send.disabled = !previewId || !hasTarget(); }
   }
-  sendDialog.addEventListener('close', () => { clearTimeout(previewTimer); previewGeneration++; });
-  sendDialog.addEventListener('cancel', e => { if (sending) e.preventDefault(); });
-  const sendSelected = button('发到飞书', async () => {
+  sendDialog.addEventListener('close', () => { clearTimeout(previewTimer);refreshPreview.hidden=true; previewGeneration++; });
+  setupModal(sendDialog, { canDismiss: () => !sending });
+  async function openSelectedShare(shared) {
     if (!activeSession || !selectedMessages.size) return;
+    shareBack=shared?.onBack;backToMethods.hidden=!shareBack;
     const messages = activeSession.messages.filter(m => selectedMessages.has(m.id));
-    snapshot = { threadID: activeSession.id, messageIDs: messages.map(m => m.id), fingerprints: Object.fromEntries(messages.map(m => [m.id, m.fingerprint])), includeProgress: $('include-progress').checked };
-    attachmentIDs = new Set(); attachmentsBox.replaceChildren(); userSelect.replaceChildren(new Option('我（当前飞书用户）', 'self')); userQuery.value = ''; userSearchGeneration++; note.value = ''; preview.textContent = ''; select.replaceChildren(); query.value = ''; previewId = null;
+    snapshot = shared?.snapshot || { runtime: contextRuntime, threadID: activeSession.id, messageIDs: messages.map(m => m.id), fingerprints: Object.fromEntries(messages.map(m => [m.id, m.fingerprint])), includeProgress: $('include-progress').checked };
+    attachmentIDs = new Set(); attachmentsBox.replaceChildren(); userSelect.replaceChildren(new Option('我（当前飞书用户）', 'self')); userQuery.value = ''; userSearchGeneration++; note.value = shared?.note || ''; preview.textContent = ''; select.replaceChildren(); query.value = ''; previewId = null;
+    if (shared?.paths?.length) { const initial = await post('preview', { ...snapshot, note: note.value, attachmentIDs: [] }); attachmentIDs = new Set(initial.attachments.filter(a => a.available && shared.paths.includes(a.path)).map(a => a.id)); }
     sendDialog.showModal(); changeTarget('self'); await prepare();
-  }, 'tool');
+  }
+  window.openFeishuShare = openSelectedShare;
+  const sendSelected = button('发到飞书', () => openSelectedShare(), 'tool');
   sendSelected.id = 'send-feishu'; sendSelected.disabled = true; $('save-session').before(sendSelected);
   const originalSelectionChanged = selectionChanged;
   selectionChanged = function() { originalSelectionChanged(); sendSelected.disabled = !selectedMessages.size || sessionLoading || sessionSaving; };

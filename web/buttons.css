@@ -1,0 +1,247 @@
+/* Canonical control appearance;
+pages retain layout and focus modality. */
+:root {
+  --button-height:32px;
+  --button-radius:7px;
+  --button-ink:#4c5845;
+  --button-line:#dce2d5;
+  --button-hover:#edf1e7;
+  --button-primary:#e5ecdc
+}
+body button {
+  font-family:inherit!important;
+  text-shadow:none!important;
+  box-shadow:none!important;
+  transform:none!important;
+  -webkit-tap-highlight-color:transparent
+}
+body button:is(.primary,.secondary,.tool,.manage-topics,.use-note,.capture,.session-entry,.codex-sidebar-open,.panel-capture,.native-header-primary),body dialog.feishu-dialog button,body .menu button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px!important;
+  height:auto!important;
+  min-height:var(--button-height)!important;
+  padding:6px 11px!important;
+  border:1px solid transparent!important;
+  border-radius:var(--button-radius)!important;
+  background:transparent!important;
+  color:var(--button-ink)!important;
+  font-size:12px!important;
+  font-weight:500!important;
+  line-height:18px!important;
+  letter-spacing:0!important;
+  text-decoration:none!important
+}
+body button:is(.primary,.native-header-primary),body dialog.feishu-dialog button.primary {
+  background:var(--button-primary)!important;
+  border-color:#d6e0ca!important;
+  color:#354a29!important
+}
+body button:is(.secondary,.use-note,.codex-sidebar-open),body dialog.feishu-dialog button:not(.primary):not([role=option]) {
+  background:#fcfcfa!important;
+  border-color:var(--button-line)!important
+}
+body button:is(.primary,.native-header-primary):hover:not(:disabled),body dialog.feishu-dialog button.primary:hover:not(:disabled) {
+  background:#dbe5cf!important;
+  border-color:#c9d6bc!important
+}
+body button:is(.tool,.secondary,.manage-topics,.use-note,.capture,.session-entry,.codex-sidebar-open,.panel-capture):hover:not(:disabled),body dialog.feishu-dialog button:not(.primary):hover:not(:disabled),body .menu button:hover:not(:disabled) {
+  background:var(--button-hover)!important;
+  color:#35472b!important
+}
+body button:is(.primary,.secondary,.tool,.use-note):active:not(:disabled) {
+  background:#d9e2d0!important
+}
+body button:disabled {
+  cursor:default!important;
+  opacity:.48!important
+}
+body button.primary:disabled {
+  background:#ecefe6!important;
+  border-color:#e0e5d8!important;
+  color:#89917f!important;
+  opacity:1!important
+}
+/* Navigation */
+body button:is(.native-sidebar-capture,.native-thoughts-entry,.thread-link),body .workspace-nav button,body .panel-tabs button {
+  display:flex;
+  align-items:center;
+  min-height:36px!important;
+  height:auto!important;
+  padding:8px 10px!important;
+  gap:10px!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:transparent!important;
+  color:#53604b!important;
+  font-size:13px!important;
+  font-weight:500!important;
+  line-height:20px!important;
+  letter-spacing:0!important
+}
+body button:is(.native-sidebar-capture,.native-thoughts-entry,.thread-link):hover,body .workspace-nav button:hover,body .panel-tabs button:hover {
+  background:#e8ede2!important
+}
+body button:is(.native-sidebar-capture,.native-thoughts-entry)[aria-current=page],body button.thread-link.active,body .workspace-nav button.active,body .panel-tabs button.active {
+  background:#e0e8d8!important;
+  color:#3f5133!important
+}
+body button:is(.native-sidebar-capture,.native-thoughts-entry) svg {
+  width:18px!important;
+  height:18px!important;
+  stroke-width:1.5!important
+}
+/* Icon tools */
+body button:is(.native-search-toggle,.native-search-close,.mobile-capture,.mobile-library),body .native-window-controls>.tool,body #toolbar-tools button:has(svg) {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px!important;
+  min-width:28px!important;
+  height:28px!important;
+  min-height:28px!important;
+  padding:5px!important;
+  border:0!important;
+  border-radius:6px!important;
+  background:transparent!important;
+  color:#7b8673!important
+}
+body button:is(.native-search-toggle,.native-search-close):hover,body .native-window-controls>.tool:hover,body #toolbar-tools button:has(svg):hover {
+  background:#e7ecdf!important
+}
+body button:is(.native-search-toggle,.native-search-close) svg,body .native-window-controls>.tool svg,body #toolbar-tools button:has(svg) svg {
+  width:17px!important;
+  height:17px!important
+}
+/* Content choices preserve their internal hierarchy and dimensions. */
+body button:is(.thread-card,.thinking-choice,.session-choice,.native-note) {
+  border-color:#e0e6d9!important;
+  border-width:1px!important;
+  border-radius:9px!important;
+  background:#fcfdf9!important
+}
+body button:is(.thread-card,.thinking-choice,.session-choice,.native-note):hover {
+  background:#f0f4e9!important;
+  border-color:#d5dfca!important
+}
+body button.native-note.selected {
+  background:#e5ecde!important;
+  border-color:#d9e3d0!important
+}
+body button:is(.note-open,.local-file-link,.annotation-reference) {
+  border:0!important;
+  background:transparent!important;
+  color:#536d42!important
+}
+body button:is(.local-file-link,.annotation-reference):hover {
+  background:#edf2e5!important
+}
+/* Menus and segmented choices */
+body .menu button,body .feishu-recipient-options button {
+  justify-content:flex-start
+}
+body .feishu-target-switch button {
+  border-color:transparent!important;
+  background:transparent!important
+}
+body .feishu-target-switch button[aria-pressed=true],body .feishu-recipient-options button[aria-selected=true],body button.use-note.active {
+  background:#e4ecd9!important;
+  color:#3e5430!important;
+  border-color:#d5e0c9!important
+}
+body button.danger,body button[data-intent=danger] {
+  color:#a05447!important
+}
+body button.danger:hover,body button[data-intent=danger]:hover {
+  background:#f8eee9!important;
+  color:#914433!important
+}
+body button:is(.session-back,.session-manual-add,.manage-topics,.message-expand) {
+  min-height:28px!important;
+  padding:4px 6px!important
+}
+body #topic-manager>.primary {
+  width:fit-content
+}
+@media(pointer:coarse) {
+  body button:is(.primary,.secondary,.tool,.native-sidebar-capture,.native-thoughts-entry) {
+    min-height:40px!important
+  }
+
+}
+@media(prefers-reduced-motion:no-preference) {
+  body button {
+    transition:background-color .12s ease,border-color .12s ease,color .12s ease
+  }
+
+}
+/* Remaining icon affordances and button-like disclosure controls. */
+body .thread-nav-label button,body .notify-message button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  height:28px;
+  padding:4px;
+  border:0;
+  border-radius:6px;
+  background:transparent;
+  font-size:16px;
+  color:#7b8673
+}
+body .thread-nav-label button:hover,body .notify-message button:hover {
+  background:#edf1e7
+}
+body .session-more>summary,body .native-runtime-menu>summary {
+  padding:5px 8px;
+  font-size:12px;
+  font-weight:500;
+  border-radius:6px
+}
+body .session-more>summary:hover,body .native-runtime-menu>summary:hover {
+  background:#edf1e7
+}
+body .share-targets button,
+body dialog.feishu-dialog .feishu-target-switch button {
+  background:transparent!important;
+  border-color:transparent!important
+}
+body .share-targets button[aria-pressed=true],
+body dialog.feishu-dialog .feishu-target-switch button[aria-pressed=true],body dialog.feishu-dialog .feishu-recipient-options button[aria-selected=true] {
+  background:#e4ecd9!important;
+  color:#3e5430!important;
+  border-color:#d5e0c9!important
+}
+body label.upload {
+  display:inline-flex;
+  align-items:center;
+  min-height:32px;
+  padding:6px 10px;
+  border:1px solid #dce2d5;
+  border-radius:7px;
+  font-size:12px;
+  font-weight:500;
+  background:#fcfcfa;
+  color:#4c5845
+}
+body button.manage-topics {
+  justify-content:flex-end
+}
+body dialog.feishu-dialog button[data-intent=danger] {
+  color:#a05447!important
+}
+body dialog.feishu-dialog button[data-intent=danger]:hover {
+  background:#f8eee9!important;
+  color:#914433!important
+}
+
+/* Navigation density matches the shared 36px / 13px inventory. */
+body.native-app button:is(.native-sidebar-capture,.native-thoughts-entry) { height:36px!important; min-height:36px!important; padding:7px 10px!important; font-size:13px!important; margin-bottom:3px; }
+body.native-app :is(.native-sidebar-capture,.native-thoughts-entry) svg { width:18px; height:18px; }
+body .session-more-body { border:1px solid var(--button-line); box-shadow:0 8px 24px #24352f14; background:#fcfcfa; }
+body .session-more>summary { min-width:28px; min-height:28px; display:flex; align-items:center; justify-content:center; }
+@media(pointer:coarse) { body.native-app button:is(.native-sidebar-capture,.native-thoughts-entry) { min-height:40px!important; } }
+body .share-method-grid button.share-method { display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; white-space:normal; text-align:left; min-height:82px!important; padding:12px!important; gap:5px!important; }
+body .share-method strong { font-size:13px; font-weight:550; }
+body .share-method span { font-size:11px; font-weight:400; line-height:1.5; color:#788270; }

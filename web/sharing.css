@@ -1,0 +1,44 @@
+/* Sharing owns content layout only. Surfaces, fields, typography and actions
+   inherit the shared modal system in threadline.css and buttons.css. */
+body dialog.share-dialog.modal-surface { --modal-width: 720px; }
+.share-dialog [hidden], .share-history-dialog [hidden] { display: none !important; }
+.share-targets { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+.share-dialog details { margin: 16px 0; }
+.share-dialog summary { cursor: pointer; }
+.share-preview { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 300px; overflow: auto; }
+.share-attachments label { display: flex; align-items: flex-start; gap: 9px; margin: 12px 0; }
+.share-attachments input { margin-top: 5px; flex: none; }
+.share-media { display: flex; gap: 10px; overflow: auto; margin: 12px 0; }
+.share-media img { max-height: 160px; max-width: 240px; object-fit: contain; }
+.share-cards canvas { display: block; width: 100%; height: auto; margin: 18px 0; }
+.share-actions { display: flex; align-items: center; flex-wrap: wrap; }
+.share-channel-list { display: flex; flex-wrap: wrap; gap: 5px; max-height: 200px; overflow: auto; }
+.share-step { padding: 12px 0; }
+.share-history-row { display: block; width: 100%; text-align: left; }
+.share-header-actions { display: flex; align-items: center; gap: 8px; }
+
+/* One method, one composer, one primary action. */
+.share-method-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.share-dialog h3,.feishu-send-dialog h3 { margin:20px 0 10px; font-size:13px; font-weight:600; }
+.share-dialog .share-methods { margin:0; }
+.share-compose > .tool { margin-bottom:8px; }
+.share-dialog .share-preview-details,.feishu-send-dialog .share-preview-details { margin:16px 0; }
+.share-dialog .share-status { min-height:32px; margin-top:16px; }
+.share-dialog .share-status p { margin:0; }
+.share-dialog .share-actions { justify-content:flex-end; }
+.share-dialog .share-attachments label { margin:8px 0; }
+.share-dialog .share-preview { margin-bottom:0; }
+.share-dialog .share-cards { max-height:340px; overflow:auto; }
+.share-dialog .share-cards canvas { margin:10px 0; }
+.share-dialog .share-media:empty,.share-dialog .share-cards:empty { display:none; }
+.feishu-send-dialog .share-connection-details { margin:12px 0; }
+.feishu-send-dialog .feishu-muted { margin:8px 0; }
+.feishu-send-dialog .dialog-bottom { justify-content:flex-end; }
+.feishu-send-dialog .dialog-bottom button { margin:0; }
+@media(max-width:600px) {
+ .share-method-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+.feishu-send-dialog .share-recipient-section details { margin:10px 0; }
+.share-compose textarea,.feishu-send-dialog #feishu-share-note { min-height:76px; }
+.share-dialog .share-attachments label span { min-width:0; overflow-wrap:anywhere; }
+.share-dialog .share-compose,.share-dialog .share-method-grid { min-width:0; }

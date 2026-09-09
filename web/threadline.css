@@ -18,7 +18,7 @@
  .thread-grid{gap:9px}.thread-card{min-height:0;padding:16px;border-radius:8px}.thread-glyph{display:none}.thread-card h3{font-size:14px;margin:0 0 7px}.thread-card p{font-size:11px;line-height:1.8;-webkit-line-clamp:2;margin-bottom:12px}.thread-card-foot{font-size:10px}.new-thread{min-height:44px;flex-direction:row;align-items:center;justify-content:flex-start;gap:9px;padding:12px 15px}.new-thread>span{font-size:18px;margin:0}.new-thread h3{font-size:12px;margin:0}.new-thread p{display:none}
  .hero-actions{margin:12px 0 20px;gap:6px}.hero-actions .primary{font-size:11px;padding:9px 12px}.hero-actions .secondary{font-size:11px;padding:8px}.note-row{padding:14px 0}.note-open{font-size:12px;line-height:1.7}.note-excerpt{font-size:11px;line-height:1.8;margin:7px 0 9px}.note-foot{font-size:9px;gap:12px}.note-line{align-items:flex-start}.use-note{font-size:9px;padding:5px 7px}
  .app:not([data-mode=note]) .bottom{display:none}.reading,.editor{padding:20px 17px 30px}.reading h1{font-size:23px}.bottom{height:58px;padding:0 15px}.saved{font-size:9px;max-width:32%}.copy-tools{gap:5px}.entry-meta{margin-bottom:12px}.note{margin:18px 0;padding:12px 14px}.continue-topic{width:100%;justify-content:center;margin-top:20px}
- dialog{width:100vw;max-width:100vw;max-height:100dvh;border:0;border-radius:0;margin:0;height:100dvh}.dialog-inner{padding:20px 17px}.session-dialog,.carry-dialog{width:100vw;max-height:100dvh}.session-shell{height:100dvh}.session-top{padding:17px 16px 12px}.session-top h2{font-size:20px}.session-messages{padding:10px}.message-card{padding:12px}.session-bottom{padding:10px 14px 14px}.selection-footer .primary{font-size:11px;padding:10px}.carry-dialog .dialog-inner{padding:20px 17px}.carry-dialog #carry-list{max-height:30dvh}.dialog-head h2{font-size:21px}
+ dialog{width:100vw;max-width:100vw;max-height:100dvh;border:0;border-radius:0;margin:0;height:100dvh}.dialog-inner{padding:20px 17px}.session-view,.carry-dialog{width:100vw;max-height:100dvh}.session-shell{height:100dvh}.session-top{padding:17px 16px 12px}.session-top h2{font-size:20px}.session-messages{padding:10px}.message-card{padding:12px}.session-bottom{padding:10px 14px 14px}.selection-footer .primary{font-size:11px;padding:10px}.carry-dialog .dialog-inner{padding:20px 17px}.carry-dialog #carry-list{max-height:30dvh}.dialog-head h2{font-size:21px}
 }
 @media(max-width:360px){.panel-brand small{display:none}.panel-brand{font-size:16px}.panel-capture{font-size:10px}.workspace{padding-left:13px;padding-right:13px}}
 @media(max-width:700px){
@@ -64,10 +64,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 }
 .session-optional{font-size:12px;color:#52657e;margin-bottom:12px}.session-optional summary{cursor:pointer;padding:5px 0}.session-optional[open] summary{margin-bottom:8px}.session-list-preview{font-size:12px;line-height:1.7;color:#52657e;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.session-receipt{background:#edf5ef;color:#285b3e;padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:8px}.session-receipt .tool{color:#285b3e}
 @media(max-width:700px){
- #session-dialog[open]{position:fixed;inset:0;z-index:20;margin:0;width:100vw;height:100dvh;max-height:100dvh;max-width:100vw;background:#fff;border:0;border-radius:0}
- #session-dialog .session-shell,#session-dialog.choosing-session .session-shell{height:100dvh}
- #session-dialog .session-top h2{font-size:20px}#session-dialog .session-top{padding:16px 17px 9px}#session-dialog .session-top>.tool{font-size:11px;margin-top:8px}
- #session-dialog .session-bottom{background:#fff;box-shadow:0 -3px 15px #13223907}#session-dialog .selection-footer{margin-top:3px}#session-dialog .selection-status{max-width:48%}.session-choice{padding:16px 6px;gap:7px}.session-choice strong{font-size:14px}.session-choices{margin-top:6px}
+ #session-view[open]{position:fixed;inset:0;z-index:20;margin:0;width:100vw;height:100dvh;max-height:100dvh;max-width:100vw;background:#fff;border:0;border-radius:0}
+ #session-view .session-shell,#session-view.choosing-session .session-shell{height:100dvh}
+ #session-view .session-top h2{font-size:20px}#session-view .session-top{padding:16px 17px 9px}#session-view .session-top>.tool{font-size:11px;margin-top:8px}
+ #session-view .session-bottom{background:#fff;box-shadow:0 -3px 15px #13223907}#session-view .selection-footer{margin-top:3px}#session-view .selection-status{max-width:48%}.session-choice{padding:16px 6px;gap:7px}.session-choice strong{font-size:14px}.session-choices{margin-top:6px}
 }
 /* Threadline studio: warm paper, ink outlines and a single yellow accent. */
 :root{--paper:#fffefb;--side:#f5f3ec;--ink:#191917;--muted:#64635d;--line:#d9d7cf;--accent:#dce7f4;--green:#191917;--soft:#edf3fa}
@@ -78,44 +78,44 @@ body{background:var(--paper);color:var(--ink)}button,input,textarea,select{font-
 .session-messages>.topic-select{background:#fffefb;border:1.5px solid #292923;border-radius:8px;padding:12px 13px;font-size:13px;color:#23231e;box-shadow:2px 2px 0 #d4cebb}.topic-select::placeholder{color:#777468}.session-choices{margin-top:18px;display:grid;gap:10px}.session-choice{position:relative;background:#fffefb;border:1.5px solid #d3cebe;border-radius:9px;padding:15px 38px 15px 15px;gap:7px;transition:border-color .12s,box-shadow .12s,transform .12s}.session-choice:after{content:'↗';position:absolute;right:14px;top:15px;color:#333127;font-size:17px}.session-choice:hover{background:#fff9df;border-color:#191917;box-shadow:3px 3px 0 #191917;transform:translate(-1px,-1px)}.session-choice strong{font-size:14px;line-height:1.6;color:#24231e;font-weight:750}.session-choice span{font-size:10px;color:#777264;font-variant-numeric:tabular-nums}.session-list-preview{color:#5d594e;font-size:12px;line-height:1.75;margin-top:3px}.session-choices>.tool{padding:13px;color:#5b5545}
 .message-card{background:#fffefb;border:1.5px solid #d2ccbb;border-radius:9px;padding:16px;margin-bottom:13px}.message-card.chosen{background:#f2f6fb;border:1.5px solid #191917;box-shadow:3px 3px 0 #bacce3}.message-role{color:#24231d;font-weight:750}.message-label,.message-date,.message-card summary{color:#706958}.message-excerpt{font-size:14px;line-height:1.85;margin-top:13px}.message-label input,.session-toolbar input,.carry-row input{accent-color:#24231b}.message-label input{width:17px;height:17px}.message-card summary{font-size:11px}.session-bottom{background:#fffefb;border-top:1.5px solid #24231e;padding:13px 20px 18px}.selection-status{color:#625b4b}.session-optional{color:#6c6454;font-size:11px}.session-optional summary{padding:7px 0}.session-optional[open]{max-height:190px;overflow:auto}.session-title-input,.topic-select,.capture-input,.editor input,.editor textarea{background:#fffefb;border-color:#c8c0ac;color:#29261f}.session-receipt{background:#edf3fa;color:#44380e;border:1px solid #d4b735}.session-receipt .tool{color:#44380e}.session-warning{color:#79611f}.session-brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:23px;gap:12px}.session-wordmark{display:inline-block;background:#191917;color:#fffefb;font-size:18px;font-weight:850;letter-spacing:-.7px;padding:6px 10px;border-radius:6px;box-shadow:3px 3px 0 #dce7f4}.session-wordmark em{font-style:normal;color:#dce7f4}.session-brand small{font-size:9px;letter-spacing:1.4px;color:#777164}.session-top .dialog-head>.tool{white-space:nowrap;border:1.5px solid #292720;border-radius:6px;font-size:10px;padding:7px 9px;color:#28261f;background:#fffefb}
 @media(max-width:700px){
- #session-dialog[open]{background:#fffefb}#session-dialog .session-top{padding:19px 20px 13px}#session-dialog .session-top h2{font-size:28px}#session-dialog .session-top>.tool{margin-top:11px;font-size:11px}#session-dialog .session-bottom{padding:11px 18px 18px;background:#fffefb;box-shadow:none}#session-dialog .session-messages{padding:17px 18px 24px}.session-choice{padding:14px 35px 14px 14px;gap:6px}.session-choice strong{font-size:14px}.session-brand{margin-bottom:21px}.session-top .session-toolbar{margin-top:13px}.selection-footer .primary{padding:10px 13px;min-height:42px}.panel-header{background:#fffefb}.thinking-question{background:#f2f6fb}.panel-header .panel-brand{font-weight:800}.workspace{background:#fffefb}
+ #session-view[open]{background:#fffefb}#session-view .session-top{padding:19px 20px 13px}#session-view .session-top h2{font-size:28px}#session-view .session-top>.tool{margin-top:11px;font-size:11px}#session-view .session-bottom{padding:11px 18px 18px;background:#fffefb;box-shadow:none}#session-view .session-messages{padding:17px 18px 24px}.session-choice{padding:14px 35px 14px 14px;gap:6px}.session-choice strong{font-size:14px}.session-brand{margin-bottom:21px}.session-top .session-toolbar{margin-top:13px}.selection-footer .primary{padding:10px 13px;min-height:42px}.panel-header{background:#fffefb}.thinking-question{background:#f2f6fb}.panel-header .panel-brand{font-weight:800}.workspace{background:#fffefb}
 }
 @media(prefers-reduced-motion:reduce){.primary,.session-choice{transition:none}}
-#session-dialog .session-messages{background-color:#f6f4ec;background-image:radial-gradient(#d9d3c2 .7px,transparent .7px);background-size:14px 14px}#session-dialog .session-shell{max-width:760px;margin:0 auto}#session-dialog{background:#f6f4ec}#session-dialog .session-top,#session-dialog .session-bottom{background:#fffefb}
+#session-view .session-messages{background-color:#f6f4ec;background-image:radial-gradient(#d9d3c2 .7px,transparent .7px);background-size:14px 14px}#session-view .session-shell{max-width:760px;margin:0 auto}#session-view{background:#f6f4ec}#session-view .session-top,#session-view .session-bottom{background:#fffefb}
 .session-choice{border-color:#34332b;box-shadow:2px 2px 0 #ded6be}.session-choice:hover{box-shadow:3px 3px 0 #191917}.session-top h2{font-weight:900}.session-brand small{color:#635d50}
 /* Compact header and message typography. */
-#session-dialog .session-top{padding:13px 17px 10px}#session-dialog .session-brand{margin-bottom:12px}#session-dialog .session-wordmark{font-size:15px;padding:5px 8px}#session-dialog .session-top h2{font-size:21px;letter-spacing:-.5px}#session-dialog:not(.choosing-session) .dialog-head{display:none}#session-dialog .session-subtitle{font-size:12px;color:#39372e;line-height:1.7;margin-top:3px}#session-dialog .session-toolbar{margin-top:9px;justify-content:space-between}#session-dialog .session-brand>.tool{font-size:11px;padding:5px 8px}.session-more{font-size:11px;color:#625b4c;position:relative}.session-more>summary{cursor:pointer;list-style:none;padding:5px 8px}.session-more-body{position:absolute;right:0;top:30px;z-index:5;min-width:160px;background:#fffefb;border:1px solid #292720;border-radius:8px;box-shadow:3px 3px 0 #d3c9a9;padding:9px;display:grid;gap:7px}.session-more-body label{font-size:11px;display:flex;align-items:center;gap:5px;white-space:nowrap}.session-status-tag,.session-choice strong .session-status-tag{display:inline-flex;margin-left:8px;font-size:9px!important;line-height:1.5;font-weight:500;padding:2px 6px;border:1px solid #d3cdbb;border-radius:4px;color:#6a6250;background:#f2eee3;vertical-align:middle;white-space:nowrap}.session-status-tag.open{background:#fff0ab;border-color:#d9b83b;color:#665013}.session-status-tag.complete{background:#edf1e9;border-color:#c1ccb5;color:#526044}.session-status-tag.interrupted{background:#f4e6df;border-color:#d5b9aa;color:#805640}#session-dialog .session-choice strong{font-size:13px}#session-dialog .session-list-preview{font-size:11px}#session-dialog .message-card{padding:12px 13px}#session-dialog .message-markdown{font-size:12px;line-height:1.8;margin-top:10px;overflow-wrap:anywhere}#session-dialog .message-markdown p{margin:8px 0}#session-dialog .message-markdown h2{font-size:15px;margin:15px 0 8px}#session-dialog .message-markdown h3{font-size:13px;margin:12px 0 6px}#session-dialog .message-markdown ul,#session-dialog .message-markdown ol{padding-left:21px;margin:8px 0}#session-dialog .message-markdown li{margin:3px 0}#session-dialog .message-markdown pre{font-size:11px;line-height:1.7;padding:12px;overflow:auto}#session-dialog .message-markdown table{font-size:11px}#session-dialog .message-markdown .code{margin:10px 0}#session-dialog .message-markdown a{color:#6a5517;text-decoration:underline;text-underline-offset:2px}#session-dialog .message-markdown.collapsed{max-height:230px;overflow:hidden;mask-image:linear-gradient(#000 0%,#000 85%,transparent)}#session-dialog .message-expand{font-size:10px;margin-top:6px}#session-dialog .message-role{font-size:11px}#session-dialog .message-date{font-size:9px}#session-dialog .session-messages{padding:13px 15px 20px}#session-dialog .session-bottom{padding:8px 15px 14px}#session-dialog .selection-footer .primary{font-size:11px;min-height:36px;padding:8px 11px}
-#session-dialog .message-user{background:#eeece6;border-color:#d0cbbf;margin-left:24px;border-radius:10px 10px 3px 10px}#session-dialog .message-assistant{background:#fffefb;margin-right:12px;border-radius:3px 10px 10px 10px}#session-dialog .message-role{display:inline-flex;align-items:center;gap:6px}#session-dialog .message-user .message-role:before{content:'你';font-size:9px;width:19px;height:19px;display:grid;place-items:center;border-radius:50%;background:#d7d2c7;color:#4f4b40}#session-dialog .message-assistant .message-role:before{content:'✦';font-size:12px;width:19px;height:19px;display:grid;place-items:center;border-radius:5px;background:#24231e;color:#fffefb}#session-dialog .message-user.chosen,#session-dialog .message-assistant.chosen{background:#edf3fa;border-color:#25231b;box-shadow:3px 3px 0 #bacce3}
-#session-dialog:not(.choosing-session) .session-paste-choice{display:none}
+#session-view .session-top{padding:13px 17px 10px}#session-view .session-brand{margin-bottom:12px}#session-view .session-wordmark{font-size:15px;padding:5px 8px}#session-view .session-top h2{font-size:21px;letter-spacing:-.5px}#session-view:not(.choosing-session) .dialog-head{display:none}#session-view .session-subtitle{font-size:12px;color:#39372e;line-height:1.7;margin-top:3px}#session-view .session-toolbar{margin-top:9px;justify-content:space-between}#session-view .session-brand>.tool{font-size:11px;padding:5px 8px}.session-more{font-size:11px;color:#625b4c;position:relative}.session-more>summary{cursor:pointer;list-style:none;padding:5px 8px}.session-more-body{position:absolute;right:0;top:30px;z-index:5;min-width:160px;background:#fffefb;border:1px solid #292720;border-radius:8px;box-shadow:3px 3px 0 #d3c9a9;padding:9px;display:grid;gap:7px}.session-more-body label{font-size:11px;display:flex;align-items:center;gap:5px;white-space:nowrap}.session-status-tag,.session-choice strong .session-status-tag{display:inline-flex;margin-left:8px;font-size:9px!important;line-height:1.5;font-weight:500;padding:2px 6px;border:1px solid #d3cdbb;border-radius:4px;color:#6a6250;background:#f2eee3;vertical-align:middle;white-space:nowrap}.session-status-tag.open{background:#fff0ab;border-color:#d9b83b;color:#665013}.session-status-tag.complete{background:#edf1e9;border-color:#c1ccb5;color:#526044}.session-status-tag.interrupted{background:#f4e6df;border-color:#d5b9aa;color:#805640}#session-view .session-choice strong{font-size:13px}#session-view .session-list-preview{font-size:11px}#session-view .message-card{padding:12px 13px}#session-view .message-markdown{font-size:12px;line-height:1.8;margin-top:10px;overflow-wrap:anywhere}#session-view .message-markdown p{margin:8px 0}#session-view .message-markdown h2{font-size:15px;margin:15px 0 8px}#session-view .message-markdown h3{font-size:13px;margin:12px 0 6px}#session-view .message-markdown ul,#session-view .message-markdown ol{padding-left:21px;margin:8px 0}#session-view .message-markdown li{margin:3px 0}#session-view .message-markdown pre{font-size:11px;line-height:1.7;padding:12px;overflow:auto}#session-view .message-markdown table{font-size:11px}#session-view .message-markdown .code{margin:10px 0}#session-view .message-markdown a{color:#6a5517;text-decoration:underline;text-underline-offset:2px}#session-view .message-markdown.collapsed{max-height:230px;overflow:hidden;mask-image:linear-gradient(#000 0%,#000 85%,transparent)}#session-view .message-expand{font-size:10px;margin-top:6px}#session-view .message-role{font-size:11px}#session-view .message-date{font-size:9px}#session-view .session-messages{padding:13px 15px 20px}#session-view .session-bottom{padding:8px 15px 14px}#session-view .selection-footer .primary{font-size:11px;min-height:36px;padding:8px 11px}
+#session-view .message-user{background:#eeece6;border-color:#d0cbbf;margin-left:24px;border-radius:10px 10px 3px 10px}#session-view .message-assistant{background:#fffefb;margin-right:12px;border-radius:3px 10px 10px 10px}#session-view .message-role{display:inline-flex;align-items:center;gap:6px}#session-view .message-user .message-role:before{content:'你';font-size:9px;width:19px;height:19px;display:grid;place-items:center;border-radius:50%;background:#d7d2c7;color:#4f4b40}#session-view .message-assistant .message-role:before{content:'✦';font-size:12px;width:19px;height:19px;display:grid;place-items:center;border-radius:5px;background:#24231e;color:#fffefb}#session-view .message-user.chosen,#session-view .message-assistant.chosen{background:#edf3fa;border-color:#25231b;box-shadow:3px 3px 0 #bacce3}
+#session-view:not(.choosing-session) .session-paste-choice{display:none}
 /* Lifecycle colors remain independent of the yellow message-selection state. */
-#session-dialog .session-status-tag.open{color:#854d0e;background:#fff2ce;border-color:#e3b74d}
-#session-dialog .session-status-tag.complete{color:#24623b;background:#e9f5ec;border-color:#94c6a1}
-#session-dialog .session-status-tag.interrupted{color:#a02c2c;background:#fdeaea;border-color:#e8a1a1}
-#session-dialog .session-status-tag.unknown{color:#5e6168;background:#eff0f2;border-color:#c8cbd0}
+#session-view .session-status-tag.open{color:#854d0e;background:#fff2ce;border-color:#e3b74d}
+#session-view .session-status-tag.complete{color:#24623b;background:#e9f5ec;border-color:#94c6a1}
+#session-view .session-status-tag.interrupted{color:#a02c2c;background:#fdeaea;border-color:#e8a1a1}
+#session-view .session-status-tag.unknown{color:#5e6168;background:#eff0f2;border-color:#c8cbd0}
 .session-manual-footer{display:none;flex-shrink:0;padding:10px 17px 14px;background:#fffefb;border-top:1px solid #ddd7c8;text-align:center}
 .choosing-session .session-manual-footer{display:block}.session-manual-footer .tool{font-size:11px;color:#686253;text-decoration:underline;text-underline-offset:3px}
 /* Codex quoted comments: source excerpt followed by the user's own words. */
-#session-dialog .message-user .message-markdown blockquote{margin:8px 0 12px;padding:8px 12px;border-left:3px solid #baaa77;background:#f8f5ec;color:#665f4e;border-radius:0 6px 6px 0;font-size:11px;line-height:1.75}
+#session-view .message-user .message-markdown blockquote{margin:8px 0 12px;padding:8px 12px;border-left:3px solid #baaa77;background:#f8f5ec;color:#665f4e;border-radius:0 6px 6px 0;font-size:11px;line-height:1.75}
 .article .markdown-image{display:block;margin:10px 0;color:#6a6250;font-size:10px;text-decoration:none}.article .markdown-image img{display:block;max-width:100%;max-height:300px;object-fit:contain;object-position:left;border:1px solid #d3cdbb;border-radius:6px;background:#fff}.article .markdown-image span{display:block;margin-top:5px}.article .local-file-link{display:inline;padding:0;border:0;background:none;font:inherit;color:#6a5517;text-decoration:underline;text-underline-offset:3px;cursor:pointer;overflow-wrap:anywhere}
 .message-saved-tag{font-size:9px;line-height:1.5;padding:2px 6px;border-radius:4px;background:#e9f5ec;color:#24623b;border:1px solid #94c6a1;white-space:nowrap}
-#session-dialog .session-bottom{padding:10px 16px}#session-dialog .selection-footer{margin:0;align-items:center}#session-dialog .selection-status{font-size:11px}#session-dialog .selection-footer .primary{min-width:74px}#session-dialog .session-receipt{display:none}
+#session-view .session-bottom{padding:10px 16px}#session-view .selection-footer{margin:0;align-items:center}#session-view .selection-status{font-size:11px}#session-view .selection-footer .primary{min-width:74px}#session-view .session-receipt{display:none}
 .save-session-dialog{box-sizing:border-box;width:calc(100% - 32px);max-width:420px;padding:22px;background:#fffefb;color:#28261f;border:1px solid #292720;border-radius:14px;box-shadow:5px 5px 0 #d3c9a9;max-height:85vh;overflow:auto}.save-session-dialog::backdrop{background:rgba(29,27,21,.3)}.save-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.save-modal-head h2{font-size:18px;margin:0}.save-modal-summary{font-size:12px;color:#6a6250;line-height:1.7;margin:12px 0 18px}.save-session-dialog .session-optional{border-top:1px solid #e5dfd0;padding:12px 0;margin:0}.save-session-dialog .session-optional summary{font-size:12px;cursor:pointer}.save-session-dialog .session-title-input,.save-session-dialog .topic-select{box-sizing:border-box;width:100%;margin-top:10px;font-size:12px}.save-modal-actions{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-top:18px}.save-modal-actions .primary{font-size:12px;padding:9px 18px}.save-session-dialog .session-warning{font-size:10px;color:#796b4d;margin-top:12px}.save-notification{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:10;background:#292720;color:#fffefb;border-radius:8px;box-shadow:0 4px 16px #0002;padding:10px 16px;font-size:12px;white-space:nowrap;pointer-events:none}.save-notification[hidden]{display:none}
 /* The confirmation modal remains a compact dialog inside embedded panels. */
 #save-session-dialog,dialog.compact-dialog{position:fixed;inset:0;margin:auto;width:calc(100vw - 40px);max-width:var(--compact-dialog-width,380px);height:fit-content;min-height:0;max-height:calc(100dvh - 48px);padding:22px;border:1px solid #c9c2b2;border-radius:14px;background:#fffefb;box-shadow:0 18px 60px #211c2330;overflow:auto}
 #save-session-dialog::backdrop,dialog.compact-dialog::backdrop{background:rgba(30,28,23,.32);backdrop-filter:blur(2px)}
 #save-session-dialog .save-modal-head h2{font-size:17px;line-height:1.4;font-weight:650}#save-session-dialog .save-modal-head>.tool{width:28px;height:28px;padding:0;border-radius:6px;color:#736d60}#save-session-dialog .session-errors:empty{display:none}#save-session-dialog .save-modal-actions{margin-top:16px}#save-session-dialog .session-optional summary{color:#686151;line-height:1.6}#save-session-dialog .session-title-input,#save-session-dialog .topic-select{border:1px solid #d6d0c3;border-radius:7px;background:#fff;color:#292720;padding:9px 10px;min-height:36px}#save-session-dialog .field-label{display:block;margin-top:12px;color:#736d60;font-size:11px}
-#session-dialog #save-session,#save-session-dialog #confirm-save-session{display:inline-flex;align-items:center;justify-content:center;min-width:82px;height:36px;padding:0 16px;border:1px solid #292720;border-radius:7px;background:#dce7f4;color:#25231d;box-shadow:2px 2px 0 #292720;font-size:12px;font-weight:600;line-height:1;opacity:1;cursor:pointer}
-#session-dialog #save-session:hover:not(:disabled),#save-session-dialog #confirm-save-session:hover:not(:disabled){background:#e8eff8}
-#session-dialog #save-session:disabled,#save-session-dialog #confirm-save-session:disabled{background:#eeece5;border-color:#ded9cd;color:#928c7f;box-shadow:none;cursor:not-allowed;opacity:1}
-#session-dialog .session-top{border-bottom:1px solid #e3dfd5;box-shadow:none}#session-dialog .session-bottom{border-top:1px solid #e3dfd5;box-shadow:none}
+#session-view #save-session,#save-session-dialog #confirm-save-session{display:inline-flex;align-items:center;justify-content:center;min-width:82px;height:36px;padding:0 16px;border:1px solid #292720;border-radius:7px;background:#dce7f4;color:#25231d;box-shadow:2px 2px 0 #292720;font-size:12px;font-weight:600;line-height:1;opacity:1;cursor:pointer}
+#session-view #save-session:hover:not(:disabled),#save-session-dialog #confirm-save-session:hover:not(:disabled){background:#e8eff8}
+#session-view #save-session:disabled,#save-session-dialog #confirm-save-session:disabled{background:#eeece5;border-color:#ded9cd;color:#928c7f;box-shadow:none;cursor:not-allowed;opacity:1}
+#session-view .session-top{border-bottom:1px solid #e3dfd5;box-shadow:none}#session-view .session-bottom{border-top:1px solid #e3dfd5;box-shadow:none}
 .annotation-reference{display:inline;padding:0 3px;color:#806510;font:inherit;font-size:11px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.annotation-popover{display:block;margin:8px 0;padding:10px 12px;background:#f2f6fb;border:1px solid #dfd2a5;border-radius:7px;font-size:11px;color:#373329;line-height:1.7}.annotation-popover>span{display:block;white-space:pre-wrap}.annotation-quote{border-left:2px solid #c7b67a;padding-left:8px;margin-bottom:7px;color:#7b7159}
 /* Native window: content fills the window, while commands live in AppKit. */
-.native-app #session-dialog[open]{position:fixed;inset:0;margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;background:#fffefb;box-shadow:none}.native-app #session-dialog::backdrop{background:transparent;backdrop-filter:none}.native-app #session-dialog .session-shell{height:100dvh;max-width:860px;margin:auto}.native-app #session-dialog .session-brand{display:none}.native-app #session-dialog .session-top{padding:20px 26px 14px}.native-app #session-dialog.choosing-session .dialog-head{display:flex}.native-app #session-dialog .dialog-head h2{font-size:23px}.native-app #session-dialog .session-messages{padding:20px 26px}.native-app #session-dialog .session-bottom{padding:12px 26px}.native-app .sidebar{width:auto;background:#f5f3ec;border-right:1px solid #e3dfd5;padding:24px 16px}.native-app .app{grid-template-columns:220px minmax(0,1fr)}.native-app .brandword{font-size:23px}.native-app .workspace{padding:32px;max-width:880px}.native-app .workspace h1{font-size:28px}.native-app .toolbar{height:50px}.native-app .reading{padding:30px 36px}.native-app .reading h1{font-size:26px}.native-app .article{font-size:13px}.native-app .thread-card{box-shadow:none;border-color:#ded8c9}.native-app .workspace-nav button{font-size:12px;padding:10px}.native-app .bottom{height:58px}.native-app .tagline{font-size:10px;line-height:1.5}
+.native-app #session-view[open]{position:fixed;inset:0;margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;background:#fffefb;box-shadow:none}.native-app #session-view .session-shell{height:100dvh;max-width:860px;margin:auto}.native-app #session-view .session-brand{display:none}.native-app #session-view .session-top{padding:20px 26px 14px}.native-app #session-view.choosing-session .dialog-head{display:flex}.native-app #session-view .dialog-head h2{font-size:23px}.native-app #session-view .session-messages{padding:20px 26px}.native-app #session-view .session-bottom{padding:12px 26px}.native-app .sidebar{width:auto;background:#f5f3ec;border-right:1px solid #e3dfd5;padding:24px 16px}.native-app .app{grid-template-columns:220px minmax(0,1fr)}.native-app .brandword{font-size:23px}.native-app .workspace{padding:32px;max-width:880px}.native-app .workspace h1{font-size:28px}.native-app .toolbar{height:50px}.native-app .reading{padding:30px 36px}.native-app .reading h1{font-size:26px}.native-app .article{font-size:13px}.native-app .thread-card{box-shadow:none;border-color:#ded8c9}.native-app .workspace-nav button{font-size:12px;padding:10px}.native-app .bottom{height:58px}.native-app .tagline{font-size:10px;line-height:1.5}
 .header-brand-icon{display:grid;place-items:center;width:26px;height:26px;background:#dce7f4;border-radius:7px;color:#292720}.header-brand-icon svg{width:21px;height:21px}.native-app .runtime-open{display:none}
 .native-app .app{grid-template-columns:180px 280px minmax(0,1fr)}.native-list{display:flex;flex-direction:column;min-height:0;border-right:1px solid #e3dfd5;background:#faf9f5}.native-list-head{padding:24px 18px 16px;border-bottom:1px solid #e3dfd5}.native-list-head h2{font-size:18px;margin:0 0 7px;color:#292720}.native-list-head>p{font-size:11px;line-height:1.7;color:#80796a;margin:0 0 16px}.native-note-list{overflow:auto;padding:10px;flex:1}.native-note{width:100%;display:block;text-align:left;padding:15px 12px;border-radius:8px;border:1px solid transparent;margin-bottom:5px}.native-note:hover{background:#f1eee5}.native-note.selected{background:#edf3fa;border-color:#c4d2e4}.native-note-meta{display:block;font-size:10px;color:#857b65;margin-bottom:8px}.native-note strong{font-size:13px;line-height:1.65;color:#292720;display:block}.native-note p{font-size:11px;line-height:1.8;color:#807769;margin:7px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.native-note small{display:block;margin-top:9px;font-size:10px;color:#8a7023}.native-list-empty{padding:15px;color:#857b65;font-size:12px;line-height:1.8}.native-app .sidebar{padding:22px 12px}.native-app .brand{padding:0 5px}.native-app .brandword{font-size:19px}.native-app .brandmark{width:23px}.native-app .tagline{padding:10px 5px 25px;font-size:10px}.native-app .workspace-back,.native-app .session-entry{display:none}.native-app .toolbar{padding:0 22px}.native-app .reading{padding:28px;max-width:760px}.native-app .reading h1{font-size:24px}.native-app .bottom{padding:0 20px}.native-app .thread-nav-label{margin-top:24px}.native-app .workspace-nav{margin-top:4px}.native-app .main{background:#fffefb}@media(max-width:850px){.native-app .app{grid-template-columns:150px 230px minmax(0,1fr)}.native-app .reading{padding:22px 18px}}
-.native-window-header{height:54px;box-sizing:border-box;display:flex;align-items:center;gap:5px;padding:0 18px 0 88px;background:#fffefb;border-bottom:1px solid #e3dfd5;position:relative;z-index:25}.native-window-header>strong{font-size:13px;color:#292720}.native-header-spacer{flex:1}.native-window-header .tool{font-size:11px;color:#686151;padding:7px 9px}.native-header-primary{background:#dce7f4;border:1px solid #c4d2e4;color:#393427;border-radius:6px;padding:7px 12px;font-size:11px;margin-right:5px}.native-app .app{height:calc(100dvh - 54px)}.native-app #session-dialog[open]{top:54px;height:calc(100dvh - 54px);max-height:calc(100dvh - 54px)}.native-app #session-dialog .session-shell{height:calc(100dvh - 54px)}.native-app #session-dialog .session-top{padding-top:16px}
+.native-window-header{height:54px;box-sizing:border-box;display:flex;align-items:center;gap:5px;padding:0 18px 0 88px;background:#fffefb;border-bottom:1px solid #e3dfd5;position:relative;z-index:25}.native-window-header>strong{font-size:13px;color:#292720}.native-header-spacer{flex:1}.native-window-header .tool{font-size:11px;color:#686151;padding:7px 9px}.native-header-primary{background:#dce7f4;border:1px solid #c4d2e4;color:#393427;border-radius:6px;padding:7px 12px;font-size:11px;margin-right:5px}.native-app .app{height:calc(100dvh - 54px)}.native-app #session-view[open]{top:54px;height:calc(100dvh - 54px);max-height:calc(100dvh - 54px)}.native-app #session-view .session-shell{height:calc(100dvh - 54px)}.native-app #session-view .session-top{padding-top:16px}
 /* Align window controls, collection and current document on the same top row. */
-.native-window-header{display:grid;grid-template-columns:180px 280px minmax(0,1fr);gap:0;padding:0;height:48px;background:#fffefb}.native-window-controls{height:100%;display:flex;justify-content:flex-end;align-items:center;padding-right:13px;background:#f5f3ec}.native-window-controls .tool{font-size:17px;padding:5px}.native-collection-title{height:100%;padding:0 18px;text-align:left;font-size:12px;font-weight:600;color:#655e50;background:#faf9f5;border-right:1px solid #e3dfd5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.native-context-header{display:flex;align-items:center;padding:0 18px;gap:10px;min-width:0;height:100%}.native-context-title{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%}.native-context-header .tools{flex-shrink:0}.native-context-header .tool{padding:6px}.native-runtime-menu{position:relative;flex-shrink:0;font-size:11px;color:#6a6250}.native-runtime-menu summary{list-style:none;cursor:pointer;padding:6px}.native-runtime-options{position:absolute;right:0;top:30px;width:140px;padding:5px;background:#fffefb;border:1px solid #e3dfd5;border-radius:8px;box-shadow:0 5px 18px #0001}.native-runtime-options .tool{width:100%;justify-content:flex-start}.native-app .app{height:calc(100dvh - 48px)}.native-app .main>.toolbar{display:none}.native-app .sidebar{padding-top:18px}.native-app .tagline{padding-bottom:14px}.native-sidebar-capture{text-align:left;padding:10px 9px;margin:0 0 16px;border-radius:7px;background:#dce7f4;color:#393427;font-size:12px;font-weight:550}.native-app .native-list-head{padding-top:17px}.native-list-head h2{display:none}.native-app #session-dialog[open]{top:48px;height:calc(100dvh - 48px);max-height:calc(100dvh - 48px)}.native-app #session-dialog .session-shell{height:calc(100dvh - 48px)}.native-app.native-nav-hidden .app,.native-nav-hidden .native-window-header{grid-template-columns:0 280px minmax(0,1fr)}.native-nav-hidden .sidebar{display:none}.native-nav-hidden .native-window-controls{position:absolute;left:80px;top:0;height:48px;z-index:2;background:transparent}.native-nav-hidden .native-collection-title{padding-left:122px}@media(max-width:850px){.native-window-header{grid-template-columns:150px 230px minmax(0,1fr)}}
+.native-window-header{display:grid;grid-template-columns:180px 280px minmax(0,1fr);gap:0;padding:0;height:48px;background:#fffefb}.native-window-controls{height:100%;display:flex;justify-content:flex-end;align-items:center;padding-right:13px;background:#f5f3ec}.native-window-controls .tool{font-size:17px;padding:5px}.native-collection-title{height:100%;padding:0 18px;text-align:left;font-size:12px;font-weight:600;color:#655e50;background:#faf9f5;border-right:1px solid #e3dfd5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.native-context-header{display:flex;align-items:center;padding:0 18px;gap:10px;min-width:0;height:100%}.native-context-title{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%}.native-context-header .tools{flex-shrink:0}.native-context-header .tool{padding:6px}.native-runtime-menu{position:relative;flex-shrink:0;font-size:11px;color:#6a6250}.native-runtime-menu summary{list-style:none;cursor:pointer;padding:6px}.native-runtime-options{position:absolute;right:0;top:30px;width:140px;padding:5px;background:#fffefb;border:1px solid #e3dfd5;border-radius:8px;box-shadow:0 5px 18px #0001}.native-runtime-options .tool{width:100%;justify-content:flex-start}.native-app .app{height:calc(100dvh - 48px)}.native-app .main>.toolbar{display:none}.native-app .sidebar{padding-top:18px}.native-app .tagline{padding-bottom:14px}.native-sidebar-capture{text-align:left;padding:10px 9px;margin:0 0 16px;border-radius:7px;background:#dce7f4;color:#393427;font-size:12px;font-weight:550}.native-app .native-list-head{padding-top:17px}.native-list-head h2{display:none}.native-app #session-view[open]{top:48px;height:calc(100dvh - 48px);max-height:calc(100dvh - 48px)}.native-app #session-view .session-shell{height:calc(100dvh - 48px)}.native-app.native-nav-hidden .app,.native-nav-hidden .native-window-header{grid-template-columns:0 280px minmax(0,1fr)}.native-nav-hidden .sidebar{display:none}.native-nav-hidden .native-window-controls{position:absolute;left:80px;top:0;height:48px;z-index:2;background:transparent}.native-nav-hidden .native-collection-title{padding-left:122px}@media(max-width:850px){.native-window-header{grid-template-columns:150px 230px minmax(0,1fr)}}
 .native-app.native-nav-hidden .sidebar{display:flex;visibility:hidden;padding:0;overflow:hidden}
 /* Two explicit grid areas keep the reader stable when the sidebar is hidden. */
 body.native-app .app,body.native-app .native-window-header{grid-template-columns:var(--native-sidebar-width,300px) minmax(0,1fr);grid-template-areas:'navigation content'}
@@ -129,7 +129,7 @@ body.native-app .sidebar>.tagline,body.native-app .sidebar>.workspace-nav,body.n
 body.native-app .sidebar>.brand{margin-bottom:15px}.native-sidebar-capture{margin-bottom:12px}
 body.native-app .native-list{border:0;flex:1;min-height:0;background:transparent;margin:0 -12px}
 body.native-app .native-list-head{padding:10px 12px;border:0}.native-list-head>p{display:none}
-body.native-app .native-note-list{padding:4px 8px 12px}.native-scope{width:calc(100% - 72px);font-size:11px;border:0;background:transparent;color:#746c5b;padding:7px 4px}.native-carry-entry{align-self:flex-end;margin-top:-31px;font-size:11px;padding:7px 6px}
+body.native-app .native-note-list{padding:4px 8px 12px}.native-scope{width:calc(100% - 72px);font-size:11px;border:0;background:transparent;color:#746c5b;padding:7px 4px}.native-thoughts-entry{align-self:flex-end;margin-top:-31px;font-size:11px;padding:7px 6px}
 .native-resizer{position:fixed;top:48px;bottom:0;left:calc(var(--native-sidebar-width,300px) - 3px);width:6px;z-index:30;cursor:col-resize;touch-action:none}.native-resizer:hover,.native-resizer:focus-visible{background:#c4d2e488}.resizing-sidebar{cursor:col-resize;user-select:none}
 body.native-app.native-nav-hidden .app,body.native-app.native-nav-hidden .native-window-header{grid-template-columns:0 minmax(0,1fr)}
 body.native-app.native-nav-hidden .sidebar{visibility:hidden;padding:0;overflow:hidden}
@@ -139,15 +139,15 @@ body.native-app.native-nav-hidden .native-context-header{padding-left:124px}
 /* Quiet structural chrome; preserve code/table boundaries and resize behavior. */
 .native-app .native-context-header,.native-app .native-list-head,.native-app .bottom,.native-app .sidebar-bottom{border:0;box-shadow:none}
 .native-app .native-note{border-color:transparent}.native-app .native-note.selected{border-color:transparent;background:#e8eff8}
-.native-app .native-note-list,.native-app .reading-scroll,#session-dialog .session-messages{scrollbar-width:thin;scrollbar-color:#c9c4b866 transparent}
-.native-app ::-webkit-scrollbar,#session-dialog ::-webkit-scrollbar{width:5px;height:5px}
-.native-app ::-webkit-scrollbar-track,#session-dialog ::-webkit-scrollbar-track{background:transparent}
-.native-app ::-webkit-scrollbar-thumb,#session-dialog ::-webkit-scrollbar-thumb{background:#c9c4b877;border-radius:8px}
-.native-app ::-webkit-scrollbar-thumb:hover,#session-dialog ::-webkit-scrollbar-thumb:hover{background:#a9a295}
+.native-app .native-note-list,.native-app .reading-scroll,#session-view .session-messages{scrollbar-width:thin;scrollbar-color:#c9c4b866 transparent}
+.native-app ::-webkit-scrollbar,#session-view ::-webkit-scrollbar{width:5px;height:5px}
+.native-app ::-webkit-scrollbar-track,#session-view ::-webkit-scrollbar-track{background:transparent}
+.native-app ::-webkit-scrollbar-thumb,#session-view ::-webkit-scrollbar-thumb{background:#c9c4b877;border-radius:8px}
+.native-app ::-webkit-scrollbar-thumb:hover,#session-view ::-webkit-scrollbar-thumb:hover{background:#a9a295}
 .native-app .article-end:before,.native-app .article-end:after{display:none}.native-app .article-end{justify-content:center;margin-top:32px;opacity:.55}
 .native-app .question{border-bottom:0}.native-app .note{border-color:transparent}
 .native-app .native-list{overflow:hidden}.native-app .sidebar{overflow:hidden}.native-app .reading-scroll{overscroll-behavior:contain}.native-app .native-note-list{overscroll-behavior:contain}
-#session-dialog .session-top{border-bottom-color:#e3dfd566}#session-dialog .session-bottom{border-top-color:#e3dfd566}
+#session-view .session-top{border-bottom-color:#e3dfd566}#session-view .session-bottom{border-top-color:#e3dfd566}
 /* Compact native chrome and one shared component vocabulary. */
 body.native-app .native-window-header{height:36px;border:0;box-shadow:none}
 body.native-app .native-context-header{border:0;box-shadow:none;justify-content:flex-end}
@@ -164,64 +164,64 @@ body.native-app .native-sidebar-capture{height:34px;padding:8px 10px;font-size:1
 .native-filter-row{display:flex;align-items:center;gap:8px;min-width:0;margin-bottom:4px}
 body.native-app .native-scope{-webkit-appearance:none;appearance:none;flex:1;min-width:0;width:auto;height:30px;box-sizing:border-box;padding:5px 28px 5px 9px;border:1px solid transparent;border-radius:6px;background-color:transparent;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m5 6 3 3 3-3' fill='none' stroke='%23746c5b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center;background-size:14px;color:#625c50;font-size:11px;cursor:pointer}
 body.native-app .native-scope:hover,body.native-app .native-scope:focus{background-color:#eae6db}
-body.native-app .native-carry-entry{margin:0;padding:5px 8px;align-self:auto;font-size:11px;height:30px;white-space:nowrap}
+body.native-app .native-thoughts-entry{margin:0;padding:5px 8px;align-self:auto;font-size:11px;height:30px;white-space:nowrap}
 body.native-app .native-list-head{padding:4px 12px 10px}
 body.native-app .searchbox{border:1px solid #e2ded3;background:#fffefb;border-radius:7px;padding:9px}
 body.native-app .native-note{padding:13px 12px;margin-bottom:4px}
 body.native-app .native-note-meta{font-size:10px;margin-bottom:6px}
 body.native-app .reading{padding-top:24px}
-body.native-app #session-dialog[open]{top:36px;height:calc(100dvh - 36px);max-height:calc(100dvh - 36px)}
-body.native-app #session-dialog .session-shell{height:calc(100dvh - 36px)}
+body.native-app #session-view[open]{top:36px;height:calc(100dvh - 36px);max-height:calc(100dvh - 36px)}
+body.native-app #session-view .session-shell{height:calc(100dvh - 36px)}
 body.native-app .native-resizer{top:36px}
 body.native-app.native-nav-hidden .native-window-controls{height:36px}
-body.native-app:has(#session-dialog[open]) .native-collection-title{display:block;font-size:0;flex:1}
-body.native-app:has(#session-dialog[open]) .native-collection-title:after{content:'← 资料库';font-size:11px}
+
+
 /* Cool, quiet emphasis shared by the runtime panel and desktop library. */
 :root{--accent:#476c9b;--soft:#edf3fa}
-.primary,#session-dialog #save-session,#save-session-dialog #confirm-save-session{background:#476c9b;color:#fff;border:1px solid #476c9b;box-shadow:none}
-.primary:hover,#session-dialog #save-session:hover:not(:disabled),#save-session-dialog #confirm-save-session:hover:not(:disabled){background:#3d608c;border-color:#3d608c}
+.primary,#session-view #save-session,#save-session-dialog #confirm-save-session{background:#476c9b;color:#fff;border:1px solid #476c9b;box-shadow:none}
+.primary:hover,#session-view #save-session:hover:not(:disabled),#save-session-dialog #confirm-save-session:hover:not(:disabled){background:#3d608c;border-color:#3d608c}
 .native-sidebar-capture,.native-header-primary{background:#e5edf7;color:#355777;border-color:transparent}
 .session-wordmark{box-shadow:2px 2px 0 #cbd9eb}.session-wordmark em{color:#d9e6f6}
 .workspace-nav button.active,.thread-link.active{background:#e5edf7;color:#355777}
-#session-dialog .message-card.chosen{background:#edf3fa;border-color:#9ab3d1;box-shadow:none}
-#session-dialog .session-messages{background:#fafbfc;background-image:none}
-#session-dialog.choosing-session .session-top{border:0;padding-bottom:14px}
-#session-dialog.choosing-session .session-messages{background:#fffefb;background-image:none;padding-top:0}
-#session-dialog .session-choice{display:block;width:100%;position:relative;border:0;border-bottom:1px solid #eceef1;border-radius:0;box-shadow:none;background:transparent;padding:17px 28px 17px 4px;margin:0;text-align:left}
-#session-dialog .session-choice:hover,#session-dialog .session-choice:focus-visible{background:#f1f5fa;box-shadow:none;border-color:#e4eaf2;border-radius:7px}
-#session-dialog .session-choice:after{content:'›';font-size:20px;font-weight:400;color:#a4aebb;right:7px;top:19px}
-#session-dialog .session-choice strong{font-size:13px;font-weight:600;line-height:1.7;color:#29313c;display:block}
-#session-dialog .session-choice>span{font-size:10px;color:#929ba6;margin-top:4px;display:block}
-#session-dialog .session-list-preview{font-size:11px;line-height:1.7;color:#7e8793;margin:7px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-#session-dialog.choosing-session #session-messages>.topic-select{height:38px;margin:0 0 7px;border:1px solid #e1e6ec;background:#f7f9fc;box-shadow:none;border-radius:8px;font-size:12px;padding:9px 12px;color:#29313c}
-#session-dialog.choosing-session .session-manual-footer{border:0;padding-top:12px}
-#session-dialog.choosing-session .session-subtitle{color:#89929e;font-size:11px}
-.native-app #session-dialog.choosing-session .session-shell{max-width:690px}
-.native-app #session-dialog.choosing-session .session-top{padding-top:30px}
-.native-app #session-dialog.choosing-session .session-messages{padding-left:26px;padding-right:26px}
-.native-app:has(#session-dialog[open]) .native-context-header #toolbar-tools,.native-app:has(#session-dialog[open]) .native-runtime-menu{display:none}
+#session-view .message-card.chosen{background:#edf3fa;border-color:#9ab3d1;box-shadow:none}
+#session-view .session-messages{background:#fafbfc;background-image:none}
+#session-view.choosing-session .session-top{border:0;padding-bottom:14px}
+#session-view.choosing-session .session-messages{background:#fffefb;background-image:none;padding-top:0}
+#session-view .session-choice{display:block;width:100%;position:relative;border:0;border-bottom:1px solid #eceef1;border-radius:0;box-shadow:none;background:transparent;padding:17px 28px 17px 4px;margin:0;text-align:left}
+#session-view .session-choice:hover,#session-view .session-choice:focus-visible{background:#f1f5fa;box-shadow:none;border-color:#e4eaf2;border-radius:7px}
+#session-view .session-choice:after{content:'›';font-size:20px;font-weight:400;color:#a4aebb;right:7px;top:19px}
+#session-view .session-choice strong{font-size:13px;font-weight:600;line-height:1.7;color:#29313c;display:block}
+#session-view .session-choice>span{font-size:10px;color:#929ba6;margin-top:4px;display:block}
+#session-view .session-list-preview{font-size:11px;line-height:1.7;color:#7e8793;margin:7px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#session-view.choosing-session #session-messages>.topic-select{height:38px;margin:0 0 7px;border:1px solid #e1e6ec;background:#f7f9fc;box-shadow:none;border-radius:8px;font-size:12px;padding:9px 12px;color:#29313c}
+#session-view.choosing-session .session-manual-footer{border:0;padding-top:12px}
+#session-view.choosing-session .session-subtitle{color:#89929e;font-size:11px}
+
+.native-app #session-view.choosing-session .session-top{padding-top:30px}
+.native-app #session-view.choosing-session .session-messages{padding-left:26px;padding-right:26px}
+.native-app:has(#session-view[open]) .native-context-header #toolbar-tools,.native-app:has(#session-view[open]) .native-runtime-menu{display:none}
 
 /* Fresh lemon yellow: clean highlights without ochre or brown undertones. */
 :root{--accent:#e7d94b;--soft:#faf8df}
-.primary,#session-dialog #save-session,#save-session-dialog #confirm-save-session{background:#f3e76b;color:#292b25;border-color:#e5d954;box-shadow:none}
-.primary:hover,#session-dialog #save-session:hover:not(:disabled),#save-session-dialog #confirm-save-session:hover:not(:disabled){background:#eee15b;border-color:#dbce48}
+.primary,#session-view #save-session,#save-session-dialog #confirm-save-session{background:#f3e76b;color:#292b25;border-color:#e5d954;box-shadow:none}
+.primary:hover,#session-view #save-session:hover:not(:disabled),#save-session-dialog #confirm-save-session:hover:not(:disabled){background:#eee15b;border-color:#dbce48}
 .native-sidebar-capture,.native-header-primary,body.native-app .native-sidebar-capture{background:#f5ed9b;color:#35372c;border-color:transparent}
 .workspace-nav button.active,.thread-link.active,body.native-app .native-note.selected{background:#f8f5d8;color:#35372c;border-color:transparent}
-#session-dialog .message-card.chosen{background:#faf8df;border-color:#ded88b;box-shadow:none}
+#session-view .message-card.chosen{background:#faf8df;border-color:#ded88b;box-shadow:none}
 .session-wordmark,body.native-app .sidebar .session-wordmark{box-shadow:2px 2px 0 #eee36e}.session-wordmark em{color:#f5ed9b}
 .header-brand-icon{background:#f3e76b}.native-resizer:hover,.native-resizer:focus-visible{background:#e4dc8b66}
-#session-dialog .session-choice:hover,#session-dialog .session-choice:focus-visible{background:#faf9e9;border-color:#efecd5}
-#session-dialog .session-choice strong{color:#29313c}
+#session-view .session-choice:hover,#session-view .session-choice:focus-visible{background:#faf9e9;border-color:#efecd5}
+#session-view .session-choice strong{color:#29313c}
 .annotation-popover{background:#faf8df;border-color:#e6e0b2}.annotation-quote{border-color:#d9d18a}
-#session-dialog #save-session:disabled,#save-session-dialog #confirm-save-session:disabled{background:#eeece5;border-color:#ded9cd;color:#928c7f;box-shadow:none}
+#session-view #save-session:disabled,#save-session-dialog #confirm-save-session:disabled{background:#eeece5;border-color:#ded9cd;color:#928c7f;box-shadow:none}
 /* Softer primary buttons; retain the lemon hue and readable dark labels. */
-.primary,#session-dialog #save-session,#save-session-dialog #confirm-save-session{background:#f3edb5;color:#303128;border-color:#e4dda0}
-.primary:hover,#session-dialog #save-session:hover:not(:disabled),#save-session-dialog #confirm-save-session:hover:not(:disabled){background:#ede5a2;border-color:#dcd38e}
+.primary,#session-view #save-session,#save-session-dialog #confirm-save-session{background:#f3edb5;color:#303128;border-color:#e4dda0}
+.primary:hover,#session-view #save-session:hover:not(:disabled),#save-session-dialog #confirm-save-session:hover:not(:disabled){background:#ede5a2;border-color:#dcd38e}
 .native-sidebar-capture,.native-header-primary,body.native-app .native-sidebar-capture{background:#f3edb5;color:#303128;border-color:transparent}
-#session-dialog #save-session:disabled,#save-session-dialog #confirm-save-session:disabled{background:#eeece5;border-color:#ded9cd;color:#928c7f;box-shadow:none}
+#session-view #save-session:disabled,#save-session-dialog #confirm-save-session:disabled{background:#eeece5;border-color:#ded9cd;color:#928c7f;box-shadow:none}
 /* Capture and reuse are quiet actions rather than filled promotional buttons. */
-body .native-sidebar-capture,body.native-app .native-sidebar-capture,body .native-carry-entry,body #copy-tools>.primary,body .panel-header>.panel-brand{background:transparent;border-color:transparent;box-shadow:none;color:#45463e}
-body .native-sidebar-capture:hover,body.native-app .native-sidebar-capture:hover,body .native-carry-entry:hover,body #copy-tools>.primary:hover,body .panel-header>.panel-brand:hover{background:#ecece680;border-color:transparent;box-shadow:none;color:#292b25}
+body .native-sidebar-capture,body.native-app .native-sidebar-capture,body .native-thoughts-entry,body #copy-tools>.primary,body .panel-header>.panel-brand{background:transparent;border-color:transparent;box-shadow:none;color:#45463e}
+body .native-sidebar-capture:hover,body.native-app .native-sidebar-capture:hover,body .native-thoughts-entry:hover,body #copy-tools>.primary:hover,body .panel-header>.panel-brand:hover{background:#ecece680;border-color:transparent;box-shadow:none;color:#292b25}
 .project-context{margin:16px 0;font-size:11px;color:#7a7e76;line-height:1.8}.project-context summary{cursor:pointer;color:#656b61}.project-context div{margin-top:7px;overflow-wrap:anywhere}.project-context code{font:10px/1.7 Menlo,monospace;display:block;color:#71796a}.save-project-context .project-context{margin:0 0 14px}
 
 .notify-message{position:fixed;inset:20px auto auto 50%;transform:translateX(-50%);margin:0;width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box;padding:12px 14px;border:1px solid #dbe4dd;border-radius:10px;background:#fffefb;color:#24352f;box-shadow:0 8px 30px #0002;font:13px/1.6 system-ui;overflow-wrap:anywhere}.notify-message:popover-open{display:flex;gap:14px;align-items:flex-start}.notify-message[data-kind="error"]{border-color:#e2b8ae;color:#913e30}.notify-message button{border:0;background:none;color:inherit;cursor:pointer;font-size:18px;padding:0 3px}.notify-message::backdrop{pointer-events:none}
@@ -243,8 +243,8 @@ body.native-app .sidebar>.brand{justify-content:space-between;padding:0 8px;marg
 .native-search-toggle:hover{background:#e7e7e0}
 body.native-app .native-search-header{margin:0 4px 16px;flex-shrink:0}
 .native-search-close{font-size:20px;padding:0 3px;color:#85867e}
-body.native-app .native-sidebar-capture,body.native-app .native-carry-entry{display:flex;align-items:center;gap:12px;width:100%;height:40px;flex-shrink:0;margin:0 0 4px;padding:9px 10px;text-align:left;font-size:14px;font-weight:500;border:0;border-radius:7px}
-body.native-app .native-sidebar-capture svg,body.native-app .native-carry-entry svg{width:20px;height:20px}
+body.native-app .native-sidebar-capture,body.native-app .native-thoughts-entry{display:flex;align-items:center;gap:12px;width:100%;height:40px;flex-shrink:0;margin:0 0 4px;padding:9px 10px;text-align:left;font-size:14px;font-weight:500;border:0;border-radius:7px}
+body.native-app .native-sidebar-capture svg,body.native-app .native-thoughts-entry svg{width:20px;height:20px}
 body.native-app .native-scope{flex:none;width:100%;margin-top:22px;margin-bottom:8px}
 
 /* Continuous two-pane Mac window, matching Zimlo's integrated chrome structure. */
@@ -259,8 +259,8 @@ body.native-app .main,body.native-app .bottom{background:var(--paper)}
 body.native-app .sidebar>.brand{height:32px;margin:0 0 22px;padding:0 0 0 8px}
 body.native-app .native-brand-title{font-size:21px;font-weight:650;letter-spacing:-.7px;color:#30362e}
 body.native-app .native-search-toggle{width:var(--native-control-size);height:var(--native-control-size);padding:0;display:grid;place-items:center;color:#82897f}
-body.native-app .native-sidebar-capture,body.native-app .native-carry-entry{height:39px;margin:0 0 5px;padding:9px 10px;font-size:13px;gap:11px;color:#454e41}
-body.native-app .native-sidebar-capture:hover,body.native-app .native-carry-entry:hover{background:#e4e7e0}
+body.native-app .native-sidebar-capture,body.native-app .native-thoughts-entry{height:39px;margin:0 0 5px;padding:9px 10px;font-size:13px;gap:11px;color:#454e41}
+body.native-app .native-sidebar-capture:hover,body.native-app .native-thoughts-entry:hover{background:#e4e7e0}
 body.native-app .native-scope{margin-top:25px;margin-bottom:6px;color:#858d80;font-size:11px;background-origin:border-box;background-position:right calc((var(--native-control-size) - 14px) / 2) center}
 body.native-app .native-list-empty{font-size:12px;color:#90978b;padding:18px 16px;line-height:1.8}
 body.native-app .native-note{border-radius:9px}
@@ -275,5 +275,360 @@ body.native-app .bottom{height:42px;padding:0 30px}
 body.native-app .reading{padding:36px 44px;max-width:820px}
 body.native-app .native-resizer{top:44px}
 body.native-app.native-nav-hidden .native-window-controls{height:44px}
-body.native-app #session-dialog[open]{top:44px;height:calc(100dvh - 44px);max-height:calc(100dvh - 44px)}
-body.native-app #session-dialog .session-shell{height:calc(100dvh - 44px)}
+body.native-app #session-view[open]{top:44px;height:calc(100dvh - 44px);max-height:calc(100dvh - 44px)}
+body.native-app #session-view .session-shell{height:calc(100dvh - 44px)}
+
+/* Shared modal system. Geometry also replaces the old full-window panel rules. */
+body dialog.modal-surface {
+  --modal-width: 560px;
+  --modal-gap: 24px;
+  --modal-padding: 28px;
+  --modal-border: #dfe3da;
+  position: fixed !important;
+  inset: 0 !important;
+  margin: auto !important;
+  width: min(var(--modal-width), calc(100vw - var(--modal-gap) * 2)) !important;
+  max-width: calc(100vw - var(--modal-gap) * 2) !important;
+  height: fit-content !important;
+  max-height: calc(100dvh - var(--modal-gap) * 2) !important;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--modal-border) !important;
+  border-radius: 18px !important;
+  background: #fcfcfa;
+  color: #30382e;
+  box-shadow: 0 24px 80px #202b2529, 0 3px 12px #202b2510;
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* Hide only the modal shell scrollbar; retain wheel/touch/keyboard scrolling. */
+  scrollbar-width: none;
+  color-scheme: light;
+}
+body dialog.modal-surface::-webkit-scrollbar { display: none; width: 0; height: 0; }
+body dialog.modal-surface::backdrop { background: #202b2547; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+body dialog.modal-surface .dialog-inner { padding: var(--modal-padding); }
+body dialog.modal-surface :is(.dialog-head,.save-modal-head,.feishu-heading) { margin: 0 0 12px; gap: 16px; }
+body dialog.modal-surface h2 { margin: 0; font: 650 23px/1.45 -apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif; letter-spacing: -.6px; color: #30382e; }
+body dialog.modal-surface :is(.dialog-hint,.save-modal-summary) { margin: 0 0 24px; font-size: 13px; line-height: 1.85; color: #747e6e; }
+body dialog.modal-surface :is(.field-label,#review-form>label) { display: block; margin: 20px 0 8px; font-size: 12px; font-weight: 550; color: #505c49; }
+body dialog.modal-surface :where(input:not([type=checkbox]):not([type=file]),textarea,select) {
+  box-sizing: border-box; width: 100%; max-width: 100%; min-height: 42px;
+  border: 1px solid #dce2d6; border-radius: 9px; background: #fff;
+  padding: 11px 13px; color: #35412f; font-family: inherit; font-size: 13px; line-height: 1.65;
+  box-shadow: 0 1px 2px #24301c04;
+}
+body dialog.modal-surface :is(input,textarea)::placeholder { color: #939b8d; }
+body dialog.modal-surface textarea { min-height: 132px; resize: vertical; line-height: 1.85; }
+body dialog.modal-surface :is(button,input,textarea,select,summary,a):focus-visible { outline: 2px solid #849877; outline-offset: 3px; }
+body dialog.modal-surface :is(input,textarea,select):focus-visible { border-color: #849877; outline-offset: 1px; }
+body dialog.modal-surface :is(.dialog-bottom,.save-modal-actions) { gap: 16px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #e7eae2; }
+body dialog.modal-surface :is(.dialog-bottom,.save-modal-actions)>.primary { margin-left: auto; flex-shrink: 0; }
+body dialog.modal-surface .primary { min-height: 42px; padding: 11px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; }
+body dialog.modal-surface :is(.keyboard-hint,.selection-status) { font-size: 12px; line-height: 1.7; color: #7c8574; }
+body dialog.modal-surface :is(.dialog-error,.session-errors,#review-error):empty { display: none; }
+body dialog.modal-surface :is(.dialog-error,.session-errors,#review-error):not(:empty) { margin: 14px 0 0; padding: 10px 12px; background: #fcf0eb; border-radius: 8px; color: #9c4932; font-size: 12px; line-height: 1.75; }
+body dialog.modal-surface .dialog-fields { flex-wrap: wrap; margin-top: 16px; font-size: 12px; color: #76816e; }
+body dialog.modal-surface .dialog-fields select { width: auto; min-width: 120px; }
+body dialog.modal-surface .upload { padding: 8px 0; font-size: 12px; color: #58694c; }
+body dialog.modal-surface input[type=checkbox] { accent-color: #718565; width: 17px; height: 17px; flex-shrink: 0; }
+body #carry-dialog.modal-surface { --modal-width: 660px; }
+body #carry-dialog.modal-surface .section-heading { margin: 24px 0 12px; }
+body #carry-dialog.modal-surface #carry-list { max-height: 230px; border: 1px solid #e2e7dc; border-radius: 10px; background: #fff; padding: 4px 12px; }
+body #carry-dialog.modal-surface .carry-row { padding: 12px 2px; gap: 12px; font-size: 13px; color: #46533d; }
+body #carry-dialog.modal-surface .carry-row:last-child { border-bottom: 0; }
+body #carry-dialog.modal-surface .carry-row:has(input:checked) { background: #f4f6ec; }
+body dialog.modal-surface .carry-preview { margin-top: 16px; padding: 13px 15px; border-color: #e2e7dc; background: #f5f7f1; color: #69765f; }
+body #save-session-dialog.modal-surface { --modal-width: 460px; padding: var(--modal-padding); }
+body #save-session-dialog.modal-surface .session-optional { padding: 14px; border: 1px solid #e2e7dc; border-radius: 10px; background: #f6f8f2; }
+body #save-session-dialog.modal-surface .session-optional[open] { max-height: none; overflow: visible; }
+body #save-session-dialog.modal-surface .session-optional summary { color: #647357; font-size: 12px; }
+body #save-session-dialog.modal-surface #confirm-save-session { height: 42px; border-radius: 9px; }
+body #image-dialog.modal-surface { --modal-width: 1000px; padding: 20px; background: #f5f6f2; }
+body #image-dialog.modal-surface img { max-height: calc(100dvh - 150px); border-radius: 10px; }
+body #image-dialog.modal-surface .dialog-head { font-size: 13px; color: #6d7864; }
+body #session-view.modal-surface { --modal-width: 800px; overflow: hidden; }
+body #session-view.modal-surface .session-shell { height: min(820px, calc(100dvh - var(--modal-gap) * 2 - 2px)); max-width: none; }
+body #session-view.modal-surface .session-top { padding: 24px 26px 18px; border-bottom: 1px solid #e4e8df; background: #fcfcfa; }
+body #session-view.modal-surface .session-brand { margin-bottom: 16px; }
+body #session-view.modal-surface .session-subtitle { font-size: 13px; line-height: 1.8; color: #77816e; }
+body #session-view.modal-surface .session-messages { padding: 18px 22px; min-height: 0; background: #f3f5ef; background-image: none; }
+body #session-view.modal-surface .session-choice { border: 1px solid #e1e6da; border-radius: 11px; padding: 16px; margin-bottom: 10px; background: #fff; }
+body #session-view.modal-surface .session-choice strong { font-size: 14px; color: #37442f; }
+body #session-view.modal-surface .session-list-preview { font-size: 12px; color: #7a8472; }
+body #session-view.modal-surface .message-card { padding: 18px; border-radius: 12px; border: 1px solid #dee4d6; background: #fff; box-shadow: none; }
+body #session-view.modal-surface .message-card.chosen { background: #fcfbea; border-color: #dbd69e; }
+body #session-view.modal-surface .session-bottom { padding: 16px 24px; border-top: 1px solid #e4e8df; background: #fcfcfa; }
+body #session-view.modal-surface .selection-footer { gap: 12px; flex-wrap: wrap; }
+body #session-view.modal-surface .session-manual-footer { padding: 12px 24px; background: #fcfcfa; }
+body #session-view.modal-surface #save-session { min-height: 42px; border-radius: 9px; }
+body dialog.feishu-dialog.modal-surface { --modal-width: 480px; padding: var(--modal-padding); }
+body dialog.feishu-send-dialog.modal-surface { --modal-width: 600px; }
+body dialog.feishu-dialog.modal-surface .feishu-muted { color: #7b8572; }
+body dialog.feishu-dialog.modal-surface .feishu-preview { background: #f1f4ec; border: 1px solid #e0e6d8; color: #5b694f; border-radius: 10px; }
+body dialog.feishu-dialog.modal-surface .feishu-target-switch { background: #eef2e8; border-color: #dfe6d5; }
+@media (max-width: 700px) {
+  body dialog.modal-surface { --modal-gap: 12px; --modal-padding: 22px; border-radius: 15px !important; }
+  body dialog.modal-surface h2 { font-size: 21px; }
+  body dialog.modal-surface .dialog-bottom { flex-wrap: wrap; }
+  body #session-view.modal-surface .session-top { padding: 20px 18px 14px; }
+  body #session-view.modal-surface .session-messages { padding: 14px; }
+  body #session-view.modal-surface .session-bottom { padding: 12px 16px; }
+  body #session-view.modal-surface .selection-status { max-width: none; flex: 1 0 100%; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  body dialog.modal-surface[open] { animation: modal-appear .16s ease-out; }
+  @keyframes modal-appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+}
+
+/* Window chrome must not overlap or intercept a modal backdrop. */
+body.native-app:has(dialog[open]) .native-resizer { visibility: hidden; pointer-events: none; }
+body.native-app #session-view.modal-surface .session-shell { width: 100%; max-width: none; }
+
+/* The collection workspace lives in the main grid column. */
+body.collecting .main { position: relative; min-width: 0; min-height: 0; }
+body.collecting .main > :not(#session-view):not(.panel-header) { display: none !important; }
+body #session-view { position: static; inset: auto; width: 100%; max-width: none; height: 100%; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: #fcfcfa; box-shadow: none; overflow: hidden; flex: 1; }
+body #session-view[hidden] { display: none !important; }
+body.native-app #session-view .session-shell, body #session-view .session-shell { position: relative; width: 100%; max-width: none; height: 100%; min-height: 0; margin: 0; }
+body #session-view .session-brand { display: none; }
+body #session-view .session-top { padding: 24px clamp(22px,4vw,56px) 20px; border-bottom: 1px solid #e4e8df; background: #fcfcfa; }
+body #session-view .session-top .dialog-head { display: flex; margin: 0; }
+body #session-view .session-top h2 { font-size: 25px; font-weight: 650; color: #35412f; letter-spacing: -.6px; }
+body #session-view .session-subtitle { color: #7b8573; font-size: 12px; margin-top: 8px; }
+body #session-view .session-back { margin: 0 0 14px; padding: 0; font-size: 12px; color: #68785a; }
+body #session-view .session-messages { padding: 20px clamp(22px,4vw,56px); background: #fcfcfa; background-image: none; min-height: 0; }
+body #session-view .session-choices { display: grid; gap: 10px; }
+body #session-view .session-choice { border: 1px solid #e4e8df; border-radius: 11px; background: #fff; padding: 18px 36px 18px 18px; margin: 0; }
+body #session-view .session-choice:hover { background: #f5f7ef; border-color: #d6dfca; box-shadow: none; }
+body #session-view .session-choice strong { font-size: 14px; color: #35432f; }
+body #session-view .session-list-preview { font-size: 12px; color: #818a7a; }
+body #session-view .message-card { padding: 20px; background: #fff; border: 1px solid #e3e7dc; border-radius: 12px; box-shadow: none; }
+body #session-view .message-card.chosen { background: #faf9e9; border-color: #dcd7a2; }
+body #session-view .session-bottom { padding: 14px clamp(22px,4vw,56px); background: #fcfcfa; border-top: 1px solid #e4e8df; }
+body #session-view .selection-footer { margin: 0; gap: 14px; }
+body #session-view .session-manual-footer { padding: 12px clamp(22px,4vw,56px); border-top: 1px solid #edf0e7; background: #fcfcfa; }
+body #session-view .session-receipt { background: #eef4e8; border: 1px solid #d9e5ce; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; color: #516644; display: flex; align-items: center; justify-content: space-between; }
+body #session-view .session-receipt[hidden] { display: none; }
+body #session-view .save-notification { position: absolute; bottom: 110px; }
+body.collecting .native-sidebar-capture { background: #e2e9dc; color: #34452d; }
+body.collecting .native-context-header #toolbar-tools { display: none; }
+@media(max-width:700px) {
+  body #session-view .session-top { padding: 18px 18px 14px; }
+  body #session-view .session-messages { padding: 14px; }
+  body #session-view .session-bottom { padding: 12px 16px; }
+  body #session-view .selection-footer { flex-wrap: wrap; }
+  body #session-view .session-manual-footer { padding: 10px 18px; }
+}
+
+body #session-view .session-top>.session-back { border: 0; background: transparent; padding: 0; border-radius: 0; }
+body #session-view .session-top h2 { overflow-wrap: anywhere; }
+body #session-view .message-markdown { font-size: 14px; line-height: 1.85; }
+
+/* Shared search and runtime controls. */
+body #session-view .session-description-row { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; }
+body #session-view .session-description-row .session-subtitle { margin: 9px 0 0; }
+body #session-view .session-manual-add { flex-shrink: 0; padding: 0; font-size: 12px; color: #718063; }
+body #session-view .session-search-row { display: flex; gap: 12px; margin-bottom: 20px; }
+body #session-view .session-search-row input { flex: 1; min-width: 0; margin: 0; height: 42px; font-size: 13px; }
+body #session-view .runtime-filter { width: 150px; flex-shrink: 0; border: 1px solid #dce3d5; border-radius: 8px; background: #f7f9f3; padding: 0 12px; color: #526449; font: inherit; font-size: 12px; }
+body #session-view .runtime-badge { display: inline-block; margin-top: 7px; padding: 2px 7px; border-radius: 5px; background: #f0f3eb; color: #6a795e; font-size: 10px; }
+body.native-app .native-sidebar-capture,body.native-app .native-thoughts-entry { height: 44px; padding: 11px 12px; font-size: 15px; font-weight: 550; gap: 12px; }
+body.native-app .native-sidebar-capture svg,body.native-app .native-thoughts-entry svg { width: 21px; height: 21px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+body .manage-topics { display: block; text-align: right; width: 100%; font-size: 11px; color: #78866d; padding: 2px 8px 12px; }
+body.managing-topics .main > :not(#topic-manager):not(.panel-header) { display: none !important; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+body #topic-manager { flex: 1; min-height: 0; overflow: auto; padding: 32px clamp(24px,4vw,56px); background: #fcfcfa; }
+body #topic-manager>.primary { margin: 24px 0; }
+.topic-management-row { display: flex; align-items: center; gap: 16px; padding: 20px 0; border-bottom: 1px solid #e4e9df; }
+.topic-management-row>div { flex: 1; min-width: 0; }
+.topic-management-row h3 { font-size: 15px; margin: 0 0 8px; color: #3e5134; }
+.topic-management-row p { font-size: 12px; color: #798870; margin: 0 0 8px; overflow-wrap: anywhere; }
+.topic-management-row small { font-size: 11px; color: #909b87; }
+@media(max-width:700px) {
+  body #session-view .session-description-row { gap: 10px; flex-wrap: wrap; }
+  body #session-view .runtime-filter { width: 125px; }
+  body #session-view .session-search-row { gap: 8px; }
+
+
+}
+
+/* Quiet pointer focus across inputs, buttons, selects and native window controls. */
+html[data-input-mode="pointer"] body :is(button,input,textarea,select,summary,a,[tabindex]):focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+html[data-input-mode="keyboard"] body :is(button,input,textarea,select,summary,a,[tabindex]):focus-visible {
+  outline: 2px solid #829675 !important;
+  outline-offset: 2px !important;
+}
+html[data-input-mode="pointer"] body .native-resizer:focus-visible { background: transparent; }
+html[data-input-mode="pointer"] body :is(input,textarea,select):focus { border-color: #dce3d5; }
+
+body #session-view .dialog-head { gap: 18px; align-items: center; justify-content: space-between; }
+body #session-view .session-use { flex-shrink: 0; margin-left: auto; }
+body #carry-dialog.modal-surface .dialog-inner { padding: 26px; }
+body #carry-dialog.modal-surface #carry-list { max-height: 220px; overflow: auto; }
+@media(max-width:700px){body #carry-dialog.modal-surface .dialog-inner { padding: 20px; }}
+
+body #topic-manager[hidden] { display: none !important; }
+body #topic-manager h2 { font-size: 26px; font-weight: 650; color: #34422d; margin: 0 0 12px; }
+
+/* Compact workspace chrome for embedded panels and narrow windows. */
+@media(max-width:700px) {
+  body .panel-header { min-height: 48px; padding: 7px 20px; gap: 16px; justify-content: flex-start; border-bottom: 1px solid #e4e8df; background: #fcfcfa; }
+  .panel-wordmark { font-size: 13px; font-weight: 600; letter-spacing: -.3px; color: #4c5845; white-space: nowrap; }
+  .panel-navigation { display: flex; align-items: center; gap: 3px; }
+  body .panel-header .panel-find { margin-left: auto; padding: 6px!important; width: 32px; }
+  .panel-find svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+  body.collecting .panel-navigation .panel-collect,body.managing-topics .panel-navigation .panel-thoughts { background: #eaf0e3!important; color: #354a29!important; }
+  body #session-view .session-top { padding: 22px 20px 12px; border-bottom: 0; }
+  body #session-view .session-top h2 { font-size: 20px; font-weight: 600; line-height: 1.4; letter-spacing: -.4px; }
+  body #session-view .session-description-row { justify-content: flex-start; column-gap: 8px; row-gap: 0; }
+  body #session-view .session-description-row .session-subtitle { margin: 6px 0 0; font-size: 12px; line-height: 1.7; }
+  body #session-view .session-description-row .session-manual-add { padding: 0 4px!important; min-height: 24px!important; font-size: 11px!important; }
+  body #session-view .session-messages { padding: 8px 20px 20px; }
+  body #session-view .session-search-row { gap: 8px; margin-bottom: 16px; }
+  body #session-view .session-search-row input { height: 36px; padding: 8px 11px; border: 1px solid #dce3d5; border-radius: 7px; background: #fff; font-size: 12px; }
+  body #session-view .runtime-filter { height: 36px; width: 125px; border-radius: 7px; font-size: 12px; }
+}
+@media(max-width:420px) {
+  body .panel-header { padding-inline: 14px; gap: 8px; }
+  body #session-view .session-top { padding-inline: 16px; }
+  body #session-view .session-messages { padding-inline: 16px; }
+}
+
+/* Collection header progressively yields space to the reading area. */
+body #session-view .session-top {
+  --collection-collapse: 0;
+  position: relative; z-index: 6; flex-shrink: 0;
+  padding: calc(20px - 10px * var(--collection-collapse)) clamp(16px,3vw,40px) calc(16px - 6px * var(--collection-collapse));
+  border-bottom: 1px solid #e4e8df;
+}
+body #session-view .session-top .dialog-head { gap: 12px; min-height: 32px; }
+body #session-view .session-top h2 {
+  min-width: 0; flex: 1; margin: 0;
+  font-size: calc(22px - 5px * var(--collection-collapse)); line-height: 1.45;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body #session-view .session-back { margin: 0; flex-shrink: 0; }
+body #session-view .session-description-row {
+  display: block; overflow: hidden;
+  max-height: calc(76px * (1 - var(--collection-collapse)));
+  opacity: calc(1 - var(--collection-collapse));
+}
+body #session-view .session-top.is-collapsed .session-description-row { visibility: hidden; }
+body #session-view .session-more { flex-shrink: 0; margin-left: auto; }
+body #session-view .session-more-body { top: calc(100% + 8px); width: 200px; max-width: calc(100vw - 48px); }
+body #session-view .session-more-body #session-controls { display: grid; gap: 7px; }
+body #session-view #session-controls[hidden],body #session-view .session-bottom[hidden] { display: none !important; }
+body #session-view .session-more-body button { width: 100%; text-align: left; margin: 0; justify-content: flex-start; }
+body #session-view .selection-footer #save-session { margin-left: auto; }
+body #session-view .session-bottom { padding-block: 10px; }
+body #session-view .session-shell > .session-receipt { position: absolute; bottom: 16px; left: 20px; right: 20px; margin: 0; z-index: 4; }
+body #session-view.has-selection .session-receipt { display: none; }
+body #session-view .session-messages { overflow-anchor: none; }
+@media(prefers-reduced-motion:no-preference) {
+  body #session-view .session-bottom:not([hidden]) { animation: collection-actions-in 180ms ease-out; }
+  @keyframes collection-actions-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+}
+
+/* Native collection begins at the top of the reading pane; window controls
+   retain their own drag region above the sidebar. */
+body.native-app.collecting .native-window-header { position: absolute; inset: 0 auto auto 0; width: var(--native-sidebar-width); z-index: 25; }
+body.native-app.collecting .native-context-header { display: none; }
+body.native-app.collecting .app { height: 100dvh; }
+body.native-app.collecting .sidebar { padding-top: 54px; }
+body.native-app.collecting.native-nav-hidden .native-window-header { width: 88px; }
+body.native-app.collecting.native-nav-hidden #session-view .session-top { padding-left: 100px; }
+body .app-more[hidden] { display: none; }
+body .app-utilities { display: grid; gap: 2px; }
+body #session-view .app-utilities { margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--line); }
+body .app-more .session-more-body { width: 210px; }
+body .app-utilities button { width: 100%; justify-content: flex-start; text-align: left; }
+
+/* Shared reading density: small metadata, compact navigation, readable body. */
+body { font-size: 13px; }
+body.native-app .sidebar>.brand { margin-bottom: 12px; }
+body.native-app .native-brand-title { font-size: 19px; }
+body.native-app .native-scope { margin-top: 14px; margin-bottom: 4px; }
+body.native-app .native-note-list { padding: 2px 6px 12px; }
+body.native-app .native-note { padding: 12px; margin-bottom: 6px; }
+body.native-app .native-note strong { font-size: 12px; line-height: 1.5; margin-bottom: 5px; }
+body.native-app .native-note p { font-size: 11px; line-height: 1.55; }
+body.native-app .native-note-meta { font-size: 10px; margin-bottom: 4px; }
+body #session-view .session-top { padding-top: calc(16px - 6px * var(--collection-collapse)); padding-bottom: calc(12px - 2px * var(--collection-collapse)); }
+body #session-view .session-top h2 { font-size: calc(19px - 3px * var(--collection-collapse)); }
+body #session-view .session-description-row .session-subtitle { font-size: 11px; line-height: 1.5; margin-top: 5px; }
+body #session-view .session-messages { padding: 14px clamp(16px,2.5vw,32px); }
+body #session-view .message-card { padding: 14px 16px; margin-bottom: 10px; border-radius: 10px; }
+body #session-view .message-markdown,body .article { font-size: 13px; line-height: 1.65; }
+body #session-view .message-markdown { margin-top: 8px; }
+body :is(.message-markdown,.article) p { margin: 7px 0; }
+body :is(.message-markdown,.article) :is(ul,ol) { margin: 7px 0; padding-left: 24px; }
+body :is(.message-markdown,.article) li { margin: 3px 0; }
+body :is(.message-markdown,.article) :is(h2,h3,h4) { margin: 16px 0 8px; line-height: 1.4; }
+body :is(.message-markdown,.article) h2 { font-size: 17px; }
+body :is(.message-markdown,.article) h3 { font-size: 15px; }
+body :is(.message-markdown,.article) h4 { font-size: 13px; }
+body #session-view .session-choice { padding: 12px 30px 12px 14px; gap: 5px; }
+body #session-view .session-choice strong { font-size: 13px; line-height: 1.5; }
+body #session-view .session-list-preview { font-size: 11px; line-height: 1.55; margin: 4px 0; }
+body #session-view .session-choices { gap: 8px; }
+body .workspace { padding: 28px 32px 40px; }
+body .workspace h1,body.native-app .workspace h1 { font-size: 26px; margin-bottom: 12px; }
+body .workspace-hero p,body .workspace-description { font-size: 12px; line-height: 1.65; }
+body .hero-actions { margin: 16px 0 22px; }
+body .section-heading { margin: 22px 0 12px; }
+body .thread-card { padding: 18px; min-height: 170px; }
+body .thread-card h3 { font-size: 14px; margin-bottom: 7px; }
+body .thread-card p { font-size: 12px; line-height: 1.65; margin-bottom: 14px; }
+body .note-row { padding: 14px 0; }
+body .note-excerpt { font-size: 12px; line-height: 1.65; margin: 6px 0 8px; }
+body .reading,body.native-app .reading { padding: 24px 30px; }
+body .reading h1,body.native-app .reading h1 { font-size: 23px; line-height: 1.4; }
+body #topic-manager h2 { font-size: 22px; }
+body dialog.modal-surface { --modal-padding: 22px; }
+body dialog.modal-surface h2 { font-size: 20px; }
+body dialog.modal-surface :is(.dialog-hint,.save-modal-summary) { margin-bottom: 16px; font-size: 12px; line-height: 1.6; }
+body dialog.modal-surface :is(.field-label,#review-form>label) { margin-top: 14px; margin-bottom: 6px; font-size: 11px; }
+body dialog.modal-surface :where(input:not([type=checkbox]):not([type=file]),textarea,select) { min-height: 36px; padding: 8px 10px; font-size: 12px; line-height: 1.5; }
+body dialog.modal-surface textarea { min-height: 110px; line-height: 1.65; }
+body dialog.modal-surface :is(.dialog-bottom,.save-modal-actions) { margin-top: 18px; gap: 12px; }
+@media(max-width:700px) {
+ body .workspace,body .reading { padding: 20px 16px; }
+ body #session-view .message-card { padding: 12px; }
+ body #session-view .message-markdown,body .article { font-size: 13px; line-height: 1.7; }
+}
+body.native-app #session-view .session-top { padding-top: calc(16px - 6px * var(--collection-collapse)); padding-bottom: calc(12px - 2px * var(--collection-collapse)); }
+body.native-app #session-view .session-top h2 { font-size: calc(19px - 3px * var(--collection-collapse)); }
+body.managing-topics .native-context-header #toolbar-tools { display: none; }
+body .native-context-header #toolbar-tools { flex-shrink: 0; }
+body .native-context-header #toolbar-tools button { white-space: nowrap; }
+body #topic-manager { padding: 24px 28px; }
+body #topic-manager .workspace-empty { padding: 18px 0; }
+body #session-view .session-choice { display: grid; grid-template-columns: minmax(0,1fr) auto; column-gap: 10px; }
+body #session-view .session-choice strong { grid-column: 1 / -1; }
+body #session-view .session-choice .runtime-badge { grid-column: 2; grid-row: 2; margin: 0; }
+body #session-view .session-list-preview { grid-column: 1 / -1; }
+body .session-more-body { max-height: min(480px,calc(100dvh - 110px)); overflow-y: auto; overscroll-behavior: contain; }
+/* The persistent pane must not inherit the old dialog viewport ceiling. */
+body #session-view { max-height: none; }
+body.native-app #session-view .session-bottom,body #session-view .session-bottom { padding: 8px clamp(16px,2.5vw,32px); }
+body #session-view .selection-footer { flex-wrap: nowrap; gap: 8px; }
+body #session-view .selection-status { white-space: nowrap; }
+/* Feishu's send composer now uses the shared inner wrapper. */
+body dialog.feishu-send-dialog.modal-surface { padding:0; }

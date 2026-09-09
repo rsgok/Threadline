@@ -81,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         guard let option=options[id.rawValue] else{return nil};item.label=option.0;item.toolTip=option.0;item.image=NSImage(systemSymbolName:option.1,accessibilityDescription:option.0);item.target=self;item.action=option.2;return item
     }
     @objc func progress(){show();web.evaluateJavaScript("openSessionPicker()")}
-    @objc func library(){show();web.evaluateJavaScript("if(!sessionSaving){document.getElementById('save-session-dialog').close();document.getElementById('session-dialog').close();goWorkspace('all')}")}
+    @objc func library(){show();web.evaluateJavaScript("if(!sessionSaving){document.getElementById('save-session-dialog').close();hideSessionView();goWorkspace('all')}")}
     func connect(attempt:Int){
         var request=URLRequest(url:base.appendingPathComponent("health"));request.timeoutInterval=1
         URLSession.shared.dataTask(with:request){data,response,_ in
@@ -95,7 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         }.resume()
     }
     @objc func show(){window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
-    @objc func search(){library();web.evaluateJavaScript("goWorkspace('all').then(()=>{if(window.setNativeSearch){setNativeSearch(true)}else{document.getElementById(isPanel()?'panel-search':'search').focus()}})")}
+    @objc func search(){show();web.evaluateJavaScript("focusSessionSearch()")}
     @objc func capture(){show();let text=NSPasteboard.general.string(forType:.string) ?? "";let data=try! JSONSerialization.data(withJSONObject:[text]);let argument=String(data:data,encoding:.utf8)!;web.evaluateJavaScript("openCapture();document.getElementById('capture-body').value=\(argument)[0]")}
     @objc func openInCodex(){web.evaluateJavaScript("openInCodexSidebar()")}
     @objc func openInCursor(){web.evaluateJavaScript("openInCodexSidebar(\"cursor\")")}
