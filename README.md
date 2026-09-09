@@ -66,7 +66,7 @@ bash scripts/start-web.sh
 
 ### 统一分享
 
-勾选会话消息后点击「分享」，可选择复制文字、导出所选附件、生成分页 PNG 图卡，或发送到飞书、Slack、Discord。Slack 使用用户配置的 Bot Token，Discord 使用指定频道 Webhook；连接验证不发送消息。Slack、Discord 的分段回执持久保存，支持重启后继续发送及核对未知送达状态。图卡和附件可手动分享到微信、WhatsApp 等应用。
+勾选会话消息后点击「分享」，可选择复制文字、导出所选附件、生成分页 PNG 图卡，或发送到飞书、Slack、Discord。Slack 使用用户配置的 Bot Token，Discord 使用指定频道 Webhook；连接验证不发送消息。Slack、Discord 的分段回执持久保存，支持重启后继续发送及核对未知送达状态。图卡和附件可手动分享到微信、WhatsApp 等应用。图卡采用本机 Chromium 排版及随附中文字体，首次生成才下载独立引擎（不进入 `.app`，macOS arm64 当前安装约 198 MB），之后可离线使用；预览与导出使用同一份高清 PNG。
 
 连接步骤、大小限制、重试规则和当前范围见 [分享说明](docs/sharing.md)。
 

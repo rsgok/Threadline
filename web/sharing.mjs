@@ -1,3 +1,4 @@
+import { resolveCardTheme } from './card-themes.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -95,14 +96,16 @@ export class Sharing {
   load(id) { const file = this.file(id); if (!fs.existsSync(file)) throw fail(404, '分享记录不存在'); return JSON.parse(fs.readFileSync(file, 'utf8')); }
   save(job) { atomic(this.file(job.id), job); }
   public(job) {
-    return { id: job.id, platform: job.platform, target: job.targetLabel, title: job.title, note: job.note, text: job.text, messages: job.messages, attachments: job.attachments,
+    return { id: job.id, platform: job.platform, target: job.targetLabel, title: job.title, cardTheme: job.cardTheme || 'sage', cardMode: job.cardMode || 'pages', note: job.note, text: job.text, messages: job.messages, attachments: job.attachments,
       createdAt: job.createdAt, startedAt: job.startedAt, expires: job.expires, expired: Date.now() > job.expires,
       steps: job.steps.map(s => ({ id: s.id, label: s.label, status: s.status === 'sending' && !this.locks.has(job.id) ? 'uncertain' : s.status, error: s.error || '', receipt: s.receipt || null })), sending: this.locks.has(job.id) };
   }
   history() {
     return fs.readdirSync(this.root).filter(id => ID.test(id)).map(id => this.public(this.load(id))).filter(j => j.platform !== 'export' && j.startedAt).sort((a, b) => b.createdAt - a.createdAt).slice(0, 30).map(({ messages, text, attachments, ...j }) => ({ ...j, attachmentCount: attachments.filter(a => a.selected).length }));
   }
-  prepare({ session, selected, platform = 'export', target = '', note = '', attachmentIDs = [] }) {
+  prepare({ session, selected, platform = 'export', target = '', note = '', attachmentIDs = [], cardTheme = 'sage', cardMode = 'pages' }) {
+    resolveCardTheme(cardTheme);
+    if (!['pages','long'].includes(cardMode)) throw fail(400, '图卡模式无效');
     for (const old of fs.readdirSync(this.root).filter(id => ID.test(id))) { const previous = this.load(old); if (previous.expires < Date.now() && previous.steps.every(s => s.status === 'pending')) fs.rmSync(path.dirname(this.file(old)), { recursive: true, force: true }); }
     const capability = Object.hasOwn(sharingCapabilities, platform) ? sharingCapabilities[platform] : null; if (!capability) throw fail(400, '请选择分享方式');
     if (typeof note !== 'string' || note.length > 2000 || typeof target !== 'string') throw fail(400, '附言或发送目标格式错误');
@@ -115,7 +118,7 @@ export class Sharing {
     const id = crypto.randomUUID(), dir = path.dirname(this.file(id));
     const attachments = [], seen = new Set(); let total = 0;
     try {
-      for (const m of selected) for (const a of m.attachments || linkedAttachments(m.text)) {
+      for (const m of selected) for (const a of [...(m.attachments || []), ...linkedAttachments(m.text)]) {
         if (seen.has(a.path)) continue; seen.add(a.path);
         if (seen.size > 50) throw fail(413, '一次最多分享 50 个附件');
         const item = { id: hash(a.path).slice(0, 24), path: a.path, name: safeName(a.path), kind: a.kind, messageId: m.id, selected: false, available: false };
@@ -145,7 +148,7 @@ export class Sharing {
       if (text.length > 2_000_000) throw fail(413, '内容超过 2 MB，请分批分享');
       const steps = platform === 'export' ? [] : [...splitText(text, capability.textLimit).map((text, i) => ({ id: crypto.randomUUID(), type: 'text', text, label: `文字 ${i + 1}`, status: 'pending' })), ...attachments.filter(a => a.selected).map(a => ({ id: crypto.randomUUID(), type: 'file', assetId: a.id, label: a.name, status: 'pending' }))];
       if (steps.length > 150) throw fail(413, '将产生超过 150 次发送，请减少所选内容');
-      const job = { id, platform, target, targetLabel: platform === 'discord' ? `${this.config.discord.name} · ${this.config.discord.channel}` : target, configHash: platform === 'export' ? '' : hash(JSON.stringify(this.config[platform])), title: session.title || '讨论摘录', note, text, messages, attachments, steps, createdAt: Date.now(), expires: Date.now() + 24 * 60 * 60 * 1000 };
+      const job = { id, cardTheme, cardMode, platform, target, targetLabel: platform === 'discord' ? `${this.config.discord.name} · ${this.config.discord.channel}` : target, configHash: platform === 'export' ? '' : hash(JSON.stringify(this.config[platform])), title: session.title || '讨论摘录', note, text, messages, attachments, steps, createdAt: Date.now(), expires: Date.now() + 24 * 60 * 60 * 1000 };
       fs.mkdirSync(dir, { recursive: true, mode: 0o700 }); this.save(job); return this.public(job);
     } catch (e) { fs.rmSync(dir, { recursive: true, force: true }); throw e; }
   }
@@ -155,6 +158,14 @@ export class Sharing {
     const bytes = fs.readFileSync(path.join(path.dirname(this.file(id)), a.id));
     if (hash(bytes) !== a.digest) throw fail(409, '附件副本已变化，请重新预览');
     return { ...a, bytes, mime: mime(a.name) };
+  }
+  thumbnail(id, assetId) {
+    const a = this.load(id).attachments.find(a => a.id === assetId && a.available && a.kind === 'image');
+    if (!a) throw fail(404, '图片不在此次预览中');
+    if (a.selected) return this.asset(id, assetId);
+    const bytes = readAttachment(a.path, 25 * 1024 * 1024);
+    if (hash(bytes) !== a.digest) throw fail(409, '图片已变化，请重新预览');
+    return { bytes, mime: mime(a.name) };
   }
   exportEntries(id) {
     const job = this.load(id), chosen = job.attachments.filter(a => a.selected);

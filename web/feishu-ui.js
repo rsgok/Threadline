@@ -161,7 +161,7 @@
         for (const a of result.attachments) {
           const label = node('label', '', 'feishu-attachment'); const check = node('input'); check.type = 'checkbox'; check.checked = attachmentIDs.has(a.id); check.disabled = !a.available; check.dataset.available = String(a.available);
           check.onchange = () => { if (sending) return; if (check.checked) attachmentIDs.add(a.id); else attachmentIDs.delete(a.id); schedulePreview(); };
-          const info = node('span', `第 ${a.ordinal} 条 · ${a.name} · ${a.available ? Math.ceil(a.size / 1024) + ' KB' : a.problem}`); info.title = a.path; label.append(check, info); attachmentsBox.append(label);
+          const info = node('span', `第 ${a.ordinal} 条 · ${a.name} · ${a.available ? Math.ceil(a.size / 1024) + ' KB' : a.problem}`); info.title = a.path; label.append(check); if(a.kind==='image'&&a.available){const img=node('img','','share-attachment-thumb');img.src='/api/local-resource?'+new URLSearchParams({path:a.path,thread:snapshot.threadID,runtime:snapshot.runtime||'codex'});img.alt=a.name;label.append(img);} label.append(info); attachmentsBox.append(label);
         }
         const s = await api('/api/feishu/status'); if (generation !== previewGeneration || !sendDialog.open) return; if (s.uploadPermissionUrl) attachmentsBox.append(button('一键申请图片 / 文件上传权限', () => attempt(async () => { await post('permissions', { kind: 'upload' }); await openConnection(); })), link('权限管理（备用）↗', s.uploadPermissionUrl));
       }
@@ -186,7 +186,7 @@
     const messages = activeSession.messages.filter(m => selectedMessages.has(m.id));
     snapshot = shared?.snapshot || { runtime: contextRuntime, threadID: activeSession.id, messageIDs: messages.map(m => m.id), fingerprints: Object.fromEntries(messages.map(m => [m.id, m.fingerprint])), includeProgress: $('include-progress').checked };
     attachmentIDs = new Set(); attachmentsBox.replaceChildren(); userSelect.replaceChildren(new Option('我（当前飞书用户）', 'self')); userQuery.value = ''; userSearchGeneration++; note.value = shared?.note || ''; preview.textContent = ''; select.replaceChildren(); query.value = ''; previewId = null;
-    if (shared?.paths?.length) { const initial = await post('preview', { ...snapshot, note: note.value, attachmentIDs: [] }); attachmentIDs = new Set(initial.attachments.filter(a => a.available && shared.paths.includes(a.path)).map(a => a.id)); }
+    const initial = await post('preview', { ...snapshot, note: note.value, attachmentIDs: [] }); attachmentIDs = new Set(initial.attachments.filter(a => a.available && (!Array.isArray(shared?.paths) || shared.paths.includes(a.path))).map(a => a.id));
     sendDialog.showModal(); changeTarget('self'); await prepare();
   }
   window.openFeishuShare = openSelectedShare;

@@ -245,3 +245,10 @@ body .session-more>summary { min-width:28px; min-height:28px; display:flex; alig
 body .share-method-grid button.share-method { display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; white-space:normal; text-align:left; min-height:82px!important; padding:12px!important; gap:5px!important; }
 body .share-method strong { font-size:13px; font-weight:550; }
 body .share-method span { font-size:11px; font-weight:400; line-height:1.5; color:#788270; }
+
+body .share-theme-grid button.share-theme{display:flex;flex-direction:column;align-items:flex-start;gap:5px!important;white-space:normal;text-align:left;min-width:0;padding:8px!important;height:auto!important}
+body .share-theme-grid button.share-theme[aria-pressed=true]{background:#edf2e7!important;border-color:#708b60!important;box-shadow:inset 0 0 0 1px #708b60!important}
+body .share-theme strong{font-size:12px;font-weight:550}
+body .share-theme .share-theme-description{font-size:10px;line-height:1.5;font-weight:400;color:#788270}
+
+body .share-mode-picker button[aria-pressed=true]{background:#edf2e7!important;border-color:#708b60!important;color:#3e5534!important}

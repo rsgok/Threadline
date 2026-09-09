@@ -412,6 +412,11 @@ test('unified sharing previews, stages selected attachments and exports without 
   const m=(await request('/api/codex/sessions/'+threadID)).data.session.messages[0];
   const selection={threadID,messageIDs:[m.id],fingerprints:{[m.id]:m.fingerprint},platform:'export'};
   const first=await request('/api/share/preview','POST',selection);assert.equal(first.response.status,201);
+  assert.equal((await request('/api/share/card-themes')).data.themes.length,5);
+  const themed=await request('/api/share/preview','POST',{...selection,cardTheme:'midnight'});
+  assert.equal(themed.data.cardTheme,'midnight');
+  assert.equal((await request('/api/share/jobs/'+themed.data.id)).data.cardTheme,'midnight');
+  assert.equal((await request('/api/share/preview','POST',{...selection,cardTheme:'unknown'})).response.status,400);
   const next=await request('/api/share/preview','POST',{...selection,attachmentIDs:[first.data.attachments[0].id]});
   const result=await request(`/api/share/jobs/${next.data.id}/export`);assert.equal(result.response.status,200);assert.ok(result.data.includes(Buffer.from('share document bytes')));
   assert.equal((await request('/api/library')).data.total,0);

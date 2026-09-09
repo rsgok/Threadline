@@ -10,7 +10,7 @@ The shared appearance owner is web/buttons.css. Page styles retain placement and
 | Quiet utility | Edit/export/refresh/back/manual add/expand/manage thoughts/view original | Transparent; soft hover; inline variants 28px minimum |
 | Icon utility | Search, sidebar toggle, toolbar export/menu, mobile navigation | 28px square, 17px icon, neutral hover |
 | Content selection | session-choice, native-note, thread-card, thinking-choice, note-open, image-preview | Preserve content hierarchy; thin neutral border where applicable; no hard shadow or transform |
-| Menus and segments | More menu, Feishu recipient options, private/group switch | Quiet rows and pale green selected state |
+| Menus and segments | More menu, Feishu recipient options, private/group switch, card theme picker | Quiet rows and pale green selected state |
 | Destructive | Delete note, disconnect Feishu | Muted red text and light red hover |
 | Inline references | File links and annotations | Text action, no raised button appearance |
 | Notifications | Notification close | Small control retaining status layout, no shadow |

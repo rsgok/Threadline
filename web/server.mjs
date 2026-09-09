@@ -1,3 +1,4 @@
+import { cardThemes } from './card-themes.mjs';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,6 +10,7 @@ import { CodexSessions, THREAD_ID } from './codex-sessions.mjs';
 import { CursorSessions } from './cursor-sessions.mjs';
 import { archiveAssets, portableBody } from './session-assets.mjs';
 import { Sharing } from './sharing.mjs';
+import { CardRenderer } from './card-renderer.mjs';
 import { LibraryStore } from './storage.mjs';
 import { createFeishu, buildDiscussionCards, discussionAttachments, readSharedAttachment } from './feishu.mjs';
 
@@ -94,6 +96,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
   const feishu = feishuOverride || createFeishu({ dataDir });
   const previews = new Map();
   const sharing = new Sharing({ dataDir });
+  const cardRenderer = new CardRenderer({ dataDir, sharing });
   async function selectedDiscussion(data) {
     if (!THREAD_ID.test(data.threadID || '') || !Array.isArray(data.messageIDs) || !data.messageIDs.length || data.messageIDs.length > 100 || new Set(data.messageIDs).size !== data.messageIDs.length) throw error(400, '请选择 1 到 100 条消息。');
     const session = await provider(data.runtime).get(data.threadID, { includeProgress: data.includeProgress === true });
@@ -151,7 +154,8 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       if (req.method === 'GET' && pathname === '/favicon.svg') return send(200,fs.readFileSync(path.join(here,'assets','threadline-icon.png')),'image/png');
       if (req.method === 'GET' && pathname === '/health') return send(200, { app: 'rewind-web', version: '0.2.0' });
       if (req.method === 'GET' && pathname === '/') return send(200, fs.readFileSync(path.join(here, 'index.html')), 'text/html; charset=utf-8');
-      if (req.method === 'GET' && ['/threadline.css', '/buttons.css', '/threadline.js', '/feishu-ui.js', '/feishu.css', '/sharing-ui.js', '/sharing-cards.js', '/sharing.css'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
+      if (req.method === 'GET' && pathname === '/api/share/card-themes') return send(200, { themes: cardThemes });
+      if (req.method === 'GET' && ['/threadline.css', '/buttons.css', '/threadline.js', '/feishu-ui.js', '/feishu.css', '/sharing-ui.js', '/sharing.css'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
       if (pathname.startsWith('/api/share/')) {
         if (req.headers['sec-fetch-site'] === 'cross-site') throw error(403, '拒绝跨站请求。');
         if (req.method === 'GET' && pathname === '/api/share/status') return send(200, sharing.status());
@@ -161,18 +165,34 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         if (req.method === 'POST' && pathname === '/api/share/disconnect') return send(200, sharing.disconnect((await readJSON(req)).platform));
         if (req.method === 'POST' && pathname === '/api/share/preview') {
           const data = await readJSON(req), { session, selected } = await selectedDiscussion(data);
-          return send(201, sharing.prepare({ session, selected, platform: data.platform, target: data.target, note: data.note, attachmentIDs: data.attachmentIDs }));
+          return send(201, sharing.prepare({ session, selected, platform: data.platform, target: data.target, note: data.note, attachmentIDs: data.attachmentIDs, cardTheme: data.cardTheme, cardMode: data.cardMode }));
         }
-        const shareRoute = pathname.match(/^\/api\/share\/jobs\/([a-f0-9-]{36})(?:\/(send|resolve|export|cards|assets)(?:\/([a-f0-9]{24}))?)?$/);
+        const renderRoute = pathname.match(/^\/api\/share\/jobs\/([a-f0-9-]{36})\/render(?:\/(cancel|pages)(?:\/(\d+))?)?$/);
+        if (renderRoute) {
+          const [, id, action, pageNumber] = renderRoute;
+          if (!action && req.method === 'POST') return send(202, cardRenderer.start(id));
+          if (!action && req.method === 'GET') return send(200, cardRenderer.status(id));
+          if (action === 'cancel' && req.method === 'POST') return send(200, cardRenderer.cancel(id));
+          if (action === 'pages' && req.method === 'GET') {
+            const status = cardRenderer.status(id), index = Number(pageNumber);
+            if (status.phase !== 'done' || !Number.isInteger(index) || index < 0 || index >= status.total) throw error(404, '图卡页面不存在');
+            return send(200, fs.readFileSync(cardRenderer.pageFile(id, index)), 'image/png');
+          }
+          throw error(404, '图卡操作不存在');
+        }
+        const shareRoute = pathname.match(/^\/api\/share\/jobs\/([a-f0-9-]{36})(?:\/(send|resolve|export|cards|assets|thumbnails)(?:\/([a-f0-9]{24}))?)?$/);
         if (shareRoute) {
           const [, id, action, assetId] = shareRoute;
           if (!action && req.method === 'GET') return send(200, sharing.public(sharing.load(id)));
           if (action === 'send' && req.method === 'POST') return send(200, await sharing.send(id));
           if (action === 'resolve' && req.method === 'POST') { const d = await readJSON(req); return send(200, sharing.resolve(id, d.stepId, d.delivered)); }
+          if (action === 'thumbnails' && req.method === 'GET') { const a = sharing.thumbnail(id, assetId); return send(200, a.bytes, a.mime); }
           if (action === 'assets' && req.method === 'GET') { const a = sharing.asset(id, assetId); return send(200, a.bytes, a.mime); }
           if (action === 'export' && req.method === 'GET') { res.setHeader('Content-Disposition', 'attachment; filename="Threadline-share.zip"'); return send(200, zip(sharing.exportEntries(id)), 'application/zip'); }
           if (action === 'cards' && req.method === 'POST') {
             const d = await readJSON(req), job = sharing.load(id);
+            if (cardRenderer.active?.id === id) throw error(409, '图卡正在生成');
+            delete job.cardEngine;
             if (!Number.isInteger(d.index) || !Number.isInteger(d.total) || d.index < 0 || d.index >= d.total || d.total > 200) throw error(400, '图卡页码无效');
             if (d.index === 0) job.cardPages = [];
             const image = parseImage(d.image); if (image.extension !== 'png') throw error(400, '图卡需要 PNG 格式');
@@ -182,7 +202,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
           }
           if (action === 'cards' && req.method === 'GET') {
             const job = sharing.load(id); if (!job.cardCount || Array.from({length:job.cardCount}, (_,i)=>i).some(i=>!job.cardPages?.includes(i))) throw error(409, '请先生成完整图卡');
-            const entries = Array.from({length:job.cardCount}, (_,i)=>['Threadline-'+String(i+1).padStart(3,'0')+'.png', fs.readFileSync(path.join(path.dirname(sharing.file(id)), 'card-'+i+'.png'))]);
+            const entries = Array.from({length:job.cardCount}, (_,i)=>['Threadline-'+String(i+1).padStart(3,'0')+'.png', fs.readFileSync(job.cardEngine === 'chromium-v1' ? cardRenderer.pageFile(id, i) : path.join(path.dirname(sharing.file(id)), 'card-'+i+'.png'))]);
             res.setHeader('Content-Disposition', 'attachment; filename="Threadline-cards.zip"'); return send(200, zip(entries), 'application/zip');
           }
         }
@@ -417,6 +437,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
     } catch (err) { if (!res.headersSent) send(err.status || 500, { error: err.status ? err.message : '本机保存或读取失败，原数据未被清空。' }); }
   });
   server.on('close', () => { feishu.close?.(); store.close(); });
+  server.on('close', () => cardRenderer.close());
   return server;
 }
 

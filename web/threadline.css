@@ -305,6 +305,8 @@ body dialog.modal-surface {
   color-scheme: light;
 }
 body dialog.modal-surface::-webkit-scrollbar { display: none; width: 0; height: 0; }
+/* WebKit can focus the dialog itself when it opens; only controls need a ring. */
+body dialog.modal-surface:focus { outline: none !important; }
 body dialog.modal-surface::backdrop { background: #202b2547; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
 body dialog.modal-surface .dialog-inner { padding: var(--modal-padding); }
 body dialog.modal-surface :is(.dialog-head,.save-modal-head,.feishu-heading) { margin: 0 0 12px; gap: 16px; }

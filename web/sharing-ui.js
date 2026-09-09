@@ -19,23 +19,73 @@
   const chooser=el('section','','share-chooser');chooser.append(intro,el('h3','保存到本机'),targetBox);
   const compose=el('section','','share-compose');compose.hidden=true;
   const back=button('← 更换分享方式',()=>showChooser());
+  const themeBox=el('section','','share-theme-section');
+  let themes=[],cardTheme='sage',cardMode='pages',assetsInitialized=false;
+  const modeBox=el('div','','share-mode-picker');
+  modeBox.setAttribute('aria-label','图卡模式');
+  for(const [value,label] of [['pages','分页图卡'],['long','单张长图']]){const b=button(label,()=>changeMode(value),'secondary');b.dataset.mode=value;modeBox.append(b);}
+  try{cardTheme=localStorage.getItem('threadline.cardTheme')||'sage';}catch{}
   const contentHeading=el('h3','分享内容');
   const previewDetails=el('details','','share-preview-details');previewDetails.append(el('summary','查看完整内容'),preview,media);
   const statusLine=el('div','','share-status');statusLine.setAttribute('role','status');statusLine.append(summary);
-  compose.append(back,destination,connections,contentHeading,noteLabel,note,attachmentBox,previewDetails,cards,statusLine,refresh,actions);
+  compose.append(back,destination,connections,themeBox,modeBox,contentHeading,noteLabel,note,attachmentBox,previewDetails,statusLine,refresh,actions);
   inner.append(header,chooser,compose,errors); modal.append(inner); document.body.append(modal);
   let method='copy', previewTimer, cardsReady=false, returnedPaths=null, preparing=false, assetPaths=new Map();
   let platform = 'export', snapshot, job, status, selectedAssets = new Set(), busy = false, generation = 0, slackTarget = '', channelsCursor = '', graph = [];
   setupModal(modal, { canDismiss: () => !busy });
+  const resultDialog=el('dialog','','card-result-dialog');resultDialog.setAttribute('aria-label','图卡预览');
+  const resultInner=el('div','','dialog-inner'),resultHead=el('div','','dialog-head');resultHead.append(el('h2','图卡预览'),button('返回调整',()=>{if(!busy)resultDialog.close();}));
+  const resultTools=el('div','','card-result-tools'),resultTheme=el('select'),resultMode=el('select');
+  resultTheme.setAttribute('aria-label','预览主题');resultMode.setAttribute('aria-label','预览模式');
+  resultMode.append(new Option('分页图卡','pages'),new Option('单张长图','long'));
+  resultTheme.onchange=()=>changeTheme(resultTheme.value);resultMode.onchange=()=>changeMode(resultMode.value);
+  const resultCopy=button('复制图卡',async()=>{
+    if(!job||!cardsReady||busy||preparing)return;
+    try{const bytes=fetch(`/api/share/jobs/${job.id}/render/pages/${resultPage}`).then(response=>{if(!response.ok)throw Error('图片读取失败');return response.blob();});await navigator.clipboard.write([new ClipboardItem({'image/png':bytes})]);resultHint.textContent='已复制图卡';}catch{resultHint.textContent='此环境无法复制图片，请下载图卡';}
+  },'secondary');
+  const resultDownload=button('下载图卡',()=>downloadCards(),'primary');
+  const originalDownload=button('下载文字与附件',()=>download('export'),'secondary');
+  resultTools.append(resultTheme,resultMode,resultCopy,resultDownload,originalDownload);
+  const resultHint=el('p'),pager=el('div','','card-result-pager');let resultPage=0,resultTotal=0;
+  const previousPage=button('上一张',()=>showCardPage(resultPage-1),'secondary'),nextPage=button('下一张',()=>showCardPage(resultPage+1),'secondary'),pageLabel=el('span');pager.append(previousPage,pageLabel,nextPage);
+  resultInner.append(resultHead,resultTools,resultHint,pager,cards);resultDialog.append(resultInner);document.body.append(resultDialog);
+  setupModal(resultDialog,{canDismiss:()=>!busy&&!preparing});
+  function showCardPage(index){
+    resultPage=Math.max(0,Math.min(resultTotal-1,index));cards.replaceChildren();
+    const img=el('img');img.src=`/api/share/jobs/${job.id}/render/pages/${resultPage}`;img.alt=cardMode==='long'?'完整长图':`图卡 ${resultPage+1} / ${resultTotal}`;
+    const figure=el('figure');figure.append(img);cards.append(figure);cards.scrollTop=0;
+    pager.hidden=resultTotal<2;pageLabel.textContent=`${resultPage+1} / ${resultTotal}`;previousPage.disabled=resultPage===0;nextPage.disabled=resultPage===resultTotal-1;
+  }
+  function downloadCards(){if(!job||!cardsReady)return;if(cardMode==='long'){const a=el('a');a.href=`/api/share/jobs/${job.id}/render/pages/0`;a.download='Threadline-long.png';document.body.append(a);a.click();a.remove();}else download('cards');}
+  function syncResultControls(){
+    resultTheme.replaceChildren(...themes.map(t=>new Option(t.name,t.id)));resultTheme.value=cardTheme;resultMode.value=cardMode;
+    resultDialog.querySelectorAll('button,select').forEach(b=>b.disabled=busy||preparing);
+    resultCopy.hidden=!(navigator.clipboard?.write&&window.ClipboardItem);resultCopy.disabled=busy||preparing||!cardsReady;resultCopy.textContent=resultTotal>1?'复制当前图卡':'复制图卡';
+    resultDownload.disabled=busy||preparing||!cardsReady;resultDownload.textContent=cardMode==='long'?'下载长图 PNG':'下载全部图卡';
+    originalDownload.hidden=!job?.attachments.some(a=>a.selected);
+    if(cardsReady&&!busy&&!preparing){previousPage.disabled=resultPage===0;nextPage.disabled=resultPage===resultTotal-1;}
+  }
+  async function changeTheme(value){
+    if(busy||preparing||value===cardTheme)return;const regenerate=cardsReady;cardTheme=value;
+    try{localStorage.setItem('threadline.cardTheme',cardTheme);}catch{}
+    invalidate();themePicker();await prepare();if(regenerate&&job&&modal.open)await makeCards();else if(regenerate&&!job)resultDialog.close();
+  }
+  async function changeMode(value){
+    if(busy||preparing||value===cardMode)return;const regenerate=cardsReady;cardMode=value;
+    invalidate();themePicker();await prepare();if(regenerate&&job&&modal.open)await makeCards();else if(regenerate&&!job)resultDialog.close();
+  }
   function error(e) { errors.textContent = e.message || String(e); }
   const methods=[['copy','复制文字','粘贴到微信、邮件或其他应用'],['export','保存文件','下载文字与所选附件'],['cards','生成图卡','将讨论排成图片，方便转发'],['feishu','飞书','发送给同事或群聊'],['slack','Slack','发送到频道或私聊'],['discord','Discord','发送到已连接的频道']];
   function controls() {
-    modal.querySelectorAll('button,input,textarea').forEach(e=>{e.disabled=busy;});
+    modal.querySelectorAll('button,input,textarea,select').forEach(e=>{e.disabled=busy;});
     const requiresConnection=['slack','discord'].includes(platform);
     const ready=job && (!requiresConnection || job.platform===platform);
     primaryAction.disabled=busy || !ready || job?.steps.some(s=>['sent','uncertain','sending'].includes(s.status));
-    primaryAction.textContent=busy?'正在处理…':({copy:'复制文字',export:'下载文字与附件',cards:cardsReady?'下载全部图卡':'生成图卡',slack:'确认发送到 Slack',discord:'确认发送到 Discord'})[method]||'继续';
+    primaryAction.textContent=busy?'正在处理…':({copy:'复制文字',export:'下载文字与附件',cards:cardsReady?'查看图卡':'生成图卡',slack:'确认发送到 Slack',discord:'确认发送到 Discord'})[method]||'继续';
     attachmentBox.querySelectorAll('input').forEach(e=>e.disabled=busy||e.dataset.available!=='true');
+    themeBox.querySelectorAll('button').forEach(b=>b.disabled=busy||preparing);
+    modeBox.querySelectorAll('button').forEach(b=>{b.disabled=busy||preparing;b.setAttribute('aria-pressed',String(b.dataset.mode===cardMode));});
+    syncResultControls();
     refresh.hidden=!!job||preparing;
     refresh.textContent='重试预览';
   }
@@ -50,7 +100,7 @@
   async function choose(value){
     if(busy)return;method=value;platform=['feishu','slack','discord'].includes(value)?value:'export';
     if(platform==='feishu'){
-      const paths=returnedPaths||[...selectedAssets].map(id=>assetPaths.get(id)).filter(Boolean);
+      const paths=returnedPaths||(assetsInitialized?[...selectedAssets].map(id=>assetPaths.get(id)).filter(Boolean):undefined);
       modal.close();
       try{await window.openFeishuShare({snapshot,note:note.value,paths,onBack:state=>{
         note.value=state.note;returnedPaths=state.paths;modal.showModal();showChooser();
@@ -69,14 +119,32 @@
     if(!job||busy)return;
     if(method==='copy'){await copyButton.onclick();return;}
     if(method==='export'){download('export');summary.textContent='已开始下载文字与附件';return;}
-    if(method==='cards'){if(cardsReady)download('cards');else await makeCards();return;}
+    if(method==='cards'){if(cardsReady)resultDialog.showModal();else await makeCards();return;}
     await deliver();
   }
   const field = (label, type = 'text', placeholder = '') => { const wrap = el('label', label, 'field-label'), input = el('input'); input.type = type; input.placeholder = placeholder; input.setAttribute('aria-label', label); input.autocomplete = 'off'; wrap.append(input); return { wrap, input }; };
+  function themePicker() {
+    modeBox.hidden=method!=='cards';themeBox.hidden=method!=='cards';themeBox.replaceChildren();
+    if(method!=='cards')return;
+    themeBox.append(el('h3','图卡主题'),el('p','排版与配色一起切换，记住上次选择'));
+    const grid=el('div','','share-theme-grid');grid.setAttribute('aria-label','选择图卡主题');
+    for(const theme of themes){
+      const selected=theme.id===cardTheme;
+      const b=button('',()=>changeTheme(theme.id),'secondary share-theme');
+      b.setAttribute('aria-pressed',String(selected));b.setAttribute('aria-label',theme.name+'，'+theme.description);
+      const swatch=el('span','','share-theme-swatch');swatch.setAttribute('aria-hidden','true');swatch.dataset.layout=theme.layout;
+      swatch.style.setProperty('--sample-paper',theme.paper);swatch.style.setProperty('--sample-ink',theme.ink);swatch.style.setProperty('--sample-accent',theme.accent);swatch.style.setProperty('--sample-soft',theme.soft);
+      swatch.append(el('span','Aa 思续','sample-title'),el('span','','sample-line'),el('span','','sample-line'),el('span','','sample-quote'));
+      b.append(swatch,el('strong',theme.name),el('span',theme.description,'share-theme-description'));grid.append(b);
+    }
+    themeBox.append(grid);controls();
+  }
   function configure() {
+    themePicker();
     settings.replaceChildren(); destination.replaceChildren(); connections.hidden = !['slack','discord'].includes(platform);
     destination.hidden=platform==='export';
     if(platform!=='export')destination.append(el('h3','发送到'));
+    if(method==='cards'){destination.hidden=false;destination.append(el('p','首次生成会按需下载图卡引擎，显示下载进度；之后可离线生成。图卡仅在本机处理'));}
     if (platform === 'feishu') destination.append(el('p', '下一步选择飞书收件人。附言和附件选择会一并带入。'));
     if (platform === 'slack') {
       destination.append(el('p', status?.slack.connected ? '已连接：' + status.slack.team + ' · 以机器人发送' : '先在「连接与设置」中连接 Slack。'));
@@ -121,16 +189,19 @@
     if (busy || !snapshot || compose.hidden) return; clearTimeout(previewTimer); const gen = ++generation; job = null;preparing=true; errors.textContent = ''; summary.textContent = '正在准备预览…'; controls();
     const actual = platform === 'feishu' || !status?.[platform]?.connected || (platform === 'slack' && !slackTarget) ? 'export' : platform;
     try {
-      const r = await post('preview', { ...snapshot, platform: actual, target: slackTarget, note: note.value, attachmentIDs: method==='copy'?[]:[...selectedAssets] });
+      const r = await post('preview', { ...snapshot, platform: actual, target: slackTarget, note: note.value, cardTheme, cardMode, attachmentIDs: method==='copy'?[]:[...selectedAssets] });
       if (gen !== generation || !modal.open) return;
-      if(returnedPaths&&method!=='copy'){selectedAssets=new Set(r.attachments.filter(a=>a.available&&returnedPaths.includes(a.path)).map(a=>a.id));returnedPaths=null;await prepare();return;}
+      if(!assetsInitialized&&method!=='copy'&&!returnedPaths){assetsInitialized=true;selectedAssets=new Set(r.attachments.filter(a=>a.available).map(a=>a.id));if(selectedAssets.size){await prepare();return;}}
+      if(returnedPaths&&method!=='copy'){assetsInitialized=true;selectedAssets=new Set(r.attachments.filter(a=>a.available&&returnedPaths.includes(a.path)).map(a=>a.id));returnedPaths=null;await prepare();return;}
       job=r;assetPaths=new Map(r.attachments.map(a=>[a.id,a.path])); cardsReady=false;cards.replaceChildren(); media.replaceChildren(); attachmentBox.replaceChildren();
       attachmentBox.hidden=method==='copy'||!r.attachments.length;
       if(r.attachments.length)attachmentBox.append(el('p','附带的图片与文件（可选）'));
       for (const a of r.attachments) {
         const label = el('label'), check = el('input'); check.type='checkbox'; check.checked=selectedAssets.has(a.id); check.dataset.available=String(a.available);
         check.onchange=()=>{if(check.checked)selectedAssets.add(a.id);else selectedAssets.delete(a.id);invalidate();prepare();};
-        label.append(check,el('span',a.name+' · '+(a.available ? Math.ceil(a.size/1024)+' KB' : a.problem))); attachmentBox.append(label);
+        label.append(check);
+        if(a.kind==='image'&&a.available){const thumb=el('img','','share-attachment-thumb');thumb.src=`/api/share/jobs/${r.id}/thumbnails/${a.id}`;thumb.alt=a.name;thumb.onerror=()=>{thumb.replaceWith(el('span','图片暂不可预览','dialog-hint'));};label.append(thumb);}
+        label.append(el('span',a.name+' · '+(a.available ? Math.ceil(a.size/1024)+' KB' : a.problem))); attachmentBox.append(label);
         if(a.selected && a.kind==='image'){const img=el('img');img.src=`/api/share/jobs/${r.id}/assets/${a.id}`;img.alt=a.name;media.append(img);}
       }
       preview.textContent=r.text;
@@ -140,14 +211,27 @@
   }
   function download(kind) { if(!job)return;const a=el('a');a.href=`/api/share/jobs/${job.id}/${kind}`;a.download=kind==='cards'?'Threadline-cards.zip':'Threadline-share.zip';document.body.append(a);a.click();a.remove(); }
   async function makeCards() {
-    if(!job||busy)return;busy=true;controls();errors.textContent='';cards.replaceChildren();
+    if(!job||busy)return;busy=true;controls();errors.textContent='';cards.replaceChildren();pager.hidden=true;resultHint.textContent='正在生成预览…';if(!resultDialog.open)resultDialog.showModal();
+    const renderID=job.id;
+    const statusBox=el('div','','share-render-status'),label=el('p','正在准备图卡'),bar=el('progress');bar.max=100;bar.setAttribute('aria-label','图卡生成进度');
+    const cancel=button('取消生成',async()=>{cancel.disabled=true;try{await post(`jobs/${renderID}/render/cancel`);}catch(e){error(e);resultHint.textContent=e.message;cancel.disabled=false;}});
+    statusBox.setAttribute('role','status');statusBox.append(label,bar,cancel);cards.append(statusBox);
     try {
-      const canvases=await renderShareCards(job,(n,total)=>summary.textContent=`正在排版 ${n}/${total} 条消息…`);
-      for(let i=0;i<canvases.length;i++) {await post(`jobs/${job.id}/cards`,{index:i,total:canvases.length,image:canvases[i].toDataURL('image/png')});cards.append(canvases[i]);summary.textContent=`正在保存图卡 ${i+1}/${canvases.length}…`;}
-      summary.textContent=`已生成 ${canvases.length} 张图卡，全部内容按顺序分页。`;
-      cardsReady=true;
-      if(canvases.length===1 && navigator.clipboard?.write && window.ClipboardItem) cards.prepend(button('复制图卡',async()=>{try{const blob=await new Promise(resolve=>canvases[0].toBlob(resolve,'image/png'));await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);notifyMessage('已复制图卡','success');}catch{errors.textContent='此环境无法复制图片，请下载图卡。';}}));
-    }catch(e){error(e);}finally{busy=false;controls();}
+      let state=await post(`jobs/${renderID}/render`);
+      while(true){
+        label.textContent=state.message||'正在生成图卡';summary.textContent=label.textContent;resultHint.textContent=label.textContent;
+        if(state.percent!==undefined)bar.value=state.percent;
+        else if(state.total)bar.value=(state.completed||0)/state.total*100;
+        else bar.removeAttribute('value');
+        if(state.phase==='done')break;
+        if(state.phase==='failed'||state.phase==='cancelled')throw Error(state.message);
+        await new Promise(resolve=>setTimeout(resolve,650));
+        state=await api(`/api/share/jobs/${renderID}/render`);
+      }
+      cardsReady=true;resultTotal=state.total;showCardPage(0);
+      resultHint.textContent=cardMode==='long'?'单张完整长图 · 向下滚动查看全部内容':`已生成 ${state.total} 张图卡 · 可逐张查看`;
+      summary.textContent=cardMode==='long'?'已生成单张长图':`已生成 ${state.total} 张图卡`;
+    }catch(e){cards.replaceChildren();error(e);resultHint.textContent=e.message;cards.append(button('重试生成',()=>makeCards(),'primary'));summary.textContent='未生成图卡，可重试';}finally{busy=false;controls();}
   }
   async function deliver() {
     if(!job||busy)return;
@@ -182,8 +266,8 @@
   entry.onclick=async()=>{
     if(!activeSession||!selectedMessages.size||busy)return;
     const messages=activeSession.messages.filter(m=>selectedMessages.has(m.id));snapshot={runtime:contextRuntime,threadID:activeSession.id,messageIDs:messages.map(m=>m.id),fingerprints:Object.fromEntries(messages.map(m=>[m.id,m.fingerprint])),includeProgress:$('include-progress').checked};
-    selectedAssets=new Set();returnedPaths=null;assetPaths=new Map();job=null;note.value='';cards.replaceChildren();preview.textContent='';errors.textContent='';targets();showChooser();modal.showModal();
-    try{status=await api('/api/share/status');}catch(e){error(e);}controls();
+    assetsInitialized=false;selectedAssets=new Set();returnedPaths=null;assetPaths=new Map();job=null;note.value='';cards.replaceChildren();preview.textContent='';errors.textContent='';targets();showChooser();modal.showModal();
+    try{const result=await Promise.all([api('/api/share/status'),api('/api/share/card-themes')]);status=result[0];themes=result[1].themes;if(!themes.some(t=>t.id===cardTheme))cardTheme='sage';themePicker();}catch(e){error(e);}controls();
   };
   modal.addEventListener('close',()=>{clearTimeout(previewTimer);generation++;});
 })();
