@@ -8,14 +8,14 @@ pages retain layout and focus modality. */
   --button-hover:#edf1e7;
   --button-primary:#e5ecdc
 }
-body button {
+body button, body a.tool {
   font-family:inherit!important;
   text-shadow:none!important;
   box-shadow:none!important;
   transform:none!important;
   -webkit-tap-highlight-color:transparent
 }
-body button:is(.primary,.secondary,.tool,.manage-topics,.use-note,.capture,.session-entry,.codex-sidebar-open,.panel-capture,.native-header-primary),body dialog.feishu-dialog button,body .menu button {
+body a.tool,body button:is(.primary,.secondary,.tool,.manage-topics,.use-note,.capture,.session-entry,.codex-sidebar-open,.panel-capture,.native-header-primary),body dialog.feishu-dialog button,body .menu button {
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -46,11 +46,11 @@ body button:is(.primary,.native-header-primary):hover:not(:disabled),body dialog
   background:#dbe5cf!important;
   border-color:#c9d6bc!important
 }
-body button:is(.tool,.secondary,.manage-topics,.use-note,.capture,.session-entry,.codex-sidebar-open,.panel-capture):hover:not(:disabled),body dialog.feishu-dialog button:not(.primary):hover:not(:disabled),body .menu button:hover:not(:disabled) {
+body a.tool:hover,body button:is(.tool,.secondary,.manage-topics,.use-note,.capture,.session-entry,.codex-sidebar-open,.panel-capture):hover:not(:disabled),body dialog.feishu-dialog button:not(.primary):hover:not(:disabled),body .menu button:hover:not(:disabled) {
   background:var(--button-hover)!important;
   color:#35472b!important
 }
-body button:is(.primary,.secondary,.tool,.use-note):active:not(:disabled) {
+body a.tool:active,body button:is(.primary,.secondary,.tool,.use-note):active:not(:disabled) {
   background:#d9e2d0!important
 }
 body button:disabled {

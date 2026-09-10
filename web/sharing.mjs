@@ -100,8 +100,28 @@ export class Sharing {
       createdAt: job.createdAt, startedAt: job.startedAt, expires: job.expires, expired: Date.now() > job.expires,
       steps: job.steps.map(s => ({ id: s.id, label: s.label, status: s.status === 'sending' && !this.locks.has(job.id) ? 'uncertain' : s.status, error: s.error || '', receipt: s.receipt || null })), sending: this.locks.has(job.id) };
   }
+  activityRecords() {
+    const file = path.join(this.root, 'activity.json');
+    return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : [];
+  }
+  activity(id) {
+    const record = this.activityRecords().find(item => item.id === id);
+    if (!record) throw fail(404, '分享记录不存在');
+    return record;
+  }
+  recordActivity({ id, title, text, platform = 'local', target = '', action, status = 'completed', detail = '' }) {
+    const records = this.activityRecords();
+    const record = { id, title, text, platform, target, action, status, detail, createdAt: Date.now(), historyKind: 'activity', steps: [] };
+    atomic(path.join(this.root, 'activity.json'), [record, ...records.filter(item => item.id !== id)].slice(0, 500));
+    return record;
+  }
+  recordLocal(id, action) {
+    const job = this.load(id);
+    return this.recordActivity({ id: `local-${id}-${action}`, title: job.title, text: job.text, action });
+  }
   history() {
-    return fs.readdirSync(this.root).filter(id => ID.test(id)).map(id => this.public(this.load(id))).filter(j => j.platform !== 'export' && j.startedAt).sort((a, b) => b.createdAt - a.createdAt).slice(0, 30).map(({ messages, text, attachments, ...j }) => ({ ...j, attachmentCount: attachments.filter(a => a.selected).length }));
+    const remote = fs.readdirSync(this.root).filter(id => ID.test(id)).map(id => this.public(this.load(id))).filter(j => j.platform !== 'export' && j.startedAt).map(({ messages, text, attachments, ...j }) => ({ ...j, attachmentCount: attachments.filter(a => a.selected).length }));
+    return [...remote, ...this.activityRecords()].sort((a, b) => b.createdAt - a.createdAt).slice(0, 100);
   }
   prepare({ session, selected, platform = 'export', target = '', note = '', attachmentIDs = [], cardTheme = 'sage', cardMode = 'pages', locale = 'zh-CN' }) {
     locale = locale === 'en' ? 'en' : 'zh-CN';

@@ -1,18 +1,15 @@
+import { WindowHeading } from "../components/window-heading";
 import { useLocation } from "react-router";
-import { lazy, memo, Suspense, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/collect";
 import { api } from "../lib/api";
 import { useApp } from "../lib/app-context";
 import { getLocale, t } from "../lib/i18n";
 import type { RecentSession, Runtime, Session } from "../lib/types";
 import { StatusTag } from "../components/common";
-import { AppUtilities } from "../components/app-utilities";
+import { CodexThreadLink } from "../components/codex-thread-link";
 
-const SessionView = lazy(() =>
-  import("../components/session-view").then((module) => ({
-    default: module.SessionView,
-  })),
-);
+import { SessionView } from "../components/session-view";
 export async function clientLoader({
   request,
   params,
@@ -49,13 +46,11 @@ export default function Collect({ loaderData }: Route.ComponentProps) {
   return loaderData.kind === "list" ? (
     <SessionList data={loaderData} />
   ) : (
-    <Suspense fallback={<p role="status">{t("正在读取…")}</p>}>
-      <SessionView
-        key={loaderData.runtime + loaderData.session.id}
-        initial={loaderData.session}
-        runtime={loaderData.runtime}
-      />
-    </Suspense>
+    <SessionView
+      key={loaderData.runtime + loaderData.session.id}
+      initial={loaderData.session}
+      runtime={loaderData.runtime}
+    />
   );
 }
 function SessionList({
@@ -100,11 +95,7 @@ function SessionList({
             </span>
           </div>
           <div className="dialog-head">
-            <h2>{t("收录对话")}</h2>
-            <AppUtilities
-              openInRuntime={app.openInRuntime}
-              history={app.openHistory}
-            />
+            <WindowHeading><h2>{t("收录对话")}</h2></WindowHeading>
           </div>
           <div className="session-description-row">
             <p className="session-subtitle">
@@ -204,29 +195,34 @@ const SessionChoice = memo(function SessionChoice({
     return () => controller.abort();
   }, [session.runtime, session.id]);
   return (
-    <button className="session-choice" onClick={open}>
-      <strong>
-        {session.title}
-        {detail ? <StatusTag status={detail.status} /> : null}
-      </strong>
-      <span>
-        {session.updatedAt
-          ? new Date(session.updatedAt).toLocaleString(getLocale())
-          : ""}
-      </span>
-      <span className="runtime-badge">
-        {session.runtime === "cursor" ? "Cursor" : "Codex"}
-      </span>
-      <p className="session-list-preview">
-        {failed
-          ? t("本机暂时无法读取，可选择其他会话")
-          : detail?.messages
-              .at(-1)
-              ?.text.replace(/!?\[([^\]]+)\]\([^)]*\)/g, "$1")
-              .replace(/[#*`>|]/g, "")
-              .replace(/\s+/g, " ")
-              .slice(0, 110) || t("暂无完整消息")}
-      </p>
-    </button>
+    <div className="session-choice-row">
+      <button className="session-choice" onClick={open}>
+        <strong>
+          {session.title}
+          {detail ? <StatusTag status={detail.status} /> : null}
+        </strong>
+        <span>
+          {session.updatedAt
+            ? new Date(session.updatedAt).toLocaleString(getLocale())
+            : ""}
+        </span>
+        <span className="runtime-badge">
+          {session.runtime === "cursor" ? "Cursor" : "Codex"}
+        </span>
+        <p className="session-list-preview">
+          {failed
+            ? t("本机暂时无法读取，可选择其他会话")
+            : detail?.messages
+                .at(-1)
+                ?.text.replace(/!?\[([^\]]+)\]\([^)]*\)/g, "$1")
+                .replace(/[#*`>|]/g, "")
+                .replace(/\s+/g, " ")
+                .slice(0, 110) || t("暂无完整消息")}
+        </p>
+      </button>
+      {session.runtime === "codex" ? (
+        <CodexThreadLink threadID={session.id} />
+      ) : null}
+    </div>
   );
 });

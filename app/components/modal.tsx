@@ -30,6 +30,9 @@ export function Modal({
       dismiss: () => latest.current.onClose(),
     });
     dialog.showModal();
+    dialog
+      .querySelector<HTMLElement>("[data-initial-focus]")
+      ?.focus({ preventScroll: true });
     return () => {
       cleanup();
       dialog.close();

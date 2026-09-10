@@ -215,6 +215,10 @@ export function ShareDialog({
       if (!mounted.current) return;
       setRender({ jobID: id, state });
       if (["done", "failed", "cancelled"].includes(state.phase)) {
+        if (state.phase === "done")
+          void post(`/api/share/jobs/${id}/activity`, {
+            action: "cards",
+          }).catch(setError);
         setBusy(false);
         return;
       }
@@ -239,7 +243,10 @@ export function ShareDialog({
   async function primary() {
     if (!job || busy) return;
     if (method === "copy") {
-      await app.copy(job.text);
+      if (await app.copy(job.text))
+        await post(`/api/share/jobs/${job.id}/activity`, {
+          action: "copy",
+        }).catch(setError);
       return;
     }
     if (method === "export") {
@@ -635,6 +642,9 @@ export function ShareDialog({
                     new ClipboardItem({ "image/png": bytes }),
                   ]);
                   setInfo(t("已复制图卡"));
+                  await post(`/api/share/jobs/${job.id}/activity`, {
+                    action: "image-copy",
+                  });
                 } catch {
                   setInfo(t("此环境无法复制图片，请下载图卡"));
                 }

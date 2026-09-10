@@ -4,6 +4,8 @@ import { getLocale, t, tr } from "../lib/i18n";
 import type { Project, Topic } from "../lib/types";
 
 const paths = {
+  back: "M14 5l-7 7 7 7",
+  forward: "M10 5l7 7-7 7",
   search: "M16 16 21 21 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0",
   sidebar: "M3 4h18v16H3z M9 4v16",
   chat: "M4 4h16v13H9l-5 4V4 M8 9h8 M8 13h5",

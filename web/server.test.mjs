@@ -312,6 +312,10 @@ test('multi-card retries skip delivered cards and lock destination after partial
   assert.equal((await request('/api/feishu/send', 'POST', { ...payload, target: 'group', chatId: 'oc_other' })).response.status, 409);
   const result = await request('/api/feishu/send', 'POST', payload);
   assert.equal(result.response.status, 200); assert.equal(result.data.sentCount, preview.cardCount);
+  const history = (await request('/api/share/history')).data.jobs;
+  const activity = history.find(job => job.id === 'feishu-' + preview.id);
+  assert.equal(activity.platform, 'feishu'); assert.equal(activity.status, 'completed');
+  assert.equal((await request('/api/share/activity/' + activity.id)).data.title, activity.title);
   assert.equal(calls.length, preview.cardCount + 1); assert.equal(calls[1].requestId, calls[2].requestId); assert.notEqual(calls[0].requestId, calls[1].requestId);
 });
 

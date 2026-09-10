@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal } from "./modal";
 import { ErrorText, TopicSelect } from "./common";
 import { useApp } from "../lib/app-context";
@@ -29,6 +29,7 @@ export function CaptureDialog({
   image?: File;
   onClose(): void;
 }) {
+  const upload = useRef<HTMLInputElement>(null);
   const app = useApp();
   const [body, setBody] = useState(text),
     [topic, setTopic] = useState(topicID);
@@ -128,6 +129,7 @@ export function CaptureDialog({
           )}
         </p>
         <textarea
+          data-initial-focus
           id="capture-body"
           className="capture-input"
           aria-label={t("笔记内容")}
@@ -151,37 +153,52 @@ export function CaptureDialog({
             </button>
           </div>
         ) : null}
-        <div className="dialog-fields">
-          <label htmlFor="capture-source">{t("来自")}</label>
-          <select
-            id="capture-source"
-            value={source}
-            onChange={(event) => setSource(event.target.value)}
-            disabled={busy}
-          >
-            {["Codex", "Cursor", "ChatGPT", "Claude", "其他"].map((value) => (
-              <option key={value} value={value}>
-                {t(value)}
-              </option>
-            ))}
-          </select>
+        <div className="capture-metadata">
+          <div>
+            <label className="field-label" htmlFor="capture-source">
+              {t("来自")}
+            </label>
+            <select
+              id="capture-source"
+              value={source}
+              onChange={(event) => setSource(event.target.value)}
+              disabled={busy}
+            >
+              {["Codex", "Cursor", "ChatGPT", "Claude", "其他"].map((value) => (
+                <option key={value} value={value}>
+                  {t(value)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="field-label" htmlFor="capture-topic">
+              {t("归入思路")}
+            </label>
+            <TopicSelect
+              topics={app.library.topics}
+              id="capture-topic"
+              value={topic}
+              onChange={(event) => setTopic(event.target.value)}
+              disabled={busy}
+            />
+          </div>
         </div>
-        <label className="field-label" htmlFor="capture-topic">
-          {t("归入思路")}
-        </label>
-        <TopicSelect
-          topics={app.library.topics}
-          id="capture-topic"
-          value={topic}
-          onChange={(event) => setTopic(event.target.value)}
-          disabled={busy}
-        />
         <ErrorText error={error} />
         <div className="dialog-bottom">
-          <label className="upload">
-            {t("＋ 添加图片")}
+          <div className="capture-upload">
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => upload.current?.click()}
+            >
+              {tr("添加图片", "Add image")}
+            </button>
             <input
+              ref={upload}
               type="file"
+              aria-label={tr("选择笔记图片", "Choose note image")}
               accept="image/png,image/jpeg,image/webp"
               disabled={busy}
               onChange={(event) => {
@@ -189,7 +206,7 @@ export function CaptureDialog({
                 event.target.value = "";
               }}
             />
-          </label>
+          </div>
           <button id="capture-save" className="primary" disabled={busy}>
             {busy ? t("正在保存…") : t("保存为笔记 ↗")}
           </button>

@@ -1,3 +1,4 @@
+import { WindowHeading } from "../components/window-heading";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { useApp } from "../lib/app-context";
@@ -20,12 +21,12 @@ export default function Library() {
   return (
     <section className="workspace route-scroll">
       <div className="thought-heading">
-        <h1>
+        <WindowHeading><h1>
           {scope === "inbox"
             ? t("未分类")
             : app.library.topics.find((topic) => topic.id === scope)?.title ||
               t("全部对话")}
-        </h1>
+        </h1></WindowHeading>
         <button
           className="primary"
           onClick={() =>

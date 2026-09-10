@@ -128,6 +128,11 @@ export interface ShareStep {
   error?: string;
 }
 export interface ShareJob {
+  historyKind?: "activity";
+  action?: string;
+  status?: string;
+  detail?: string;
+  createdAt?: number;
   id: string;
   title: string;
   platform: string;

@@ -1,3 +1,4 @@
+import { WindowHeading } from "../components/window-heading";
 import { useEffect, useState } from "react";
 import type { Route } from "./+types/thought";
 import { api, post } from "../lib/api";
@@ -170,7 +171,7 @@ function ThoughtView({
   return (
     <section className="workspace route-scroll">
       <div className="thought-heading">
-        <h1 className="thinking-title">{topic.title}</h1>
+        <WindowHeading><h1 className="thinking-title">{topic.title}</h1></WindowHeading>
         <button className="tool" onClick={() => app.editTopic(topic)}>
           {t("编辑思路")}
         </button>

@@ -7,6 +7,32 @@ async function ready(page: Page, path: string) {
   await expect(page.locator(".sidebar")).toBeAttached();
 }
 
+test("Codex handoff targets the selected conversation and its Threadline detail", async ({ page }) => {
+  await ready(page, "/collect?panel=1");
+  await page.getByRole("textbox", { name: "搜索本机会话" }).fill("界面架构讨论");
+  const row = page.locator(".session-choice-row").filter({ hasText: "界面架构讨论" });
+  const link = row.getByRole("link", { name: "在 Codex 继续 ↗" });
+  const target = new URL((await link.getAttribute("href"))!);
+  expect(target.host).toBe("threads");
+  expect(target.pathname).toBe(`/${thread}`);
+  const panel = new URL(target.searchParams.get("browserUrl")!);
+  expect(panel.pathname).toBe(`/collect/codex/${thread}`);
+  expect(panel.search).toBe("?panel=1");
+  await page.goto(panel.href);
+  await expect(page.locator("#window-page-heading h2, #session-view h2")).toHaveText("界面架构讨论");
+  await page.goto(`/collect/codex/${thread}?native=1`);
+  await page.evaluate(() => {
+    window.webkit = { messageHandlers: { openInCodex: { postMessage(message) {
+      document.body.dataset.handoff = JSON.stringify(message);
+    } } } };
+  });
+  await page.getByRole("link", { name: "在 Codex 继续 ↗" }).click();
+  const payload = JSON.parse((await page.locator("body").getAttribute("data-handoff"))!);
+  expect(payload).toEqual({ runtime: "codex", threadID: thread, url: panel.href });
+  await expect(page).toHaveURL(/native=1$/);
+  await page.screenshot({ path: `artifacts/codex-handoff-${test.info().project.name}.png` });
+});
+
 test("deep links, native commands, selection persistence, safe Markdown and import", async ({
   page,
 }) => {
@@ -35,7 +61,7 @@ test("deep links, native commands, selection persistence, safe Markdown and impo
   await page.locator("#confirm-save-session").click();
   await expect(page.getByRole("button", { name: "查看笔记 →" })).toBeVisible();
   await page.getByRole("button", { name: "查看笔记 →" }).click();
-  await expect(page.locator("#reader > h1")).toHaveText("界面架构讨论");
+  await expect(page.locator("#window-page-heading h1")).toHaveText("界面架构讨论");
   await page.locator(".markdown-image-content").scrollIntoViewIfNeeded();
   await expect(page.locator(".markdown-image-content")).toHaveJSProperty(
     "complete",
@@ -56,7 +82,7 @@ test("autosave flushes before route changes and preserves edits on conflict", as
   await page.evaluate(() => window.Threadline!.library());
   await expect(page).toHaveURL(/\/library$/);
   await page.goto(`/notes/${note}`);
-  await expect(page.locator("#reader > h1")).toHaveText(title);
+  await expect(page.locator("#window-page-heading h1")).toHaveText(title);
   await page.getByRole("button", { name: "编辑", exact: true }).click();
   await page.route(`**/api/clips/${note}`, async (route) => {
     if (route.request().method() === "PUT")
@@ -180,7 +206,7 @@ test("language persists across full reload and new routes", async ({
     page.getByRole("heading", { name: "Settings", exact: true }),
   ).toBeVisible();
   await page.goto("/collect?panel=1");
-  await expect(page.locator("#session-view h2")).toHaveText(
+  await expect(page.locator("#window-page-heading h2, #session-view h2")).toHaveText(
     "Collect conversations",
   );
 });
@@ -192,7 +218,7 @@ test("recent sessions load in bounded batches, and titles are not covered by chr
   await expect(page.locator(".session-choice")).toHaveCount(6);
   await page.getByRole("button", { name: "显示更多会话" }).click();
   await expect(page.locator(".session-choice")).toHaveCount(8);
-  const unobscured = await page.locator("#session-view h2").evaluate((el) => {
+  const unobscured = await page.locator("#window-page-heading h2, #session-view h2").evaluate((el) => {
     const r = el.getBoundingClientRect();
     return el.contains(document.elementFromPoint(r.x + 10, r.y + r.height / 2));
   });
