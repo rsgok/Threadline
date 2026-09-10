@@ -3,6 +3,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -16,6 +17,7 @@ import {
   type SessionDraft,
 } from "../lib/app-context";
 import { initializeLanguage, t, tr } from "../lib/i18n";
+import { usePageHistory } from "../lib/use-page-history";
 import { surfacePath } from "../lib/navigation";
 import { useNativeBridge } from "../lib/native";
 import type { Library, Runtime, Topic } from "../lib/types";
@@ -53,6 +55,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
   const location = useLocation(),
     navigate = useNavigate(),
     revalidator = useRevalidator();
+  const pageHistory = usePageHistory();
   const [notice, setNotice] = useState<{
     text: string;
     error?: boolean;
@@ -102,16 +105,16 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
   const selectedID = location.pathname.startsWith("/notes/")
     ? decodeURIComponent(location.pathname.slice(7))
     : "";
-  const selected = library.clips.find((clip) => clip.id === selectedID);
   const href = useCallback(
     (path: string) => surfacePath(path, location.search),
     [location.search],
   );
   const go = useCallback(
     (path: string) => {
-      void navigate(href(path));
+      if (href(path) !== location.pathname + location.search)
+        void navigate(href(path));
     },
-    [navigate, href],
+    [navigate, href, location.pathname, location.search],
   );
   const notify = useCallback(
     (text: string, error = false) => setNotice({ text, error }),
@@ -136,14 +139,19 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
       /* current selection remains */
     }
   }, [carry]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.body.classList.add("react-app", "native-app");
     document.body.classList.toggle("collecting", collecting);
     document.body.classList.toggle("managing-topics", thoughts);
     document.body.classList.toggle("settings-open", settings);
     document.body.classList.toggle("native-nav-hidden", sidebarHidden);
     document.documentElement.dataset.surface = isPanel ? "panel" : "app";
-    return () => {
+    document.documentElement.dataset.native = String(
+      new URLSearchParams(location.search).get("native") === "1",
+    );
+  }, [collecting, thoughts, settings, sidebarHidden, isPanel, location.search]);
+  useLayoutEffect(
+    () => () => {
       document.body.classList.remove(
         "react-app",
         "native-app",
@@ -152,9 +160,10 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
         "settings-open",
         "native-nav-hidden",
       );
-    };
-  }, [collecting, thoughts, settings, sidebarHidden, isPanel]);
-  useEffect(() => {
+    },
+    [],
+  );
+  useLayoutEffect(() => {
     document.documentElement.style.setProperty(
       "--native-sidebar-width",
       `${width}px`,
@@ -165,8 +174,10 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
       try {
         await navigator.clipboard.writeText(text);
         notify(t("已复制，粘贴到当前 AI 对话即可"));
+        return true;
       } catch {
         setCopy(text);
+        return false;
       }
     },
     [notify],
@@ -202,11 +213,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
       collect: () => go("/collect"),
       library: () => go("/library"),
       search: () => go("/collect?search=1"),
-      settings: () =>
-        go(
-          "/settings?returnTo=" +
-            encodeURIComponent(location.pathname + location.search),
-        ),
+      settings: () => go("/settings"),
       openInRuntime: (runtime?: Runtime) => {
         void openInRuntime(runtime);
       },
@@ -342,13 +349,6 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
-  const title = settings
-    ? t("设置")
-    : collecting
-      ? t("收录对话")
-      : thoughts
-        ? t("我的思路")
-        : selected?.title || t("资料库");
   function persistWidth(value: number) {
     const next = Math.max(240, Math.min(440, window.innerWidth - 400, value));
     setWidth(next);
@@ -358,6 +358,28 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
       /* width stays for session */
     }
   }
+  const historyControls = (
+    <>
+      <button
+        className="tool history-button"
+        aria-label={tr("后退", "Back")}
+        title={tr("后退", "Back")}
+        disabled={!pageHistory.canBack}
+        onClick={pageHistory.back}
+      >
+        <Icon name="back" />
+      </button>
+      <button
+        className="tool history-button"
+        aria-label={tr("前进", "Forward")}
+        title={tr("前进", "Forward")}
+        disabled={!pageHistory.canForward}
+        onClick={pageHistory.forward}
+      >
+        <Icon name="forward" />
+      </button>
+    </>
+  );
   return (
     <AppContext.Provider value={context}>
       <header className="native-window-header">
@@ -370,18 +392,31 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
           >
             <Icon name="sidebar" />
           </button>
-          <button
-            className="native-collection-title"
-            onClick={() => go("/library")}
-          >
-            {t("全部对话")}
-          </button>
+          {historyControls}
         </div>
         <div className="native-context-header">
-          <strong id="native-context-title" className="native-context-title">
-            {title}
-          </strong>
+          <div id="window-page-heading" />
           <span className="native-header-spacer" />
+          <nav
+            className="collapsed-navigation"
+            aria-label={tr(
+              "收起侧栏后的导航",
+              "Navigation with sidebar hidden",
+            )}
+          >
+            <button className="tool" onClick={commands.collect}>
+              {t("收录对话")}
+            </button>
+            <button className="tool" onClick={() => go("/thoughts")}>
+              {t("我的思路")}
+            </button>
+            <button className="tool" onClick={commands.library}>
+              {t("资料库")}
+            </button>
+            <button className="tool" onClick={commands.settings}>
+              {t("设置")}
+            </button>
+          </nav>
           <AppUtilities
             openInRuntime={openInRuntime}
             history={() => setHistory(true)}
@@ -498,6 +533,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
         </aside>
         <main className="main">
           <div className="panel-header">
+            <div className="panel-history-controls">{historyControls}</div>
             <button
               className="tool panel-wordmark"
               onClick={() =>
@@ -508,6 +544,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
             >
               Threadline
             </button>
+            {!location.pathname.startsWith("/collect/") ? <AppUtilities openInRuntime={openInRuntime} history={() => setHistory(true)} /> : null}
             <nav className="panel-navigation" aria-label={t("工作区导航")}>
               <button className="tool panel-collect" onClick={commands.collect}>
                 {t("对话")}
@@ -522,13 +559,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
                 {t("笔记")}
               </button>
             </nav>
-            <button
-              className="tool"
-              aria-label={t("搜索会话")}
-              onClick={commands.search}
-            >
-              <Icon name="search" />
-            </button>
+
             <button
               className="tool"
               aria-label={t("设置")}

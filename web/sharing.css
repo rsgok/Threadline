@@ -71,3 +71,6 @@ body dialog.share-dialog.modal-surface { --modal-width: 720px; }
 @media(max-width:600px){.card-result-tools{gap:6px}}
 body dialog.card-result-dialog.modal-surface{--modal-width:940px}
 body dialog.card-result-dialog.modal-surface .card-result-tools select{width:auto;flex:0 1 150px;min-width:120px;margin:0}
+
+.share-history-row { display:flex; flex-direction:column; align-items:flex-start; gap:6px; width:100%; text-align:left; padding-block:12px; }
+.share-history-row span { font-size:11px; }

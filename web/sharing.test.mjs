@@ -113,3 +113,18 @@ test('sharing preserves literal Markdown examples inside code', () => {
   assert.equal(shareText(code), code);
   assert.equal(shareText('`[file](/tmp/file.txt)`'), '`[file](/tmp/file.txt)`');
 });
+
+test('local and Feishu activity persists, excludes previews, and retains outcomes after preview cleanup', t => {
+  const { service, dir } = fixture(t);
+  const preview = service.prepare(selection());
+  assert.deepEqual(service.history(), []);
+  service.recordLocal(preview.id, 'export');
+  service.recordActivity({ id: 'feishu-test', title: '飞书讨论', text: '原文', platform: 'feishu', target: 'self', action: 'send', status: 'failed', detail: '1/2' });
+  service.recordActivity({ id: 'feishu-test', title: '飞书讨论', text: '原文', platform: 'feishu', target: 'self', action: 'send', status: 'completed' });
+  fs.rmSync(path.dirname(service.file(preview.id)), { recursive: true });
+  const reopened = new Sharing({ dataDir: dir });
+  assert.equal(reopened.history().length, 2);
+  assert.equal(reopened.activity('feishu-test').status, 'completed');
+  assert.equal(reopened.history().find(job => job.action === 'export').text.includes('完整原文'), true);
+  assert.equal(fs.statSync(path.join(service.root, 'activity.json')).mode & 0o777, 0o600);
+});

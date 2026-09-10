@@ -219,9 +219,418 @@ html[data-surface="panel"] body.react-app .panel-navigation {
   margin-left: auto;
 }
 
-body.react-app.collecting .native-window-header {
-  width: var(--native-sidebar-width, 300px);
+/* Keep the window stationary; only the active content pane scrolls. */
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
-body.react-app.collecting .native-context-header {
+body.react-app {
+  position: fixed;
+  inset: 0;
+}
+body.react-app
+  :is(
+    .route-scroll,
+    .reading-scroll,
+    .session-messages,
+    .native-note-list,
+    .article pre,
+    .article table
+  ) {
+  overscroll-behavior: none;
+}
+body.react-app .app {
+  height: 100dvh;
+  min-height: 0;
+}
+body.react-app .main {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+body.react-app #session-view {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+body.react-app #session-view .session-shell {
+  height: 100%;
+  min-height: 0;
+}
+body.react-app #session-view .session-top {
+  flex-shrink: 0;
+  padding: 18px clamp(20px, 4vw, 48px) 14px;
+}
+body.react-app #session-view .session-top h2 {
+  display: block;
+  opacity: 1;
+  visibility: visible;
+  font-size: 20px;
+  line-height: 1.4;
+  margin: 0;
+}
+body.react-app #session-view .dialog-head {
+  align-items: center;
+}
+body.react-app #session-view .session-subtitle {
+  margin-top: 8px;
+}
+body.react-app .session-choice-row {
+  display: grid;
+  gap: 4px;
+}
+body.react-app .codex-thread-link {
+  justify-self: start;
+}
+body.react-app .session-subtitle .codex-thread-link {
+  display: inline-flex;
+  margin-right: 8px;
+}
+body.react-app #session-view .session-bottom {
+  padding: 12px clamp(16px, 3vw, 36px);
+}
+body.react-app #session-view .selection-footer {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+}
+body.react-app #session-view .selection-status {
+  flex: 0 0 auto;
+}
+.selection-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+body.react-app #session-view .selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.capture-metadata {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.capture-metadata select {
+  width: 100%;
+}
+.capture-upload input {
   display: none;
 }
+body.react-app .capture-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0;
+}
+body.react-app .capture-preview img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+body.react-app .capture-preview span {
+  flex: 1;
+  font-size: 12px;
+}
+/* Shared chrome geometry: native controls and web content use the same row. */
+:root {
+  --window-chrome-height: 46px;
+  --window-controls-inset: 16px;
+  --window-controls-width: 92px;
+  --page-gutter: 20px;
+  --window-title-inset: var(--page-gutter);
+  --window-divider: rgb(36 53 47 / 6%);
+}
+html[data-native="true"] {
+  --window-controls-inset: 88px;
+}
+.collapsed-navigation {
+  display: none;
+}
+html body.react-app .app,
+html body.react-app .main {
+  transition: none;
+}
+.panel-history-controls {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.panel-history-controls .tool {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+}
+.panel-history-controls svg {
+  width: 17px;
+  height: 17px;
+}
+body.react-app #session-view .session-top {
+  padding-top: 6px;
+  padding-bottom: 10px;
+  background: var(--paper);
+  border-bottom-color: var(--window-divider);
+}
+body.react-app .panel-header {
+  border-bottom-color: var(--window-divider);
+}
+body.react-app #session-view .session-messages {
+  background: var(--paper);
+  overflow-anchor: auto;
+}
+body.react-app .message-card {
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+}
+body.react-app .note-toolbar {
+  justify-content: flex-end;
+}
+
+@media (min-width: 701px) {
+  html:not([data-surface="panel"]) body.react-app {
+    --window-context-left: var(--native-sidebar-width, 300px);
+    --window-divider-left: var(--native-sidebar-width, 300px);
+  }
+  html:not([data-surface="panel"]) body.react-app.native-nav-hidden {
+    --window-context-left: calc(
+      var(--window-controls-inset) + var(--window-controls-width)
+    );
+    --window-divider-left: 0px;
+  }
+  html:not([data-surface="panel"]) body.react-app .main {
+    padding-top: var(--window-chrome-height);
+  }
+  html:not([data-surface="panel"]) body.react-app .native-window-header {
+    display: flex;
+    position: fixed;
+    inset: 0 0 auto 0;
+    width: 100% !important;
+    height: var(--window-chrome-height);
+    padding: 0 16px 0 var(--window-controls-inset);
+    align-items: center;
+    gap: 0;
+    border: 0;
+    box-shadow: none;
+    transition: none;
+    background: linear-gradient(
+      to right,
+      var(--side) 0 var(--native-sidebar-width, 300px),
+      var(--paper) var(--native-sidebar-width, 300px) 100%
+    );
+  }
+  html:not([data-surface="panel"])
+    body.react-app.native-nav-hidden
+    .native-window-header {
+    background: var(--paper);
+  }
+  html:not([data-surface="panel"])
+    body.react-app.native-app
+    .native-window-controls {
+    position: static;
+    display: flex;
+    flex: 0 0 var(--window-controls-width);
+    width: var(--window-controls-width);
+    height: 28px;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 0;
+    background: transparent;
+  }
+  html:not([data-surface="panel"])
+    body.react-app
+    .native-window-controls
+    .tool {
+    flex: 0 0 28px;
+  }
+  html:not([data-surface="panel"]) body.react-app .native-context-header {
+    display: flex;
+    align-items: center;
+    position: absolute;
+    left: var(--window-context-left);
+    right: 16px;
+    width: auto;
+    min-width: 0;
+    height: var(--window-chrome-height);
+    padding: 0 0 0 var(--window-title-inset);
+    gap: 12px;
+    background: transparent;
+    border: 0;
+    transition: none;
+  }
+  html:not([data-surface="panel"]) body.react-app .native-window-header::after {
+    content: "";
+    position: absolute;
+    left: var(--window-divider-left);
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: var(--window-divider);
+    pointer-events: none;
+  }
+  body.react-app .native-header-spacer {
+    flex: 1;
+  }
+  body.react-app.native-nav-hidden .collapsed-navigation {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  html:not([data-surface="panel"]) body.react-app .sidebar {
+    padding-top: var(--window-chrome-height);
+  }
+  html:not([data-surface="panel"]) body.react-app .sidebar > .brand {
+    min-height: 54px;
+  }
+  html:not([data-surface="panel"])
+    body.react-app:has(.conversation-heading)
+    .collapsed-navigation,
+  html:not([data-surface="panel"])
+    body.react-app
+    .native-context-header:has(.conversation-heading)
+    > .app-more,
+  html:not([data-surface="panel"])
+    body.react-app
+    .native-context-header:has(.conversation-heading)
+    > .native-header-spacer {
+    display: none;
+  }
+  html:not([data-surface="panel"]) body.react-app #session-view .session-top {
+    padding-inline: var(--window-title-inset);
+  }
+  html:not([data-surface="panel"])
+    body.react-app
+    #session-view
+    .session-subtitle {
+    margin-top: 0;
+    font-size: 11px;
+    line-height: 20px;
+  }
+
+}
+#window-page-heading:empty {
+  display: none;
+}
+#window-page-heading {
+  min-width: 0;
+  flex: 1;
+}
+#window-page-heading .conversation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  height: var(--window-chrome-height);
+  margin: 0;
+}
+#window-page-heading :is(h1, h2) {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font:
+    500 14px/20px -apple-system,
+    BlinkMacSystemFont,
+    "PingFang SC",
+    sans-serif;
+}
+#window-page-heading .session-more {
+  flex-shrink: 0;
+  margin-left: 0;
+}
+#window-page-heading .session-more-body {
+  position: fixed;
+  left: clamp(12px, var(--session-menu-left, 200px), calc(100vw - 212px));
+  right: auto;
+  top: calc(var(--window-chrome-height) - 2px);
+  width: 200px;
+  max-height: calc(100dvh - var(--window-chrome-height) - 16px);
+  overflow-y: auto;
+}
+#window-page-heading .session-more-body button {
+  width: 100%;
+  text-align: left;
+  justify-content: flex-start;
+}
+@media (max-width: 520px) {
+  .capture-metadata {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  body.react-app #session-view .selection-footer {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .selection-left {
+    gap: 4px;
+  }
+  body.react-app #session-view .selection-status {
+    font-size: 11px;
+  }
+  body.react-app .panel-wordmark {
+    display: none;
+  }
+  body.react-app .panel-header {
+    gap: 4px;
+    padding-inline: 8px;
+  }
+}
+
+/* Page layout contract: one title in the chrome and one shared content inset. */
+body.react-app .workspace.route-scroll,
+body.react-app .reading,
+body.react-app.native-nav-hidden .reading,
+body.react-app .settings-content,
+body.react-app.native-nav-hidden .settings-content {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  padding: 20px var(--page-gutter);
+}
+body.react-app #session-view :is(.session-top, .session-messages, .session-bottom),
+body.react-app #session-view.choosing-session :is(.session-top, .session-messages),
+body.react-app .note-toolbar {
+  padding-inline: var(--page-gutter);
+}
+body.react-app .thought-heading,
+body.react-app .settings-heading {
+  margin: 0 0 12px;
+  min-height: 0;
+}
+body.react-app .thought-heading { justify-content: flex-end; }
+body.react-app .settings-heading:empty,
+body.react-app #session-view .dialog-head:empty { display: none; }
+body.react-app :is(.workspace, .reading, .settings-content) h1,
+body.react-app #session-view .session-top h2 {
+  font: 500 20px/1.4 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  letter-spacing: 0;
+}
+body.react-app .settings-section h2 {
+  font-size: 14px;
+  font-weight: 500;
+}
+@media (max-width: 700px) {
+  :root { --page-gutter: 16px; }
+  body.react-app .thought-heading { justify-content: space-between; }
+}
+html[data-surface="panel"] { --page-gutter: 16px; }
+html[data-surface="panel"] body.react-app .thought-heading { justify-content: space-between; }
+
+body.react-app .editor.route-scroll { padding: 20px var(--page-gutter); }
+body.react-app .editor-head { justify-content: flex-end; }
+body.react-app .editor-head h2 { font-size: 20px; font-weight: 500; }
+
+body.react-app.native-nav-hidden .settings-page { padding-top: 0; }
+body.react-app .settings-section:first-of-type { border-top: 0; padding-top: 0; }
+body.react-app .panel-navigation .tool { white-space: nowrap; padding-inline: 6px; }

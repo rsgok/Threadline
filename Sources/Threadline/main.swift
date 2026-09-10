@@ -84,7 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         window.title="Threadline · 思续";window.minSize=NSSize(width:820,height:560);window.center();window.setFrameAutosaveName("ThreadlineWindow");window.isReleasedWhenClosed=false;window.delegate=self
         window.appearance=NSAppearance(named:.aqua)
         window.backgroundColor=NSColor(calibratedRed:1,green:0.996,blue:0.984,alpha:1)
-        window.titlebarAppearsTransparent=true;window.titleVisibility = .hidden;window.isMovableByWindowBackground=true
+        window.titlebarAppearsTransparent=true;window.titleVisibility = .hidden;window.isMovableByWindowBackground=false
         window.titlebarSeparatorStyle = .none
         window.toolbar=nil
         let config=WKWebViewConfiguration();config.userContentController.add(self,name:"openInCodex");config.userContentController.add(self,name:"windowChrome");config.userContentController.add(self,name:"language")
@@ -93,12 +93,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         web=WKWebView(frame:.zero,configuration:config);web.navigationDelegate=self;web.uiDelegate=self;let content=NSView(frame:NSRect(x:0,y:0,width:1120,height:780))
         web.frame=content.bounds;web.autoresizingMask=[.width,.height];content.addSubview(web)
         window.contentView=content
+        disableElasticScrolling(in: web)
+        alignWindowButtons()
         (window as? ThreadlineWindow)?.canStartDrag = { [weak self] point in
             guard let self else { return false }
             let local=self.web.convert(point,from:nil)
             let cssPoint=NSPoint(x:local.x,y:self.web.isFlipped ? local.y : self.web.bounds.height-local.y)
             // macOS owns the traffic-light buttons even when the web header sits underneath.
-            if cssPoint.x < 80 && cssPoint.y < 32 { return false }
+            if cssPoint.x < 80 && cssPoint.y < 46 { return false }
             return self.dragRegions.contains { $0.contains(cssPoint) }
                 && !self.dragExclusions.contains { $0.contains(cssPoint) }
         }
@@ -183,6 +185,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             return
         }
         var link=URLComponents();link.scheme=runtime;link.host="browser";link.queryItems=[URLQueryItem(name:"url",value:url.absoluteString)]
+        if let threadID=body["threadID"] {
+            guard UUID(uuidString:threadID) != nil,
+                  url.path == "/collect/codex/" + threadID else { return }
+            link.host="threads";link.path="/" + threadID
+            link.queryItems=[URLQueryItem(name:"browserUrl",value:url.absoluteString)]
+        }
         guard let target=link.url else{return}
         if !NSWorkspace.shared.open(target){let alert=NSAlert();alert.messageText=tr("未能打开")+" "+runtime;alert.informativeText=self.tr("请确认已安装对应应用；Cursor 请使用 Agents 的 Browser 入口。");alert.runModal()}
     }
@@ -198,6 +206,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             let app=Unmanaged<AppDelegate>.fromOpaque(context).takeUnretainedValue();if key.id==1{app.search()}else{app.capture()};return noErr
         },1,&event,Unmanaged.passUnretained(self).toOpaque(),&handler)
         for (id,code) in [(UInt32(1),UInt32(kVK_ANSI_R)),(UInt32(2),UInt32(kVK_ANSI_S))]{var ref:EventHotKeyRef?;RegisterEventHotKey(code,UInt32(controlKey|optionKey),EventHotKeyID(signature:0x54485244,id:id),GetApplicationEventTarget(),0,&ref);if let ref=ref{hotKeys.append(ref)}}
+    }
+    private func disableElasticScrolling(in view: NSView) {
+        if let scroll = view as? NSScrollView {
+            scroll.horizontalScrollElasticity = .none
+            scroll.verticalScrollElasticity = .none
+        }
+        for child in view.subviews { disableElasticScrolling(in: child) }
+    }
+    // Match the web chrome's 46-point row while retaining AppKit's real buttons.
+    private func alignWindowButtons() {
+        guard let window, !window.styleMask.contains(.fullScreen),
+              let close = window.standardWindowButton(.closeButton),
+              let titlebar = close.superview else { return }
+        let height: CGFloat = 46
+        var frame = titlebar.frame
+        frame.origin.y += frame.height - height
+        frame.size.height = height
+        titlebar.frame = frame
+        let kinds: [NSWindow.ButtonType] = [.closeButton, .miniaturizeButton, .zoomButton]
+        for (index, kind) in kinds.enumerated() {
+            guard let button = window.standardWindowButton(kind) else { continue }
+            var origin = button.frame.origin
+            origin.x = 23 + CGFloat(index) * 23 - button.frame.width / 2
+            origin.y = (height - button.frame.height) / 2
+            button.setFrameOrigin(origin)
+        }
+    }
+    func windowDidResize(_ notification: Notification) { alignWindowButtons() }
+    func windowDidExitFullScreen(_ notification: Notification) { alignWindowButtons() }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        alignWindowButtons()
+        disableElasticScrolling(in: webView)
     }
     func webView(_ webView:WKWebView,decidePolicyFor action:WKNavigationAction,decisionHandler:@escaping(WKNavigationActionPolicy)->Void){
         guard let url=action.request.url else{decisionHandler(.cancel);return}

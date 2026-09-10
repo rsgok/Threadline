@@ -13,6 +13,7 @@ export function ShareHistory({
   onClose(): void;
   initialID?: string;
 }) {
+  const [activity, setActivity] = useState(false);
   const [id, setID] = useState(initialID || ""),
     [record, setRecord] = useState<ShareJob | null>(null),
     [jobs, setJobs] = useState<ShareJob[] | null>(null),
@@ -26,9 +27,12 @@ export function ShareHistory({
     setJobs(null);
     void (
       id
-        ? api<ShareJob>("/api/share/jobs/" + id, {
-            signal: controller.signal,
-          }).then(setRecord)
+        ? api<ShareJob>(
+            (activity ? "/api/share/activity/" : "/api/share/jobs/") + id,
+            {
+              signal: controller.signal,
+            },
+          ).then(setRecord)
         : api<{ jobs: ShareJob[] }>("/api/share/history", {
             signal: controller.signal,
           }).then((result) => setJobs(result.jobs))
@@ -36,7 +40,7 @@ export function ShareHistory({
       if (!controller.signal.aborted) setError(error);
     });
     return () => controller.abort();
-  }, [id, revision]);
+  }, [id, revision, activity]);
   async function run(action: string, data = {}) {
     if (busy) return;
     setBusy(true);
@@ -70,17 +74,29 @@ export function ShareHistory({
       {jobs ? (
         <>
           {!jobs.length ? (
-            <p>{t("还没有 Slack 或 Discord 分享记录。")}</p>
+            <p>
+              {tr(
+                "还没有分享记录，复制文字、导出文件或发送讨论后会显示在这里",
+                "Copies, exports and sent discussions will appear here",
+              )}
+            </p>
           ) : (
             jobs.map((job) => (
               <button
                 className="tool share-history-row"
                 key={job.id}
-                onClick={() => setID(job.id)}
+                onClick={() => {
+                  setActivity(job.historyKind === "activity");
+                  setID(job.id);
+                }}
               >
-                {job.title} · {job.platform} ·{" "}
-                {job.steps.filter((step) => step.status === "sent").length}/
-                {job.steps.length}
+                <strong>{job.title}</strong>
+                <span>
+                  {historyLabel(job)} ·{" "}
+                  {job.createdAt
+                    ? new Date(job.createdAt).toLocaleString()
+                    : ""}
+                </span>
               </button>
             ))
           )}
@@ -90,15 +106,19 @@ export function ShareHistory({
         <>
           <h3>{record.title}</h3>
           <p>
-            {record.platform} → {record.target}
+            {historyLabel(record)}
+            {record.target ? " · " + record.target : ""}
           </p>
+          {record.detail ? <p>{record.detail}</p> : null}
           <pre className="share-preview carry-preview">{record.text}</pre>
-          <p>
-            {tr(
-              `已完成 ${record.steps.filter((step) => step.status === "sent").length}/${record.steps.length} 部分`,
-              `Completed ${record.steps.filter((step) => step.status === "sent").length}/${record.steps.length} parts`,
-            )}
-          </p>
+          {!activity ? (
+            <p>
+              {tr(
+                `已完成 ${record.steps.filter((step) => step.status === "sent").length}/${record.steps.length} 部分`,
+                `Completed ${record.steps.filter((step) => step.status === "sent").length}/${record.steps.length} parts`,
+              )}
+            </p>
+          ) : null}
           {record.steps.map((step) => (
             <div className="share-step" key={step.id}>
               <span>
@@ -161,4 +181,27 @@ export function ShareHistory({
       ) : null}
     </Modal>
   );
+}
+
+function historyLabel(job: ShareJob) {
+  if (job.historyKind !== "activity")
+    return `${job.platform === "slack" ? "Slack" : "Discord"} · ${job.steps.filter((step) => step.status === "sent").length}/${job.steps.length}`;
+  const actions: Record<string, string> = {
+    copy: tr("已复制文字", "Text copied"),
+    "image-copy": tr("已复制图卡", "Image copied"),
+    export: tr("已开始下载文件", "File download started"),
+    cards: tr("已生成图卡", "Cards generated"),
+    "cards-download": tr("已开始下载图卡", "Card download started"),
+  };
+  if (job.platform === "feishu")
+    return (
+      tr("飞书", "Feishu") +
+      " · " +
+      (job.status === "completed"
+        ? tr("已发送", "Sent")
+        : job.status === "failed"
+          ? tr("发送未完成", "Send incomplete")
+          : tr("送达状态待核实", "Delivery needs verification"))
+    );
+  return actions[job.action || ""] || tr("本地导出", "Local export");
 }

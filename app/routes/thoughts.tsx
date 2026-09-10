@@ -1,3 +1,4 @@
+import { WindowHeading } from "../components/window-heading";
 import { useApp } from "../lib/app-context";
 import { t, tr } from "../lib/i18n";
 
@@ -6,7 +7,7 @@ export default function Thoughts() {
   return (
     <section className="workspace topic-manager route-scroll">
       <div className="thought-heading">
-        <h1>{t("我的思路")}</h1>
+        <WindowHeading><h1>{t("我的思路")}</h1></WindowHeading>
         <button className="primary" onClick={() => app.editTopic()}>
           {t("＋ 新建思路")}
         </button>

@@ -185,6 +185,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         if (req.method === 'GET' && pathname === '/api/share/status') return send(200, sharing.status());
         if (req.method === 'GET' && pathname === '/api/share/channels') return send(200, await sharing.channels(url.searchParams.get('cursor') || ''));
         if (req.method === 'GET' && pathname === '/api/share/history') return send(200, { jobs: sharing.history() });
+        if (req.method === 'GET' && pathname.startsWith('/api/share/activity/')) return send(200, sharing.activity(pathname.slice('/api/share/activity/'.length)));
         if (req.method === 'POST' && pathname === '/api/share/connect') return send(200, await sharing.connect(await readJSON(req)));
         if (req.method === 'POST' && pathname === '/api/share/disconnect') return send(200, sharing.disconnect((await readJSON(req)).platform));
         if (req.method === 'POST' && pathname === '/api/share/preview') {
@@ -204,15 +205,16 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
           }
           throw error(404, '图卡操作不存在');
         }
-        const shareRoute = pathname.match(/^\/api\/share\/jobs\/([a-f0-9-]{36})(?:\/(send|resolve|export|cards|assets|thumbnails)(?:\/([a-f0-9]{24}))?)?$/);
+        const shareRoute = pathname.match(/^\/api\/share\/jobs\/([a-f0-9-]{36})(?:\/(send|resolve|export|cards|assets|thumbnails|activity)(?:\/([a-f0-9]{24}))?)?$/);
         if (shareRoute) {
           const [, id, action, assetId] = shareRoute;
           if (!action && req.method === 'GET') return send(200, sharing.public(sharing.load(id)));
+          if (action === 'activity' && req.method === 'POST') { const data = await readJSON(req); if (!['copy', 'image-copy', 'cards'].includes(data.action)) throw error(400, 'Invalid activity'); if (data.action === 'cards' && cardRenderer.status(id).phase !== 'done') throw error(409, '图卡尚未生成'); return send(201, sharing.recordLocal(id, data.action)); }
           if (action === 'send' && req.method === 'POST') return send(200, await sharing.send(id));
           if (action === 'resolve' && req.method === 'POST') { const d = await readJSON(req); return send(200, sharing.resolve(id, d.stepId, d.delivered)); }
           if (action === 'thumbnails' && req.method === 'GET') { const a = sharing.thumbnail(id, assetId); return send(200, a.bytes, a.mime); }
           if (action === 'assets' && req.method === 'GET') { const a = sharing.asset(id, assetId); return send(200, a.bytes, a.mime); }
-          if (action === 'export' && req.method === 'GET') { res.setHeader('Content-Disposition', 'attachment; filename="Threadline-share.zip"'); return send(200, zip(sharing.exportEntries(id)), 'application/zip'); }
+          if (action === 'export' && req.method === 'GET') { res.setHeader('Content-Disposition', 'attachment; filename="Threadline-share.zip"'); const bytes = zip(sharing.exportEntries(id)); sharing.recordLocal(id, 'export'); return send(200, bytes, 'application/zip'); }
           if (action === 'cards' && req.method === 'POST') {
             const d = await readJSON(req), job = sharing.load(id);
             if (cardRenderer.active?.id === id) throw error(409, '图卡正在生成');
@@ -227,7 +229,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
           if (action === 'cards' && req.method === 'GET') {
             const job = sharing.load(id); if (!job.cardCount || Array.from({length:job.cardCount}, (_,i)=>i).some(i=>!job.cardPages?.includes(i))) throw error(409, '请先生成完整图卡');
             const entries = Array.from({length:job.cardCount}, (_,i)=>['Threadline-'+String(i+1).padStart(3,'0')+'.png', fs.readFileSync(job.cardEngine === 'chromium-v1' ? cardRenderer.pageFile(id, i) : path.join(path.dirname(sharing.file(id)), 'card-'+i+'.png'))]);
-            res.setHeader('Content-Disposition', 'attachment; filename="Threadline-cards.zip"'); return send(200, zip(entries), 'application/zip');
+            const bytes = zip(entries); sharing.recordLocal(id, 'cards-download'); res.setHeader('Content-Disposition', 'attachment; filename="Threadline-cards.zip"'); return send(200, bytes, 'application/zip');
           }
         }
         throw error(404, '分享接口不存在');
@@ -279,6 +281,8 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
           if (preview.sending) throw error(409, '正在发送，请等待结果。');
           preview.sending = true;
           preview.destination = destination;
+          const activity = (status, detail = '') => sharing.recordActivity({ id: 'feishu-' + data.previewId, title: preview.title, text: preview.text, platform: 'feishu', target: destination, action: 'send', status, detail });
+          activity('sending');
           try {
             // Verify all chosen bytes before uploading anything on the first attempt.
             if (!Object.keys(preview.uploads).length) for (const a of preview.attachments) {
@@ -296,8 +300,9 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
               preview.fileReceipts.push(await feishu.send({ target, userId: data.userId, chatId: data.chatId, fileKey: preview.uploads[files[i].id], requestId }));
             }
             preview.receipt = { fileCount: preview.fileReceipts.length, ...preview.receipts.at(-1), sentCount: preview.receipts.length, cardCount: preview.cards.length };
+            activity('completed', `${preview.receipts.length}/${preview.cards.length}`);
             return send(200, preview.receipt);
-          } catch (e) { throw error(e.status || 502, `已发送 ${preview.receipts.length}/${preview.cards.length} 张卡片、${preview.fileReceipts.length} 个文件。${e.message} 保持当前预览重试，将从未成功的卡片继续。`); }
+          } catch (e) { activity('failed', `${preview.receipts.length}/${preview.cards.length} · ${e.message}`); throw error(e.status || 502, `已发送 ${preview.receipts.length}/${preview.cards.length} 张卡片、${preview.fileReceipts.length} 个文件。${e.message} 保持当前预览重试，将从未成功的卡片继续。`); }
           finally { preview.sending = false; }
         }
       }
@@ -456,7 +461,9 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
           if (c.attachment) entries.push([`attachments/${path.basename(c.attachment)}`, fs.readFileSync(imagePath(c.attachment))]);
         }
         res.setHeader('Content-Disposition', 'attachment; filename="Threadline-export.zip"');
-        return send(200, zip(entries), 'application/zip');
+        const bytes = zip(entries);
+        sharing.recordActivity({ id: 'notes-' + crypto.randomUUID(), title: id === 'all' ? 'Threadline · ' + selection.length : selection[0].title, text: selection.map(c => markdown(c)).join('\n\n'), action: 'export' });
+        return send(200, bytes, 'application/zip');
       }
       throw error(404, '页面不存在。');
     } catch (err) { if (!res.headersSent) send(err.status || 500, { error: err.status ? err.message : '本机保存或读取失败，原数据未被清空。' }); }

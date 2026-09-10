@@ -19,7 +19,7 @@ export interface AppContextValue {
   carry: string[];
   toggleCarry(id: string): void;
   openCarry(ids?: string[]): void;
-  copy(text: string): Promise<void>;
+  copy(text: string): Promise<boolean>;
   openInRuntime(runtime?: Runtime): Promise<void>;
   openHistory(): void;
   getSessionDraft(key: string): SessionDraft;

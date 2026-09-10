@@ -1,3 +1,4 @@
+import { WindowHeading } from "../components/window-heading";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router";
 import type { Route } from "./+types/note";
@@ -65,14 +66,6 @@ function NoteView({ clip }: { clip: Clip }) {
   return (
     <>
       <div className="note-toolbar">
-        <button
-          className="tool"
-          onClick={() =>
-            app.go(clip.topicID ? "/thoughts/" + clip.topicID : "/library")
-          }
-        >
-          ← {clip.topicID ? t("我的思路") : t("资料库")}
-        </button>
         <div className="tools">
           <button className="tool" onClick={() => setEditing(true)}>
             {t("编辑")}
@@ -90,9 +83,6 @@ function NoteView({ clip }: { clip: Clip }) {
             <div className="session-more-body">
               <button className="tool" onClick={() => void app.copy(clip.body)}>
                 {t("复制原文")}
-              </button>
-              <button className="tool" onClick={() => setReview(true)}>
-                {t("标记记录")}
               </button>
               <button
                 className="tool"
@@ -119,7 +109,7 @@ function NoteView({ clip }: { clip: Clip }) {
             <span className="source-badge">{clip.source}</span>
             <span>{clip.date}</span>
           </div>
-          <h1>{clip.title}</h1>
+          <WindowHeading><h1 title={clip.title}>{clip.title}</h1></WindowHeading>
           <div className="submeta">
             {tr(
               `约 ${Math.max(1, Math.ceil(clip.body.length / 500))} 分钟阅读 · ${clip.body.length} 字`,
@@ -420,7 +410,7 @@ function NoteEditor({ clip, onDone }: { clip: Clip; onDone(): void }) {
   return (
     <section className="editor route-scroll" id="editor">
       <div className="editor-head">
-        <h2>{t("整理笔记")}</h2>
+        <WindowHeading><h2>{t("整理笔记")}</h2></WindowHeading>
         <button className="tool" onClick={() => void done()}>
           {t("完成编辑 ↗")}
         </button>

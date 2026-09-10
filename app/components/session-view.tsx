@@ -1,4 +1,14 @@
-import { lazy, memo, Suspense, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  memo,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useBlocker } from "react-router";
 import { api, post } from "../lib/api";
 import { useApp } from "../lib/app-context";
@@ -8,6 +18,8 @@ import { ErrorText, ProjectContext, TopicSelect } from "./common";
 import { StatusTag } from "./common";
 import { Markdown } from "./markdown";
 import { Modal } from "./modal";
+import { WindowHeading } from "./window-heading";
+import { CodexThreadLink } from "./codex-thread-link";
 const ShareDialog = lazy(() =>
   import("./share-dialog").then((module) => ({ default: module.ShareDialog })),
 );
@@ -31,7 +43,6 @@ export function SessionView({
   const [share, setShare] = useState<Snapshot | null>(null),
     [receipt, setReceipt] = useState<Clip | null>(null);
   const list = useRef<HTMLDivElement>(null),
-    head = useRef<HTMLDivElement>(null),
     firstLoad = useRef(true);
   const live = useRef({ busy, save, draft });
   live.current = { busy, save, draft };
@@ -53,12 +64,28 @@ export function SessionView({
   useEffect(() => {
     app.saveSessionDraft(key, draft);
   }, [key, draft, app.saveSessionDraft]);
-  useEffect(() => {
-    const timer = requestAnimationFrame(() => {
-      if (list.current) list.current.scrollTop = list.current.scrollHeight;
-    });
-    return () => cancelAnimationFrame(timer);
-  }, []);
+  useLayoutEffect(() => {
+    const element = list.current;
+    if (!element) return;
+    const storageKey = "threadline-scroll:" + key;
+    let saved: string | null = null;
+    try {
+      saved = sessionStorage.getItem(storageKey);
+    } catch {
+      /* Use latest message. */
+    }
+    element.scrollTop =
+      saved !== null && Number.isFinite(Number(saved))
+        ? Number(saved)
+        : element.scrollHeight;
+    return () => {
+      try {
+        sessionStorage.setItem(storageKey, String(element.scrollTop));
+      } catch {
+        /* Optional restoration. */
+      }
+    };
+  }, [key]);
   useEffect(() => {
     let active = true,
       pending = false;
@@ -82,15 +109,30 @@ export function SessionView({
           { signal: controller.signal },
         );
         if (!active) return;
-        setSession((previous) =>
-          JSON.stringify(previous) === JSON.stringify(next) ? previous : next,
-        );
-        setDraft((previous) => ({
-          ...previous,
-          selected: previous.selected.filter((id) =>
+        setSession((previous) => {
+          if (JSON.stringify(previous) === JSON.stringify(next))
+            return previous;
+          const previousMessages = new Map(
+            previous.messages.map((message) => [message.id, message]),
+          );
+          return {
+            ...next,
+            messages: next.messages.map((message) => {
+              const old = previousMessages.get(message.id);
+              return old && JSON.stringify(old) === JSON.stringify(message)
+                ? old
+                : message;
+            }),
+          };
+        });
+        setDraft((previous) => {
+          const selected = previous.selected.filter((id) =>
             next.messages.some((message) => message.id === id),
-          ),
-        }));
+          );
+          return selected.length === previous.selected.length
+            ? previous
+            : { ...previous, selected };
+        });
       } catch (error) {
         if (active && !quiet) setError(error);
       } finally {
@@ -114,6 +156,22 @@ export function SessionView({
       document.removeEventListener("visibilitychange", visible);
     };
   }, [initial.id, runtime, draft.includeProgress, refreshKey]);
+  const selectMessage = useCallback((id: string) => {
+    setDraft((previous) => ({
+      ...previous,
+      selected: previous.selected.includes(id)
+        ? previous.selected.filter((value) => value !== id)
+        : [...previous.selected, id],
+    }));
+  }, []);
+  const messageAnnotations = useMemo(() => {
+    let previous: Message["annotations"];
+    return session.messages.map((message) => {
+      const annotations = previous;
+      if (message.annotations?.length) previous = message.annotations;
+      return annotations;
+    });
+  }, [session.messages]);
   const selected = session.messages.filter((message) =>
     draft.selected.includes(message.id),
   );
@@ -178,7 +236,7 @@ export function SessionView({
       aria-label={t("收录对话")}
     >
       <div className="session-shell">
-        <div className="session-top" ref={head}>
+        <div className="session-top">
           <div className="session-brand">
             <img
               className="header-brand-icon"
@@ -189,96 +247,93 @@ export function SessionView({
               Thread<em>line</em>
             </span>
           </div>
-          <div className="dialog-head">
-            <button
-              className="tool session-back"
-              aria-label={t("返回全部会话")}
-              onClick={() => app.go("/collect")}
-            >
-              ←
-            </button>
-            <h2>{session.title}</h2>
-            <details className="session-more">
-              <summary aria-label={t("更多会话操作")}>•••</summary>
-              <div className="session-more-body">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={draft.includeProgress}
+          <WindowHeading>
+            <div className="dialog-head conversation-heading">
+              <h2 className="conversation-title" title={session.title}>
+                {session.title}
+              </h2>
+              <details
+                className="session-more"
+                onToggle={(event) => {
+                  const menu = event.currentTarget;
+                  if (menu.open)
+                    menu.style.setProperty(
+                      "--session-menu-left",
+                      `${menu.getBoundingClientRect().left}px`,
+                    );
+                }}
+              >
+                <summary aria-label={t("更多会话操作")}>•••</summary>
+                <div className="session-more-body">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={draft.includeProgress}
+                      disabled={busy}
+                      onChange={(event) =>
+                        setDraft((previous) => ({
+                          ...previous,
+                          includeProgress: event.target.checked,
+                        }))
+                      }
+                    />
+                    {t("包含过程消息")}
+                  </label>
+                  <button
+                    className="tool"
                     disabled={busy}
-                    onChange={(event) =>
-                      setDraft((previous) => ({
-                        ...previous,
-                        includeProgress: event.target.checked,
-                      }))
-                    }
-                  />
-                  {t("包含过程消息")}
-                </label>
-                <button
-                  className="tool"
-                  disabled={busy}
-                  onClick={() => {
-                    if (list.current)
-                      list.current.scrollTop = list.current.scrollHeight;
-                  }}
-                >
-                  {t("跳到最新 ↓")}
-                </button>
-                <button
-                  className="tool"
-                  disabled={busy || loading}
-                  onClick={() => setRefreshKey((value) => value + 1)}
-                >
-                  {t("刷新")}
-                </button>
-                <button
-                  className="tool"
-                  onClick={() => app.capture(draft.topicID)}
-                >
-                  {t("手动添加 ↗")}
-                </button>
-                <button className="tool" onClick={() => app.openCarry()}>
-                  {t("使用对话")}
-                </button>
-                <button className="tool" onClick={app.openHistory}>
-                  {t("分享记录")}
-                </button>
-                <button
-                  className="tool"
-                  onClick={() => void app.openInRuntime("codex")}
-                >
-                  {t("在 Codex 中打开 ↗")}
-                </button>
-                <button
-                  className="tool"
-                  onClick={() => void app.openInRuntime("cursor")}
-                >
-                  {t("在 Cursor 中打开 ↗")}
-                </button>
-              </div>
-            </details>
-          </div>
+                    onClick={() => {
+                      if (list.current)
+                        list.current.scrollTop = list.current.scrollHeight;
+                    }}
+                  >
+                    {t("跳到最新 ↓")}
+                  </button>
+                  <button
+                    className="tool"
+                    disabled={busy || loading}
+                    onClick={() => setRefreshKey((value) => value + 1)}
+                  >
+                    {t("刷新")}
+                  </button>
+                  <button
+                    className="tool"
+                    onClick={() => app.capture(draft.topicID)}
+                  >
+                    {t("手动添加 ↗")}
+                  </button>
+                  <button className="tool" onClick={() => app.openCarry()}>
+                    {t("使用对话")}
+                  </button>
+                  <button className="tool" onClick={app.openHistory}>
+                    {t("分享记录")}
+                  </button>
+                  <button
+                    className="tool"
+                    onClick={() => void app.openInRuntime("codex")}
+                  >
+                    {t("在 Codex 中打开 ↗")}
+                  </button>
+                  <button
+                    className="tool"
+                    onClick={() => void app.openInRuntime("cursor")}
+                  >
+                    {t("在 Cursor 中打开 ↗")}
+                  </button>
+                </div>
+              </details>
+            </div>
+          </WindowHeading>
           <div className="session-subtitle">
+            {runtime === "codex" ? (
+              <CodexThreadLink threadID={session.id} />
+            ) : null}
             {count(session.messages.length)} · {t("选择值得记录的内容")}{" "}
             <StatusTag status={session.status} />
           </div>
           <ErrorText error={!save ? error : null} />
         </div>
-        <div
-          className="session-messages"
-          ref={list}
-          onScroll={(event) => {
-            const progress = Math.min(
-              1,
-              Math.max(0, event.currentTarget.scrollTop) / 120,
-            );
-            head.current?.style.setProperty(
-              "--collection-collapse",
-              String(progress),
-            );
-          }}
-        >
+        <div className="session-messages" ref={list}>
           {session.messages.map((message, index) => (
             <MessageCard
               key={message.id}
@@ -287,20 +342,8 @@ export function SessionView({
               thread={session.id}
               chosen={draft.selected.includes(message.id)}
               disabled={busy || loading}
-              annotations={
-                session.messages
-                  .slice(0, index)
-                  .findLast((message) => message.annotations?.length)
-                  ?.annotations
-              }
-              select={() =>
-                setDraft((previous) => ({
-                  ...previous,
-                  selected: previous.selected.includes(message.id)
-                    ? previous.selected.filter((id) => id !== message.id)
-                    : [...previous.selected, message.id],
-                }))
-              }
+              annotations={messageAnnotations[index]}
+              select={selectMessage}
             />
           ))}
           {!session.messages.length ? (
@@ -312,16 +355,34 @@ export function SessionView({
         {selected.length ? (
           <div className="session-bottom">
             <div className="selection-footer">
-              <span className="selection-status">{t`已选 ${selected.length} 条`}</span>
-              <button
-                className="tool"
-                disabled={busy}
-                onClick={() =>
-                  setDraft((previous) => ({ ...previous, selected: [] }))
-                }
-              >
-                {t("取消选择")}
-              </button>
+              <div className="selection-left">
+                <span className="selection-status">{t`已选 ${selected.length} 条`}</span>
+                <button
+                  className="tool"
+                  disabled={
+                    busy ||
+                    loading ||
+                    selected.length === session.messages.length
+                  }
+                  onClick={() =>
+                    setDraft((previous) => ({
+                      ...previous,
+                      selected: session.messages.map((message) => message.id),
+                    }))
+                  }
+                >
+                  {tr("全选", "Select all")}
+                </button>
+                <button
+                  className="tool"
+                  disabled={busy}
+                  onClick={() =>
+                    setDraft((previous) => ({ ...previous, selected: [] }))
+                  }
+                >
+                  {t("取消选择")}
+                </button>
+              </div>
               <div className="selection-actions">
                 <button
                   className="tool"
@@ -465,7 +526,7 @@ const MessageCard = memo(function MessageCard({
   thread: string;
   chosen: boolean;
   disabled: boolean;
-  select(): void;
+  select(id: string): void;
   annotations?: Message["annotations"];
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -484,7 +545,7 @@ const MessageCard = memo(function MessageCard({
         type="button"
         aria-pressed={chosen}
         aria-label={t("选择") + " " + role + " " + message.text.slice(0, 36)}
-        onClick={select}
+        onClick={() => select(message.id)}
         disabled={disabled}
       >
         <img

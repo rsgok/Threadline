@@ -1,7 +1,6 @@
+import { WindowHeading } from "../components/window-heading";
 import { useState } from "react";
-import { useSearchParams } from "react-router";
-import { useApp } from "../lib/app-context";
-import { getLanguage, setLanguage, t, tr } from "../lib/i18n";
+import { getLanguage, setLanguage, t } from "../lib/i18n";
 import type { Language } from "../lib/types";
 import {
   FeishuConnection,
@@ -11,9 +10,6 @@ import { ErrorText } from "../components/common";
 import "../../web/feishu.css";
 
 export default function Settings() {
-  const [params] = useSearchParams();
-  const back = params.get("returnTo");
-  const app = useApp();
   const [language, set] = useState<Language>(getLanguage()),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(),
@@ -23,19 +19,7 @@ export default function Settings() {
     <section className="settings-page route-scroll" aria-label={t("设置")}>
       <div className="settings-content">
         <div className="settings-heading">
-          <button
-            className="tool"
-            onClick={() =>
-              app.go(
-                back?.startsWith("/") && !back.startsWith("//")
-                  ? back
-                  : "/collect",
-              )
-            }
-          >
-            {t("返回")}
-          </button>
-          <h1>{t("设置")}</h1>
+          <WindowHeading><h1>{t("设置")}</h1></WindowHeading>
         </div>
         <section className="settings-section">
           <h2>{t("通用")}</h2>
@@ -99,12 +83,7 @@ export default function Settings() {
             ))}
           </div>
         </section>
-        <section className="settings-section">
-          <h2>{tr("资料与分享", "Library and sharing")}</h2>
-          <button className="tool" onClick={app.openHistory}>
-            {t("分享记录")}
-          </button>
-        </section>
+
       </div>
       {feishu ? <FeishuConnection onClose={() => setFeishu(false)} /> : null}
     </section>
