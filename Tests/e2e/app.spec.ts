@@ -11,7 +11,8 @@ test("Codex handoff targets the selected conversation and its Threadline detail"
   await ready(page, "/collect?panel=1");
   await page.getByRole("textbox", { name: "搜索本机会话" }).fill("界面架构讨论");
   const row = page.locator(".session-choice-row").filter({ hasText: "界面架构讨论" });
-  const link = row.getByRole("link", { name: "在 Codex 继续 ↗" });
+  await row.getByRole("button", { name: "选中：界面架构讨论", exact: true }).click();
+  const link = page.locator(".conversation-bottom").getByRole("link", { name: "在 Codex 继续 ↗" });
   const target = new URL((await link.getAttribute("href"))!);
   expect(target.host).toBe("threads");
   expect(target.pathname).toBe(`/${thread}`);
