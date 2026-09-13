@@ -634,3 +634,38 @@ body.react-app .editor-head h2 { font-size: 20px; font-weight: 500; }
 body.react-app.native-nav-hidden .settings-page { padding-top: 0; }
 body.react-app .settings-section:first-of-type { border-top: 0; padding-top: 0; }
 body.react-app .panel-navigation .tool { white-space: nowrap; padding-inline: 6px; }
+
+/* The collection browser lives inside the existing web/native/panel shell. */
+body.react-app .conversation-filters { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:8px 0; }
+.conversation-spacer { flex:1; }
+body.react-app .conversation-filters select { max-width:150px; }
+body.react-app #session-view .conversation-choices { gap:0; }
+body.react-app .conversation-group { min-width:0; }
+body.react-app .conversation-group-head { display:flex; gap:8px; width:100%; text-align:left; margin:6px 0; }
+body.react-app .conversation-row { position:relative; display:grid; grid-template-columns:28px minmax(0,1fr); column-gap:3px; row-gap:2px; padding:10px 8px; margin:3px 0; }
+body.react-app #session-view .conversation-row .session-choice { grid-column:2; display:flex; align-items:center; gap:12px; min-width:0; width:100%; padding:0; border:0; }
+body.react-app #session-view .conversation-row .session-choice:after { content:none; }
+body.react-app #session-view .conversation-row .session-choice strong { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:24px; }
+body.react-app .conversation-row time { flex-shrink:0; font-size:10px; }
+body.react-app .conversation-select { grid-column:1; grid-row:1; width:28px; height:28px; display:flex; justify-content:center; align-items:center; padding:0; }
+body.react-app #session-view .conversation-row .session-list-preview { grid-column:2; display:flex; align-items:center; gap:7px; margin:0; min-width:0; line-height:20px; }
+.conversation-runtime { flex-shrink:0; font-size:10px; }
+.conversation-preview-text { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+body.react-app .conversation-tag { max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0; }
+body.react-app .conversation-bottom { flex-shrink:0; max-height:50%; overflow-y:auto; }
+body.react-app .conversation-bottom .selection-footer { gap:6px; align-items:center; flex-wrap:wrap; }
+.conversation-bottom small { white-space:nowrap; }
+.conversation-tag-editor { display:grid; gap:10px; margin-bottom:12px; }
+.conversation-tag-options,.conversation-color-editor { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.conversation-color-editor label { display:flex; gap:8px; align-items:center; font-size:11px; }
+.conversation-color-editor select { max-width:140px; }
+.conversation-add-tag { display:flex; gap:6px; }
+.conversation-add-tag input { min-width:0; flex:1; }
+@media(max-width:500px) {
+  body.react-app .conversation-filters { gap:4px; }
+  body.react-app .conversation-filters select { max-width:105px; }
+  body.react-app .conversation-row { padding-inline:2px; }
+  body.react-app .conversation-tag { max-width:60px; }
+}
+body.react-app #session-view .conversation-row .session-choice { flex-direction:row; justify-content:flex-start; }
+body.react-app .conversation-group-head { justify-content:flex-start; }

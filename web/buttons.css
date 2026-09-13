@@ -264,3 +264,41 @@ body button.settings-entry svg{width:18px;height:18px}
 body button.settings-integration-action{justify-content:flex-start!important;text-align:left!important;padding:12px 0!important;border-radius:0!important;border-bottom:1px solid var(--button-line)!important}
 body .settings-connection input{border:1px solid var(--button-line);border-radius:7px;background:#fff;padding:10px;font-size:13px}
 body .thought-controls button[aria-pressed=true]{background:#edf2e7!important;border-color:#708b60!important;color:#3e5534!important}
+
+/* Conversation list controls share the product selection and tag palette. */
+body .conversation-row { background:#fcfdf9; border:1px solid transparent; border-bottom-color:#e0e6d9; border-radius:7px; }
+body .conversation-row:hover { background:#f0f4e9; }
+body .conversation-row.chosen { background:#f2f6ee; border-color:#a3b692; }
+body #session-view .conversation-row button.session-choice,
+body #session-view .conversation-row button.session-choice:hover { background:transparent!important; border:0!important; border-radius:0!important; box-shadow:none; transform:none; }
+body .conversation-row time,body .conversation-runtime,body .conversation-preview-text { color:#818a7a; }
+body .conversation-group-head { background:#f0f1ee!important; color:#53634a!important; border-radius:4px; }
+body .conversation-dot { width:6px; height:6px; border:1px solid #adb5a7; border-radius:50%; }
+body .conversation-dot.open { background:#71895c; border-color:#71895c; }
+body .conversation-dot.complete { background:#adb5a7; }
+body .conversation-dot.interrupted { background:#b18c4e; border-color:#b18c4e; }
+body .conversation-check { display:none; width:14px; height:14px; border:1px solid #a3b692; border-radius:50%; line-height:12px; font-size:10px; color:#536b40; }
+body .conversation-row:hover .conversation-dot,body .conversation-select:focus-visible .conversation-dot,body .has-selection .conversation-dot { display:none; }
+body .conversation-row:hover .conversation-check,body .conversation-select:focus-visible .conversation-check,body .has-selection .conversation-check { display:block; }
+body .chosen .conversation-check { background:#e1ead8; }
+body .tag-sage { --tag-ink:#607b48; --tag-fill:#edf2e7; }
+body .tag-blue { --tag-ink:#527c91; --tag-fill:#edf2f5; }
+body .tag-purple { --tag-ink:#816599; --tag-fill:#f1edf5; }
+body .tag-amber { --tag-ink:#9b773a; --tag-fill:#f5f1e7; }
+body .tag-coral { --tag-ink:#ad7061; --tag-fill:#f7ede9; }
+body .tag-gray { --tag-ink:#747b73; --tag-fill:#edf0ec; }
+body button.conversation-tag { background:var(--tag-fill)!important; color:var(--tag-ink)!important; font-size:10px!important; border-radius:4px!important; min-height:20px; padding:1px 5px!important; }
+body button.conversation-tag[aria-pressed=true] { outline:1px solid #a3b692; }
+body button.conversation-swatch { background:var(--tag-ink)!important; width:20px; height:20px; min-height:20px; padding:0!important; border:3px solid #fcfcfa!important; border-radius:50%!important; }
+body button.conversation-swatch[aria-pressed=true] { outline:1px solid var(--tag-ink); }
+body .conversation-filters select,body .conversation-color-editor select { background:transparent; border:0; color:#53634a; font:inherit; font-size:11px; }
+body .conversation-add-tag input { background:#fcfcfa; border:1px solid #e0e6d9; border-radius:6px; padding:7px; font:inherit; font-size:12px; }
+@media(pointer:coarse) {
+  body .conversation-select { min-height:40px; }
+  body .conversation-select .conversation-dot { display:none; }
+  body .conversation-select .conversation-check { display:block; }
+  body button.conversation-tag { min-height:28px; }
+}
+body button.tool.conversation-select { padding:0!important; }
+body .conversation-dot,body .conversation-check { flex-shrink:0; }
+body button.tool.conversation-swatch { width:24px!important; min-width:24px!important; height:24px!important; min-height:24px!important; flex-shrink:0; }

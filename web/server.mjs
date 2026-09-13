@@ -1,3 +1,4 @@
+import { SessionOrganization } from './session-organization.mjs';
 import { cardThemes } from './card-themes.mjs';
 import { serveFrontend } from './frontend.mjs';
 import http from 'node:http';
@@ -89,6 +90,7 @@ function parseImage(value) {
 export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome, cursorHome, feishu: feishuOverride, frontendDir = path.resolve(here, '../build/client') } = {}) {
   fs.mkdirSync(path.join(dataDir, 'attachments'), { recursive: true, mode: 0o700 });
   const store = new LibraryStore(dataDir, legacyDir);
+  const organization = new SessionOrganization(dataDir);
   const relations = new ThoughtRelations(store);
   const analysis = new ThoughtAnalysis(relations);
   const publicTopic = t => ({ ...t, version: version(t) });
@@ -348,6 +350,10 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         if (!mime || !stat.isFile() || stat.size>25*1024*1024) throw error(415,'该文件不支持图片预览。');
         return send(200,fs.readFileSync(resourcePath),mime);
       }
+      if (pathname === '/api/sessions/organization') {
+        if (req.method === 'GET') return send(200, organization.read());
+        if (req.method === 'POST') return send(200, organization.update(await readJSON(req)));
+      }
       if (req.method === 'GET' && pathname === '/api/sessions/recent') {
         const results=await Promise.allSettled([codex.recent(),cursor.recent()]);
         const sessions=results.flatMap((r,i)=>r.status==='fulfilled'?r.value.map(s=>({...s,runtime:i?'cursor':'codex'})):[]);
@@ -358,6 +364,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       const sessionRoute = pathname.match(/^\/api\/(codex|cursor)\/sessions\/([^/]+)$/);
       if (req.method === 'GET' && sessionRoute) {
         const session = await provider(sessionRoute[1]).get(sessionRoute[2], { includeProgress: url.searchParams.get('progress') === '1' });
+        if (url.searchParams.get('summary') === '1') return send(200, { session: { id: session.id, title: session.title, cwd: session.cwd, project: session.project, status: session.status, messages: session.messages.slice(-1).map(message => ({ ...message, text: message.text.slice(0, 500) })) } });
         session.runtime=sessionRoute[1];
         const saved = store.by('provenance.threadID', session.id).filter(c=>(c.provenance.runtime||'codex')===session.runtime).flatMap(c=>c.provenance.messages||[]);
         session.messages = session.messages.map(m=>({...m,saved:saved.some(old=>old.id===m.id || (old.fingerprint===m.fingerprint && old.role===m.role) || (m.timestamp && old.timestamp===m.timestamp && old.role===m.role))}));
