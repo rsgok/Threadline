@@ -19,7 +19,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Threadline · 思续</title>
-        <link rel="icon" href="/assets/threadline-icon.png" />
+        <link rel="icon" href="/assets/threadline-icon.png?v=sage-1" />
         <Meta />
         <Links />
       </head>
@@ -35,7 +35,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export function HydrateFallback() {
   return (
     <main className="boot-screen">
-      <img src="/assets/threadline-icon.png" alt="" width="56" height="56" />
+      <img src="/assets/threadline-icon.png?v=sage-1" alt="" width="56" height="56" />
       <h1>Threadline</h1>
       <p role="status">Loading · 正在打开</p>
     </main>

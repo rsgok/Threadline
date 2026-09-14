@@ -195,7 +195,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         if !NSWorkspace.shared.open(target){let alert=NSAlert();alert.messageText=tr("未能打开")+" "+runtime;alert.informativeText=self.tr("请确认已安装对应应用；Cursor 请使用 Agents 的 Browser 入口。");alert.runModal()}
     }
     @objc func openData(){NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/RewindWeb"))}
-    @objc func about(){NSApp.orderFrontStandardAboutPanel(options:[.applicationName:tr("Threadline · 思续"),.applicationVersion:"0.3.0",.credits:NSAttributedString(string:"思续，让思考继续\nCarry your thinking forward.")])}
+    @objc func about(){NSApp.orderFrontStandardAboutPanel(options:[.applicationIcon: NSApp.applicationIconImage as Any,.applicationName:tr("Threadline · 思续"),.applicationVersion:Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "0.0.2",.credits:NSAttributedString(string:"思续，让思考继续\nCarry your thinking forward.")])}
     func applicationShouldHandleReopen(_ sender:NSApplication,hasVisibleWindows flag:Bool)->Bool{show();return true}
     func windowShouldClose(_ sender:NSWindow)->Bool{sender.orderOut(nil);return false}
     func registerKeys(){

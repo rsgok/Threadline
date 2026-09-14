@@ -18,3 +18,11 @@ The shared appearance owner is web/buttons.css. Page styles retain placement and
 Pointer clicks do not add focus rings. Tab/arrow navigation retains visible focus. Disabled primary actions use muted fill/text; other disabled controls use reduced opacity. Coarse pointers get at least 40px targets.
 
 The shared stylesheet explicitly overrides old page-specific appearance rules to prevent earlier yellow/blue fills, heavy weights and hard shadows from resurfacing. New controls should reuse the scenario classes above, rather than adding page-specific variants.
+
+## Selection controls
+
+`web/buttons.css` also owns select, checkbox, switch, dropdown menu and segmented-control appearance. Native select semantics are retained for keyboard navigation and platform option pickers; the closed control uses a shared 36px shell (40px for coarse pointers), chevron, muted green border and visible keyboard focus. Do not add page-specific control palettes.
+
+Use `role="switch"` on a checkbox only for an on/off setting, such as including progress messages. Selection checkboxes remain checkboxes. Switches use a green track and moving thumb, respect reduced motion, and keep native controls in forced-colors mode. Segmented choices retain their existing `aria-pressed` state.
+
+Settings sections and note details use spacing and quiet disclosure surfaces instead of stacked horizontal borders. Note Markdown separators retain their semantic position as whitespace; source text and exported Markdown are unchanged.

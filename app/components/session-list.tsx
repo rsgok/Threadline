@@ -168,7 +168,7 @@ export function SessionList({
           <div className="session-brand">
             <img
               className="header-brand-icon"
-              src="/assets/threadline-icon.png"
+              src="/assets/threadline-icon.png?v=sage-1"
               alt=""
             />
             <span className="session-wordmark">

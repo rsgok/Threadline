@@ -240,7 +240,7 @@ export function SessionView({
           <div className="session-brand">
             <img
               className="header-brand-icon"
-              src="/assets/threadline-icon.png"
+              src="/assets/threadline-icon.png?v=sage-1"
               alt=""
             />
             <span className="session-wordmark">
@@ -268,6 +268,7 @@ export function SessionView({
                   <label>
                     <input
                       type="checkbox"
+                      role="switch"
                       checked={draft.includeProgress}
                       disabled={busy}
                       onChange={(event) =>
