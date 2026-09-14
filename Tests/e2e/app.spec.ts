@@ -218,7 +218,7 @@ test("recent sessions load in bounded batches, and titles are not covered by chr
   await ready(page, "/collect?native=1");
   await expect(page.locator(".session-choice")).toHaveCount(6);
   await page.getByRole("button", { name: "显示更多会话" }).click();
-  await expect(page.locator(".session-choice")).toHaveCount(8);
+  await expect(page.locator(".session-choice")).toHaveCount(11);
   const unobscured = await page.locator("#window-page-heading h2, #session-view h2").evaluate((el) => {
     const r = el.getBoundingClientRect();
     return el.contains(document.elementFromPoint(r.x + 10, r.y + r.height / 2));

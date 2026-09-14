@@ -7,7 +7,7 @@ let package = Package(
     products: [.executable(name: "Rewind", targets: ["Rewind"]), .executable(name: "Threadline", targets: ["Threadline"])],
     targets: [
         .target(name: "RewindCore"),
-        .executableTarget(name: "Threadline"),
+        .executableTarget(name: "Threadline", dependencies: ["RewindCore"]),
         .executableTarget(name: "Rewind", dependencies: ["RewindCore"]),
         .testTarget(name: "RewindCoreTests", dependencies: ["RewindCore"])
     ]

@@ -1,3 +1,4 @@
+import { writeTerminalFixture } from "./fixtures/terminal-sessions.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -15,6 +16,7 @@ const codexHome = path.join(directory, "codex"),
   cursorHome = path.join(directory, "cursor");
 fs.mkdirSync(path.join(codexHome, "sessions"), { recursive: true });
 fs.mkdirSync(cursorHome);
+for (const name of ['claude', 'pi', 'deepseek']) writeTerminalFixture(directory, name);
 const png =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aCWQAAAAASUVORK5CYII=";
 const imagePath = path.join(directory, "sample.png");
@@ -108,6 +110,9 @@ const server = createRewindServer({
   legacyDir: null,
   codexHome,
   cursorHome,
+  claudeHome: path.join(directory, 'claude'),
+  piHome: path.join(directory, 'pi'),
+  deepseekHome: path.join(directory, 'deepseek'),
   ocr: false,
   feishu: {
     status: async () => ({

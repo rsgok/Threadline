@@ -10,6 +10,8 @@ import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { CodexSessions, THREAD_ID } from './codex-sessions.mjs';
 import { CursorSessions } from './cursor-sessions.mjs';
+import { TerminalSessions } from './terminal-sessions.mjs';
+import { runtimeNames, sessionID } from './runtimes.mjs';
 import { archiveAssets, portableBody } from './session-assets.mjs';
 import { Sharing } from './sharing.mjs';
 import { CardRenderer } from './card-renderer.mjs';
@@ -88,7 +90,7 @@ function parseImage(value) {
   return { data, extension: kind === 'jpeg' ? 'jpg' : kind };
 }
 
-export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome, cursorHome, feishu: feishuOverride, frontendDir = path.resolve(here, '../build/client') } = {}) {
+export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome, cursorHome, claudeHome, piHome, deepseekHome, feishu: feishuOverride, frontendDir = path.resolve(here, '../build/client') } = {}) {
   fs.mkdirSync(path.join(dataDir, 'attachments'), { recursive: true, mode: 0o700 });
   const store = new LibraryStore(dataDir, legacyDir);
   const organization = new SessionOrganization(dataDir);
@@ -100,13 +102,15 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
   };
   const codex = new CodexSessions(codexHome, path.join(dataDir, 'session-assets'));
   const cursor = new CursorSessions(cursorHome, path.join(dataDir, 'session-assets'));
-  const provider = runtime => { if (!runtime || runtime==='codex') return codex; if(runtime==='cursor')return cursor; throw error(400,'不支持的 Runtime。'); };
+  const providers = { codex, cursor, ...Object.fromEntries(Object.entries({ claude: claudeHome, pi: piHome, deepseek: deepseekHome }).map(([runtime, home]) => [runtime, new TerminalSessions(runtime, home, path.join(dataDir, 'session-assets'))])) };
+  const provider = (runtime = 'codex') => { if (Object.hasOwn(providers, runtime)) return providers[runtime]; throw error(400,'不支持的 Runtime。'); };
+  const validSessionID = (runtime, id) => ['pi', 'deepseek'].includes(runtime) ? sessionID(id) : THREAD_ID.test(id || '');
   const feishu = feishuOverride || createFeishu({ dataDir });
   const previews = new Map();
   const sharing = new Sharing({ dataDir });
   const cardRenderer = new CardRenderer({ dataDir, sharing });
   async function selectedDiscussion(data) {
-    if (!THREAD_ID.test(data.threadID || '') || !Array.isArray(data.messageIDs) || !data.messageIDs.length || data.messageIDs.length > 100 || new Set(data.messageIDs).size !== data.messageIDs.length) throw error(400, '请选择 1 到 100 条消息。');
+    if (!validSessionID(data.runtime, data.threadID) || !Array.isArray(data.messageIDs) || !data.messageIDs.length || data.messageIDs.length > 100 || new Set(data.messageIDs).size !== data.messageIDs.length) throw error(400, '请选择 1 到 100 条消息。');
     const session = await provider(data.runtime).get(data.threadID, { includeProgress: data.includeProgress === true });
     const selected = session.messages.filter(m => data.messageIDs.includes(m.id));
     if (selected.length !== data.messageIDs.length || !data.fingerprints || selected.some(m => data.fingerprints[m.id] !== m.fingerprint)) throw error(409, '消息已变化，请刷新后重新选择。');
@@ -264,7 +268,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
             const notes = associated.filter(a => a.kind !== 'image' || !attachmentIDs.includes(a.id)).map(a => `附件：${a.name}（${attachmentIDs.includes(a.id) ? '文件单独发送' : '未发送'}）`);
             return { ...m, runtime:data.runtime||'codex', text: [body.trim(), ...notes].filter(Boolean).join('\n\n'), imageCount: chosen.filter(a => a.messageId === m.id && a.kind === 'image').length };
           });
-          const text = [data.note.trim(), '讨论摘录 · ' + session.title, ...shared.map(m => (m.role === 'user' ? '【我】' : m.phase === 'commentary' ? '【AI · 过程】' : data.runtime==='cursor'?'【Cursor】':'【Codex】') + '\n' + m.text)].filter(Boolean).join('\n\n');
+          const text = [data.note.trim(), '讨论摘录 · ' + session.title, ...shared.map(m => (m.role === 'user' ? '【我】' : m.phase === 'commentary' ? '【AI · 过程】' : `【${runtimeNames[data.runtime || 'codex']}】`) + '\n' + m.text)].filter(Boolean).join('\n\n');
           for (const [id, p] of previews) if (p.expires < Date.now()) previews.delete(id);
           if (previews.size >= 100) throw error(429, '预览过多，请稍后重试。');
           const id = crypto.randomUUID();
@@ -356,32 +360,36 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         if (req.method === 'POST') return send(200, organization.update(await readJSON(req)));
       }
       if (req.method === 'GET' && pathname === '/api/sessions/recent') {
-        const results=await Promise.allSettled([codex.recent(),cursor.recent()]);
-        const sessions=results.flatMap((r,i)=>r.status==='fulfilled'?r.value.map(s=>({...s,runtime:i?'cursor':'codex'})):[]);
+        const runtimes=Object.keys(providers);
+        const results=await Promise.allSettled(runtimes.map(runtime=>providers[runtime].recent()));
+        const sessions=results.flatMap((r,i)=>r.status==='fulfilled'?r.value.map(s=>({...s,runtime:runtimes[i]})):[]);
         return send(200,{sessions:sessions.sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||'')),
-          errors:results.flatMap((r,i)=>r.status==='rejected'?[{runtime:i?'cursor':'codex',message:r.reason.message}]:[])});
+          errors:results.flatMap((r,i)=>r.status==='rejected'?[{runtime:runtimes[i],message:r.reason.message}]:(providers[runtimes[i]].warnings || []).map(message=>({runtime:runtimes[i],message})))});
       }
-      if (req.method === 'GET' && /^\/api\/(codex|cursor)\/recent$/.test(pathname)) return send(200, { sessions: await provider(pathname.split('/')[2]).recent() });
-      const sessionRoute = pathname.match(/^\/api\/(codex|cursor)\/sessions\/([^/]+)$/);
+      if (req.method === 'GET' && /^\/api\/(codex|cursor|claude|pi|deepseek)\/recent$/.test(pathname)) {
+        const reader=provider(pathname.split('/')[2]);
+        return send(200, { sessions: await reader.recent(), warnings: reader.warnings || [] });
+      }
+      const sessionRoute = pathname.match(/^\/api\/(codex|cursor|claude|pi|deepseek)\/sessions\/([^/]+)$/);
       if (req.method === 'GET' && sessionRoute) {
         const session = await provider(sessionRoute[1]).get(sessionRoute[2], { includeProgress: url.searchParams.get('progress') === '1' });
         if (url.searchParams.get('summary') === '1') return send(200, { session: { id: session.id, title: session.title, cwd: session.cwd, project: session.project, status: session.status, messages: session.messages.slice(-1).map(message => ({ ...message, text: message.text.slice(0, 500) })) } });
         session.runtime=sessionRoute[1];
         const saved = store.by('provenance.threadID', session.id).filter(c=>(c.provenance.runtime||'codex')===session.runtime).flatMap(c=>c.provenance.messages||[]);
-        session.messages = session.messages.map(m=>({...m,saved:saved.some(old=>old.id===m.id || (old.fingerprint===m.fingerprint && old.role===m.role) || (m.timestamp && old.timestamp===m.timestamp && old.role===m.role))}));
+        session.messages = session.messages.map(m=>({...m,saved:saved.some(old=>['claude','pi','deepseek'].includes(session.runtime) ? old.id===m.id && old.fingerprint===m.fingerprint : old.id===m.id || (old.fingerprint===m.fingerprint && old.role===m.role) || (m.timestamp && old.timestamp===m.timestamp && old.role===m.role))}));
         return send(200, { session });
       }
-      if (req.method === 'POST' && /^\/api\/(codex|cursor)\/import$/.test(pathname)) {
+      if (req.method === 'POST' && /^\/api\/(codex|cursor|claude|pi|deepseek)\/import$/.test(pathname)) {
         const data = await readJSON(req);
         data.runtime=pathname.split('/')[2];
-        if (!THREAD_ID.test(data.threadID || '') || !Array.isArray(data.messageIDs) || !data.messageIDs.length || data.messageIDs.length > 100 || data.messageIDs.some(id => typeof id !== 'string')) throw error(400, '请选择 1 到 100 条消息。');
+        if (!validSessionID(data.runtime, data.threadID) || !Array.isArray(data.messageIDs) || !data.messageIDs.length || data.messageIDs.length > 100 || data.messageIDs.some(id => typeof id !== 'string')) throw error(400, '请选择 1 到 100 条消息。');
         if (new Set(data.messageIDs).size !== data.messageIDs.length) throw error(400, '消息选择有重复。');
         validateFields(data); validateTopic(data);
         const session = await provider(data.runtime).get(data.threadID, { includeProgress: data.includeProgress === true });
         const selected = session.messages.filter(m => data.messageIDs.includes(m.id));
         if (selected.length !== data.messageIDs.length) throw error(409, '部分消息已变化或不属于这条会话，请刷新后重新选择。');
         if (!data.fingerprints || selected.some(m => data.fingerprints[m.id] !== m.fingerprint)) throw error(409, '消息正文已变化，请刷新预览后重新选择。');
-        const importedKey = crypto.createHash('sha256').update(JSON.stringify([...(data.runtime==='cursor'?['cursor']:[]),session.id, selected.map(m => [m.id, m.fingerprint])])).digest('hex');
+        const importedKey = crypto.createHash('sha256').update(JSON.stringify([...(data.runtime!=='codex'?[data.runtime]:[]),session.id, selected.map(m => [m.id, m.fingerprint])])).digest('hex');
         const existing = store.by('codexImportKey', importedKey)[0];
         if (existing) {
           if (!Array.isArray(existing.assets)) { existing.updatedAt = now(); preserveAttachments(existing, selected); }
@@ -391,7 +399,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         if (body.length > 2_000_000) throw error(413, '所选消息过长，请分批收藏。');
         const timestamp = now();
         const clip = { id: crypto.randomUUID().toUpperCase(), title: data.title?.trim() || session.title,
-          body, topicID: data.topicID || '', note: data.note || '', question: '', source: data.runtime==='cursor'?'Cursor':'Codex', sourceURL: `http://${req.headers.host}/?thread=${session.id}&runtime=${data.runtime}&view=import`,
+          body, topicID: data.topicID || '', note: data.note || '', question: '', source: runtimeNames[data.runtime], sourceURL: `http://${req.headers.host}/?thread=${session.id}&runtime=${data.runtime}&view=import`,
           createdAt: timestamp, updatedAt: timestamp, codexImportKey: importedKey,
           provenance: { runtime: data.runtime, threadID: session.id, threadTitle: session.title, cwd:session.cwd || '', project:session.project || null,
             messages: selected.map(m => ({ id: m.id, role: m.role, timestamp: m.timestamp, fingerprint: m.fingerprint })),

@@ -18,7 +18,7 @@ export class SessionOrganization {
       if (existing) existing.color = command.color;
       else state.tags.push({ name, color: command.color });
     } else {
-      if (!['pin', 'addTag', 'removeTag'].includes(command.action) || !Array.isArray(command.keys) || !command.keys.length || command.keys.length > 200 || command.keys.some(key => typeof key !== 'string' || !/^(codex|cursor):[^\s]{1,200}$/.test(key))) invalid();
+      if (!['pin', 'addTag', 'removeTag'].includes(command.action) || !Array.isArray(command.keys) || !command.keys.length || command.keys.length > 200 || command.keys.some(key => typeof key !== 'string' || !/^(codex|cursor|claude|pi|deepseek):[^\s]{1,200}$/.test(key))) invalid();
       if (command.action === 'pin' ? typeof command.pinned !== 'boolean' : !state.tags.some(tag => tag.name === command.name)) invalid();
       for (const key of command.keys) {
         const entry = state.sessions[key] ||= { pinned: false, tags: [] };

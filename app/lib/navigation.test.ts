@@ -15,3 +15,9 @@ test("route navigation preserves native surface without carrying old selections"
     "/notes/abc?panel=1",
   );
 });
+
+for (const runtime of ["claude", "pi", "deepseek"]) {
+  test(`legacy link preserves ${runtime} identity and surface`, () => {
+    assert.equal(entryPath(new URL(`http://localhost/?thread=session-1&runtime=${runtime}&native=1`)), `/collect/${runtime}/session-1?native=1`);
+  });
+}

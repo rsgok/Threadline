@@ -1,3 +1,4 @@
+import { runtimeNames } from "../lib/runtimes";
 import {
   lazy,
   memo,
@@ -534,7 +535,7 @@ const MessageCard = memo(function MessageCard({
   const role =
     message.role === "user"
       ? t("你")
-      : (runtime === "cursor" ? "Cursor" : "Codex") +
+      : runtimeNames[runtime] +
         (message.phase === "commentary" ? t(" · 过程") : t(" · 回答"));
   return (
     <article
@@ -549,11 +550,17 @@ const MessageCard = memo(function MessageCard({
         onClick={() => select(message.id)}
         disabled={disabled}
       >
-        <img
-          className={`message-avatar avatar-${message.role === "user" ? "user" : runtime}`}
-          src={`/assets/${message.role === "user" ? "user" : runtime}-avatar.png`}
-          alt=""
-        />
+        {message.role === "user" || runtime === "codex" || runtime === "cursor" ? (
+          <img
+            className={`message-avatar avatar-${message.role === "user" ? "user" : runtime}`}
+            src={`/assets/${message.role === "user" ? "user" : runtime}-avatar.png`}
+            alt=""
+          />
+        ) : (
+          <span className="message-avatar terminal-avatar" aria-hidden="true">
+            {{ claude: "C", pi: "π", deepseek: "D" }[runtime]}
+          </span>
+        )}
         <span className="message-role">{role}</span>
         {message.saved ? (
           <span className="message-saved-tag">{t("已记录")}</span>

@@ -1,6 +1,6 @@
 ---
 name: threadline
-description: 使用 Threadline 思续 CLI 搜索、读取、保存和更新讨论笔记，导入本机 Codex 消息，或打开侧边栏选择页。适用于 agent runtime 保留进展、找回判断、带入下次讨论。
+description: 使用 Threadline 思续 CLI 搜索、读取、保存和更新讨论笔记，导入本机 Codex、Cursor、Claude Code、Pi 和 DeepSeek Harness 消息，或打开侧边栏选择页。适用于 agent runtime 保留进展、找回判断、带入下次讨论。
 ---
 
 # 留下当前讨论
@@ -33,19 +33,25 @@ threadline export NOTE_UUID --output /absolute/path/note.zip
 
 只在用户要求保留或任务明确授权时保存、更新；保存范围按用户意图决定。`delete NOTE_UUID` 是永久删除，仅在用户明确要求删除该笔记时使用。`export all` 可导出全部，输出文件必须尚不存在。
 
-## 本机 Codex 原文导入
+## 本机原文导入
 
 ```sh
-threadline sessions
-threadline session --thread CODEX_UUID > /tmp/threadline-session.json
+threadline sessions --runtime all
+threadline session --runtime codex --thread CODEX_UUID > /tmp/threadline-session.json
 threadline import --snapshot /tmp/threadline-session.json --message MESSAGE_ID --message ANOTHER_MESSAGE_ID --title '选定讨论'
 ```
 
-先读取 session 的 messages，查看原文，再用明确选中的 ID 导入。快照带 fingerprint，服务会检查正文是否仍与快照一致；相同选择重复导入会返回 `duplicate: true`。过程消息默认不展示，确有需要用 `session --progress`。`--thread` 可省略并使用 `CODEX_THREAD_ID`，没有 ID 时必须明确指定，不猜最近会话。session 只能读取服务所在机器的 Codex 本地记录；其他 runtime 使用 `save --file`。
+先读取 session 的 messages，查看原文，再用明确选中的 ID 导入。快照带 fingerprint，服务会检查正文是否仍与快照一致；相同选择重复导入会返回 `duplicate: true`。过程消息默认不展示，确有需要用 `session --progress`。`--runtime` 支持 codex、cursor、claude、pi、deepseek，默认 codex。Codex、Pi、DeepSeek Harness 分别可从 `CODEX_THREAD_ID`、`PI_SESSION_ID`、`DSH_SESSION_ID` 读取当前 ID；其他情况必须显式传 `--thread`，不猜最近会话。import 使用快照中的 runtime。session 只能读取服务所在机器的记录；不支持的格式或远程记录可使用 `save --file`，且明确标记整理稿。Pi 展示最后写入分支上的原文；DeepSeek Harness v3 展示原始 append 消息，保留压缩前原文，跳过派生替换内容
 
-## 侧边栏选择
+## Terminal 中整理
 
-当用户只说“留下当前讨论”“保存这几条回复”但没有明确选定范围时，保持原有交互：运行本 skill 下 `scripts/current_session.py`，或在服务已启动时用 `threadline panel`，可传 `--thread`。使用返回的 `url` 调用 `mcp__codex_app__open_in_codex`，target 为 browser、placement 为 right，并提供“留下当前讨论”链接。打开工具不可用时直接返回链接。`panel` 只生成 URL，不代表服务可用。
+用户要求在 Threadline 整理当前讨论时，运行 `threadline open --runtime RUNTIME --thread SESSION_ID`。CLI 先核对会话，再通过 `threadline://collect/RUNTIME/SESSION_ID` 打开 Mac App，供用户选择和整理；这要求已安装新版 Mac App。开发端口或非 Mac 环境使用 `--browser` 打开同一个选择页。打开失败时返回 panel/HTTP 链接，不宣称已经打开
+
+不清楚保存范围时只打开选择页，不自动收录整个会话。Skill + CLI 的保存、检索、读取在所有 runtime 中共享同一个资料库
+
+## IDE 侧边栏选择
+
+在 Codex IDE 中，当用户只说“留下当前讨论”“保存这几条回复”但没有明确选定范围时，运行本 skill 下 `scripts/current_session.py`，或在服务已启动时用 `threadline panel --runtime codex`，可传 `--thread`。使用返回的 `url` 调用 `mcp__codex_app__open_in_codex`，target 为 browser、placement 为 right，并提供“留下当前讨论”链接。其他 IDE 使用自己的 runtime 和明确会话 ID 生成 panel 链接；Terminal Agent 按上一节使用 `open`，不要调用 Codex 专用的 `current_session.py`。打开工具不可用时直接返回链接。`panel` 只生成 URL，不代表服务可用
 
 默认由用户在页面勾选并保存。用户明确要求 agent 保存指定消息时才使用 import。CLI 不发送飞书消息。
 
