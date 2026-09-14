@@ -649,14 +649,6 @@ function RelationEditor({
         </div>
         <ErrorText error={error} />
         <div className="dialog-bottom">
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={onClose}
-          >
-            {t("取消")}
-          </button>
           <button className="primary" disabled={busy}>
             {tr("保存并确认", "Save and confirm")}
           </button>

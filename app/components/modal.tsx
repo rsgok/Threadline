@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { setupModal } from "../lib/modal";
-import { t } from "../lib/i18n";
 
 export function Modal({
   title,
@@ -50,15 +49,6 @@ export function Modal({
       <div className="dialog-inner">
         <div className="dialog-head">
           <h2 id={heading}>{title}</h2>
-          <button
-            type="button"
-            className="tool"
-            disabled={busy}
-            onClick={onClose}
-            aria-label={t("关闭")}
-          >
-            ×
-          </button>
         </div>
         {children}
       </div>

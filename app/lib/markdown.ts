@@ -18,6 +18,14 @@ export function localResourceURL(path: string, context: ResourceContext = {}) {
   return "/api/local-resource?" + params;
 }
 const markdown = new MarkdownIt({ html: false, linkify: false, breaks: true });
+// Local destinations are filesystem paths. URLSearchParams encodes them when
+// building the resource request; normalizing them as URLs first double-encodes
+// spaces and non-ASCII characters (and changes literal percent escapes).
+const normalizeLink = markdown.normalizeLink.bind(markdown);
+markdown.normalizeLink = (destination: string) =>
+  destination.startsWith("/") && !destination.startsWith("//")
+    ? destination
+    : normalizeLink(destination);
 const defaultImage = markdown.renderer.rules.image!;
 markdown.renderer.rules.image = (
   tokens,

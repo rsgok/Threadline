@@ -162,7 +162,7 @@ export function createFeishu({ dataDir, cli = runLark, register = registerApp, q
     try { await cli(['--version']); } finally { busy = false; }
     const id = ++generation; controller = new AbortController(); job = { status: 'starting', kind: 'create' };
     register({ source: 'threadline', createOnly: true, signal: controller.signal,
-      appPreset: { avatar: 'https://magic-builder.tos-cn-beijing.volces.com/threadline/assets/threadline-icon-v1.png', name: 'Threadline · {user}', desc: '把选中的 AI 讨论分享给飞书同事' },
+      appPreset: { avatar: 'https://raw.githubusercontent.com/rsgok/Threadline/d54a8d4227de685a40d257fdad1d4d5184dc0f85/web/assets/threadline-icon.png', name: 'Threadline · {user}', desc: '把选中的 AI 讨论分享给飞书同事' },
       addons: { preset: false, scopes: { user: USER_SCOPES, tenant: [...BOT_SCOPES, UPLOAD_SCOPE] } },
       onQRCodeReady: async info => {
         let image; try { image = await qr(info.url); } catch { return; }

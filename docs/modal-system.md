@@ -18,6 +18,7 @@ New dialogs must use the existing surface and content structure:
 ```
 
 - Use the shared React `Modal` component, which calls `setupModal(dialog, { canDismiss, dismiss })`; it adds `modal-surface` and provides backdrop/Escape dismissal behavior
+- Do not include dedicated modal-dismissal buttons (×, Close, or a Cancel action whose only purpose is closing). Dismiss via the backdrop or Escape using the shared helper. Keep meaningful task actions such as canceling an in-progress connection or generation, along with their existing guards
 - Do not add the legacy `compact-dialog` class to new dialogs
 - Shared styles own centering, viewport margins, radius, backdrop, padding, typography, fields, keyboard focus and action appearance
 - Set `--modal-width` only when the content needs a different width; default is 560px. Do not introduce another width variable or override the surface geometry
