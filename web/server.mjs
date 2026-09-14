@@ -489,7 +489,8 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
   return server;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// Versioned installations launch through app -> releases/<version>.
+if (process.argv[1] && fs.existsSync(process.argv[1]) && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const server = createRewindServer({ dataDir: process.env.REWIND_WEB_DATA_DIR || defaultDir });
   const port = Number(process.env.REWIND_WEB_PORT || 43127);
   server.on('error', err => { console.error(err.message); process.exitCode = 1; });

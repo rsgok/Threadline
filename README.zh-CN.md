@@ -145,6 +145,7 @@ bash scripts/install-skill.sh --runtime claude
 | [本地数据与备份（英文）](docs/local-data.md) | 存储、导出、附件处理与备份 |
 | [开发指南（英文）](docs/development.md) | 从源码运行、验证改动与项目结构 |
 | [分享指南](docs/sharing.md) | 平台连接、图卡、大小限制与重试机制 |
+| [Mac 更新（英文）](docs/updates.md) | 外壳与功能包独立更新、发布配置和失败回退 |
 | [界面语言（英文）](docs/i18n.md) | 语言设置和翻译约定 |
 
 ## 参与贡献

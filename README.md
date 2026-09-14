@@ -145,6 +145,7 @@ See [local data and backups](docs/local-data.md) for storage details, attachment
 | [Local data and backups](docs/local-data.md) | Storage, exports, attachment handling, and safe backups. |
 | [Development](docs/development.md) | Run from source, validate changes, and understand the project layout. |
 | [Sharing guide — 简体中文](docs/sharing.md) | Configure sharing destinations, image cards, limits, and retry behavior. |
+| [Mac updates](docs/updates.md) | Separate shell and feature updates, release configuration, and recovery. |
 | [Interface languages](docs/i18n.md) | Language preferences and translation conventions. |
 
 ## Contributing

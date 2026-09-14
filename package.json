@@ -1,11 +1,11 @@
 {
   "name": "threadline-local",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node web/server.mjs",
-    "test": "node --test web/*.test.mjs && node --experimental-strip-types --test app/lib/*.test.ts",
+    "test": "node --test web/*.test.mjs updater/*.test.mjs && node --experimental-strip-types --test app/lib/*.test.ts",
     "dev": "node scripts/dev.mjs",
     "dev:web": "react-router dev --host 127.0.0.1",
     "build": "react-router build",
