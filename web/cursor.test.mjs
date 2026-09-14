@@ -41,7 +41,7 @@ test('Cursor full API: discover, preview, import, deduplicate, preserve source a
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'threadline-cursor-api-'));
  const home=path.join(root,'cursor'),dir=path.join(home,'project','agent-transcripts',id);
  fs.mkdirSync(dir,{recursive:true});const file=path.join(dir,id+'.jsonl');fs.writeFileSync(file,transcript);
- const server=createRewindServer({dataDir:path.join(root,'data'),legacyDir:null,codexHome:path.join(root,'codex'),cursorHome:home,ocr:false,feishu:{close(){}}});
+ const server=createRewindServer({ claudeHome: '/nonexistent/threadline-test/claude', piHome: '/nonexistent/threadline-test/pi', deepseekHome: '/nonexistent/threadline-test/deepseek',dataDir:path.join(root,'data'),legacyDir:null,codexHome:path.join(root,'codex'),cursorHome:home,ocr:false,feishu:{close(){}}});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  t.after(async()=>{await new Promise(r=>server.close(r));fs.rmSync(root,{recursive:true,force:true})});
  const origin='http://127.0.0.1:'+server.address().port;

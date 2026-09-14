@@ -1,3 +1,4 @@
+import { isRuntime } from "./runtimes.ts";
 // Preserve surface flags across routes, but never copy old selection/query state implicitly.
 export function surfacePath(path: string, search: string): string {
   const flags = new URLSearchParams(search);
@@ -27,7 +28,7 @@ export function entryPath(url: URL): string {
   if (thread)
     return surfacePath(
       "/collect/" +
-        (params.get("runtime") === "cursor" ? "cursor" : "codex") +
+        (isRuntime(params.get("runtime") || "") ? params.get("runtime") : "codex") +
         "/" +
         encodeURIComponent(thread),
       url.search,

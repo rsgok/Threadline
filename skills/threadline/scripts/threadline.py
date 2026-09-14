@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import subprocess
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -29,7 +30,12 @@ def main():
     commands = parser.add_subparsers(dest='command', required=True)
     commands.add_parser('health')
     panel = commands.add_parser('panel', help='Return selection URL; never chooses messages')
-    panel.add_argument('--thread', default=os.environ.get('CODEX_THREAD_ID', ''))
+    panel.add_argument('--thread')
+    panel.add_argument('--runtime', choices=['codex', 'cursor', 'claude', 'pi', 'deepseek'], default='codex')
+    opening = commands.add_parser('open', help='Open the exact conversation in Threadline App or browser')
+    opening.add_argument('--thread')
+    opening.add_argument('--runtime', choices=['codex', 'cursor', 'claude', 'pi', 'deepseek'], default='codex')
+    opening.add_argument('--browser', action='store_true', help='Use a browser instead of the macOS App')
     ls = commands.add_parser('list')
     ls.add_argument('--query', default='')
     get = commands.add_parser('get')
@@ -56,9 +62,11 @@ def main():
     export = commands.add_parser('export')
     export.add_argument('id', help='Clip ID or all')
     export.add_argument('--output', required=True, help='New ZIP file; existing files are never overwritten')
-    commands.add_parser('sessions')
+    sessions = commands.add_parser('sessions')
+    sessions.add_argument('--runtime', choices=['codex', 'cursor', 'claude', 'pi', 'deepseek', 'all'], default='all')
     session = commands.add_parser('session')
-    session.add_argument('--thread', default=os.environ.get('CODEX_THREAD_ID', ''))
+    session.add_argument('--thread')
+    session.add_argument('--runtime', choices=['codex', 'cursor', 'claude', 'pi', 'deepseek'], default='codex')
     session.add_argument('--progress', action='store_true')
     imp = commands.add_parser('import', help='Import explicit messages from a reviewed session JSON snapshot')
     imp.add_argument('--snapshot', required=True, help='JSON returned by session')
@@ -109,9 +117,32 @@ def main():
         if getattr(args, 'file', None) is not None:
             data['body'] = sys.stdin.read() if args.file == '-' else Path(args.file).read_text(encoding='utf-8')
         return data
+    def runtime_ident(runtime, value):
+        if runtime not in ['codex', 'cursor', 'claude', 'pi', 'deepseek']:
+            raise Failure('Unsupported runtime', 2)
+        if runtime in ['pi', 'deepseek']:
+            if not isinstance(value, str) or not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,199}', value):
+                raise Failure('An explicit session ID is required', 2)
+            return value
+        return ident(value or '')
+    def current_thread():
+        variable = {'codex': 'CODEX_THREAD_ID', 'pi': 'PI_SESSION_ID', 'deepseek': 'DSH_SESSION_ID'}.get(args.runtime)
+        return runtime_ident(args.runtime, args.thread or (os.environ.get(variable) if variable else None))
     cmd = args.command
-    if cmd == 'panel':
-        result = {'threadID': ident(args.thread), 'url': base + '/?' + urllib.parse.urlencode({'thread': args.thread, 'view': 'import', 'panel': '1'})}
+    if cmd in ('panel', 'open'):
+        thread = current_thread()
+        url = base + '/collect/' + args.runtime + '/' + urllib.parse.quote(thread, safe='')
+        result = {'runtime': args.runtime, 'threadID': thread, 'url': url + ('?panel=1' if cmd == 'panel' else '')}
+        if cmd == 'open':
+            request('/api/' + args.runtime + '/sessions/' + urllib.parse.quote(thread, safe='') + '?summary=1')
+            if sys.platform == 'darwin' and not args.browser:
+                if parsed.port != 43127:
+                    raise Failure('The Mac App uses port 43127; use --browser for a development service.', 2)
+                target = 'threadline://collect/' + args.runtime + '/' + urllib.parse.quote(thread, safe='')
+                subprocess.run(['open', target], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            else:
+                subprocess.run(['open' if sys.platform == 'darwin' else 'xdg-open', url], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            result['opened'] = True
     elif cmd == 'health':
         result = request('/health')
         if result.get('app') != 'rewind-web':
@@ -138,18 +169,20 @@ def main():
             output.write(raw)
         result = {'path': str(Path(args.output).resolve()), 'bytes': len(raw)}
     elif cmd == 'sessions':
-        result = request('/api/codex/recent')
+        result = request('/api/sessions/recent' if args.runtime == 'all' else '/api/' + args.runtime + '/recent')
     elif cmd == 'session':
-        result = request('/api/codex/sessions/' + ident(args.thread) + ('?progress=1' if args.progress else ''))
+        result = request('/api/' + args.runtime + '/sessions/' + current_thread() + ('?progress=1' if args.progress else ''))
     elif cmd == 'import':
         snapshot = json.loads(Path(args.snapshot).read_text(encoding='utf-8'))['session']
+        runtime = snapshot.get('runtime', 'codex')
+        runtime_ident(runtime, snapshot['id'])
         selected = [m for m in snapshot['messages'] if m['id'] in args.message]
         if len(set(args.message)) != len(args.message) or len(selected) != len(args.message):
             raise Failure('Select unique message IDs present in the snapshot', 2)
         data = payload()
-        data.update(threadID=ident(snapshot['id']), messageIDs=args.message,
+        data.update(threadID=runtime_ident(runtime, snapshot['id']), messageIDs=args.message,
                     fingerprints={m['id']: m['fingerprint'] for m in selected}, includeProgress=True)
-        result = request('/api/codex/import', 'POST', data)
+        result = request('/api/' + runtime + '/import', 'POST', data)
     elif cmd == 'topic-create':
         result = request('/api/threads', 'POST', {'title': args.title, 'goal': args.goal})
     print(json.dumps(result, ensure_ascii=False))
@@ -158,7 +191,7 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except (Failure, OSError, ValueError, KeyError, TypeError) as err:
+    except (Failure, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as err:
         status = getattr(err, 'status', 1)
         print(json.dumps({'error': str(err), 'status': status}, ensure_ascii=False), file=sys.stderr)
         sys.exit(2 if status == 2 else 1)

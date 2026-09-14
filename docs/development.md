@@ -11,7 +11,7 @@ npm ci
 REWIND_WEB_DATA_DIR=/tmp/threadline-dev npm run dev
 ```
 
-Open <http://127.0.0.1:5173>. Vite proxies APIs and static product assets to the local service on port 43139 (override with `REWIND_WEB_PORT`). Ctrl-C stops both processes. A separate data directory isolates notes; transcript discovery still reads local Codex/Cursor sessions. For fictional data, use the browser-test fixture below.
+Open <http://127.0.0.1:5173>. Vite proxies APIs and static product assets to the local service on port 43139 (override with `REWIND_WEB_PORT`). Ctrl-C stops both processes. A separate data directory isolates notes; transcript discovery still reads local sessions from all five supported runtimes. For fictional data, use the browser-test fixture below.
 
 For a production build:
 

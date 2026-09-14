@@ -13,7 +13,7 @@ function persistedTopics(directory) { const store = new LibraryStore(directory);
 async function fixture(t, feishu) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rewind-web-'));
   const codexHome = path.join(directory, 'codex');
-  const server = createRewindServer({ dataDir: directory, legacyDir: null, ocr: false, codexHome, feishu });
+  const server = createRewindServer({ claudeHome: '/nonexistent/threadline-test/claude', piHome: '/nonexistent/threadline-test/pi', deepseekHome: '/nonexistent/threadline-test/deepseek', dataDir: directory, legacyDir: null, ocr: false, codexHome, feishu });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = 'http://127.0.0.1:' + server.address().port;
   t.after(async () => { await new Promise(resolve => server.close(resolve)); fs.rmSync(directory, { recursive: true, force: true }); });
@@ -75,7 +75,7 @@ test('corrupt persisted library is never silently replaced', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rewind-corrupt-'));
   try {
     fs.writeFileSync(path.join(dir, 'library.json'), 'broken');
-    assert.throws(() => createRewindServer({ dataDir: dir, legacyDir: null }));
+    assert.throws(() => createRewindServer({ claudeHome: '/nonexistent/threadline-test/claude', piHome: '/nonexistent/threadline-test/pi', deepseekHome: '/nonexistent/threadline-test/deepseek', dataDir: dir, legacyDir: null }));
     assert.equal(fs.readFileSync(path.join(dir, 'library.json'), 'utf8'), 'broken');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });

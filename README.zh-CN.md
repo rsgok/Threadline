@@ -21,7 +21,7 @@
 
 <p align="center"><a href="README.md">English</a> · <strong>简体中文</strong></p>
 
-<p align="center"><sub>macOS 13+ · 本地存储 · Codex 与 Cursor · 早期开发阶段</sub></p>
+<p align="center"><sub>macOS 13+ · 本地存储 · Codex · Cursor · Claude Code · Pi · DeepSeek Harness · 早期开发阶段</sub></p>
 
 ![Threadline 当前 Mac 界面：选择对话中值得保留的消息，收录到本地资料库](web/assets/landing-collect.png)
 
@@ -39,7 +39,7 @@ Threadline 让这些进展可以继续积累。把值得保留的消息连同上
 
 ### 1. 留下有用的部分
 
-浏览本机的 **Codex** 和 **Cursor Agent** 会话，选择具体消息，保存原文、来源引用，以及能够识别的项目上下文。支持的本地图片和文件可以随笔记一起保存副本
+浏览本机的 **Codex、Cursor Agent、Claude Code、Pi 和 DeepSeek Harness** 会话，选择具体消息，保存原文、来源引用，以及能够识别的项目上下文。支持的本地图片和文件可以随笔记一起保存副本
 
 ### 2. 加入自己的思考
 
@@ -100,9 +100,21 @@ bash scripts/install-skill.sh
 
 新建一个 Codex 会话，使用 `$threadline` 为当前讨论打开 Threadline。CLI 配置和其他 Agent Runtime 的接入方式见 [Agent 集成指南](docs/agent-runtime.md)
 
+### 在 Terminal Agent 中使用
+
+安装 CLI 和对应 Agent 的 Skill：
+
+```sh
+bash scripts/install-cli.sh
+bash scripts/install-skill.sh --runtime claude
+# 也可以选择 --runtime pi 或 --runtime deepseek
+```
+
+在 Agent 中要求 Threadline 整理当前讨论，即可在自己的 Mac App 中选择、收录和整理。新版 App 支持精确会话链接，也可以运行 `threadline open --runtime claude --thread SESSION_ID`；添加 `--browser` 使用网页界面。笔记和搜索与侧栏共享
+
 ### 收录第一段对话
 
-1. 打开「收录会话」，选择一条本机 Codex 或 Cursor 对话
+1. 打开「收录会话」，选择一条已支持 runtime 的本机对话
 2. 勾选值得保留的消息，点击「记录」
 3. 打开保存的笔记，补上自己的理解，准备继续讨论时点击「接着用」
 
@@ -119,7 +131,8 @@ bash scripts/install-skill.sh
 
 ## 当前支持范围
 
-- 会话收录读取 **Codex 和 Cursor Agent 的本机记录**，不下载云端历史，也不恢复旧版 Cursor IDE 数据库
+- 会话收录读取 **Codex、Cursor Agent、Claude Code、Pi 和 DeepSeek Harness 的本机记录**，不下载云端历史，也不恢复旧版 Cursor IDE 数据库
+- Pi 收录展示最后写入的分支；DeepSeek Harness 支持 v3 会话日志，其托管附件暂保留引用，压缩日志需要 Node.js 22.15 或更高版本。具体范围见 [Agent 集成指南](docs/agent-runtime.md)
 - Mac App 当前需要从源码构建，并依赖已安装的 Node.js
 - PNG 图卡首次生成时下载 Chromium 排版组件，安装后在本机完成渲染
 - 飞书、Slack、Discord 需要分别配置连接；飞书还需要本机安装 `lark-cli`

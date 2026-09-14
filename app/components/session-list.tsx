@@ -1,3 +1,4 @@
+import { runtimeNames, runtimes } from "../lib/runtimes";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { api, post, errorMessage } from "../lib/api";
@@ -216,8 +217,7 @@ export function SessionList({
               }
             >
               <option value="all">{t("全部 Runtime")}</option>
-              <option value="codex">Codex</option>
-              <option value="cursor">Cursor</option>
+              {runtimes.map(value => <option key={value} value={value}>{runtimeNames[value]}</option>)}
             </select>
           </div>
           <div className="conversation-filters">
@@ -392,7 +392,7 @@ export function SessionList({
                           </button>
                           <div className="session-list-preview">
                             <span className="conversation-runtime">
-                              {session.runtime === "codex" ? "Codex" : "Cursor"}
+                              {runtimeNames[session.runtime]}
                             </span>
                             {entry?.tags.slice(0, 1).map((name) => (
                               <button
@@ -428,7 +428,7 @@ export function SessionList({
           {data.errors
             ?.filter((error) => runtime === "all" || error.runtime === runtime)
             .map((error) => (
-              <p className="session-errors" key={error.runtime}>
+              <p className="session-errors" key={error.runtime + error.message}>
                 {error.runtime} · {error.message}
               </p>
             ))}

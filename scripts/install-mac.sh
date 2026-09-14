@@ -12,7 +12,7 @@ swift scripts/make-menu-icon.swift "$THREADLINE_APP/Contents/Resources/MenuIcon.
 rm -f "$THREADLINE_APP/Contents/Resources/TrayIcon.png" "$THREADLINE_APP/Contents/Resources/Threadline.icns"
 python3 - <<'PY'
 import json,plistlib,pathlib
-info={'CFBundleName':'Threadline','CFBundleDisplayName':'Threadline','CFBundleIdentifier':'local.rewind.app','CFBundleExecutable':'Threadline','CFBundlePackageType':'APPL','CFBundleShortVersionString':json.loads(pathlib.Path('package.json').read_text())['version'],'CFBundleVersion':'6','CFBundleIconFile':'ThreadlineGreen','LSMinimumSystemVersion':'13.0','NSHighResolutionCapable':True,'NSAppTransportSecurity':{'NSAllowsLocalNetworking':True}}
+info={'CFBundleName':'Threadline','CFBundleDisplayName':'Threadline','CFBundleIdentifier':'local.rewind.app','CFBundleExecutable':'Threadline','CFBundlePackageType':'APPL','CFBundleShortVersionString':json.loads(pathlib.Path('package.json').read_text())['version'],'CFBundleVersion':'7','CFBundleURLTypes':[{'CFBundleURLName':'Threadline Conversation','CFBundleURLSchemes':['threadline']}],'CFBundleIconFile':'ThreadlineGreen','LSMinimumSystemVersion':'13.0','NSHighResolutionCapable':True,'NSAppTransportSecurity':{'NSAllowsLocalNetworking':True}}
 with pathlib.Path('dist/Threadline.app/Contents/Info.plist').open('wb') as f:plistlib.dump(info,f)
 PY
 codesign --force --deep --sign - "$THREADLINE_APP"

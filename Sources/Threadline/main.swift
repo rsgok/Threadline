@@ -1,3 +1,4 @@
+import RewindCore
 import AppKit
 import WebKit
 import Carbon
@@ -27,6 +28,8 @@ final class ThreadlineWindow: NSWindow {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate, WKScriptMessageHandler, NSToolbarDelegate {
+    var pendingConversation: URL?
+    var serviceReady = false
     var statusItem: NSStatusItem?
     var window: NSWindow!
     var web: WKWebView!
@@ -59,6 +62,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         localizeMenus(NSApp.mainMenu);localizeMenus(statusItem?.menu)
         window?.title = tr("Threadline · 思续")
         statusItem?.button?.toolTip = tr("Threadline · 思续")
+    }
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let target = urls.compactMap(ThreadlineLink.destination).last else { return }
+        pendingConversation = target
+        guard web != nil, window != nil else { return }
+        show()
+        if serviceReady { web.load(URLRequest(url: target)); pendingConversation = nil }
     }
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let iconURL = Bundle.main.url(forResource: "ThreadlineGreen", withExtension: "icns"),
@@ -134,7 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         URLSession.shared.dataTask(with:request){data,response,_ in
             let valid = (try? JSONSerialization.jsonObject(with:data ?? Data())) as? [String:Any]
             DispatchQueue.main.async {
-                if valid?["app"] as? String == "rewind-web" {self.web.load(URLRequest(url:URL(string:"http://127.0.0.1:43127/?native=1")!));return}
+                if valid?["app"] as? String == "rewind-web" {self.serviceReady = true;self.web.load(URLRequest(url:self.pendingConversation ?? URL(string:"http://127.0.0.1:43127/?native=1")!));self.pendingConversation = nil;return}
                 if attempt==0 {let p=Process();p.executableURL=URL(fileURLWithPath:"/bin/launchctl");p.arguments=["kickstart","gui/\(getuid())/local.rewind.web"];try? p.run()}
                 if attempt<20 {DispatchQueue.main.asyncAfter(deadline:.now()+0.3){self.connect(attempt:attempt+1)}}
                 else {let alert=NSAlert();alert.messageText=self.tr("Threadline 本机服务未能启动");alert.informativeText=self.tr("笔记仍保存在本机。请重新运行安装脚本，或重试。");alert.addButton(withTitle:self.tr("重试"));alert.addButton(withTitle:self.tr("关闭"));if alert.runModal() == .alertFirstButtonReturn{self.connect(attempt:0)}}

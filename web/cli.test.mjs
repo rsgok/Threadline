@@ -9,7 +9,7 @@ import { createRewindServer } from './server.mjs';
 test('runtime CLI uses real API: CRUD, conflicts, Unicode, export and snapshot import', async t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'threadline-cli-'));
   const codexHome = path.join(dir, 'codex');
-  const server = createRewindServer({ dataDir: dir, legacyDir: null, ocr: false, codexHome });
+  const server = createRewindServer({ claudeHome: '/nonexistent/threadline-test/claude', piHome: '/nonexistent/threadline-test/pi', deepseekHome: '/nonexistent/threadline-test/deepseek', dataDir: dir, legacyDir: null, ocr: false, codexHome });
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   t.after(async () => { await new Promise(r => server.close(r)); fs.rmSync(dir, { recursive: true, force: true }); });
   const base = `http://127.0.0.1:${server.address().port}`;

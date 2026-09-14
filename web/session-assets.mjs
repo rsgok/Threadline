@@ -59,7 +59,7 @@ export function linkedAttachments(text) {
 
 // A note owns its copies; a failed database write can remove just these files.
 export function archiveAssets(messages, dataDir) {
-  const assets = [], warnings = [];
+  const assets = [], warnings = messages.flatMap(message => message.unresolvedAttachments || []);
   let total = 0;
   const seen = new Set();
   for (const message of messages) for (const item of message.attachments || linkedAttachments(message.text)) {

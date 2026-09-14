@@ -1,3 +1,4 @@
+import { isRuntime } from "../lib/runtimes";
 import { SessionList } from "../components/session-list";
 import type { Route } from "./+types/collect";
 import { api } from "../lib/api";
@@ -8,7 +9,7 @@ export async function clientLoader({
   request,
   params,
 }: Route.ClientLoaderArgs) {
-  if (params.runtime && !["codex", "cursor"].includes(params.runtime))
+  if (params.runtime && !isRuntime(params.runtime))
     throw new Response("Unknown runtime", { status: 404 });
   if (!params.threadID)
     return {

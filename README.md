@@ -21,7 +21,7 @@
 
 <p align="center"><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
 
-<p align="center"><sub>macOS 13+ · Local storage · Codex &amp; Cursor · Early development</sub></p>
+<p align="center"><sub>macOS 13+ · Local storage · Codex · Cursor · Claude Code · Pi · DeepSeek Harness · Early development</sub></p>
 
 ![Threadline’s current Mac interface: select useful messages from a conversation and keep them in a local library.](web/assets/landing-collect.png)
 
@@ -39,7 +39,7 @@ It works alongside your AI tools. You decide what belongs in your library and wh
 
 ### 1. Keep the useful part
 
-Browse local **Codex** and **Cursor Agent** conversations. Select specific messages and save them with source references and available project context. Supported local images and files can be copied into your library with the note.
+Browse local **Codex, Cursor Agent, Claude Code, Pi, and DeepSeek Harness** conversations. Select specific messages and save them with source references and available project context. Supported local images and files can be copied into your library with the note.
 
 ### 2. Make the thinking yours
 
@@ -100,9 +100,21 @@ bash scripts/install-skill.sh
 
 Start a new Codex session and use `$threadline` to open Threadline for the current conversation. For CLI setup and other agent runtimes, see the [agent integration guide](docs/agent-runtime.md).
 
+### Terminal agents
+
+Install the CLI and the skill for your agent:
+
+```sh
+bash scripts/install-cli.sh
+bash scripts/install-skill.sh --runtime claude
+# Alternatively: --runtime pi or --runtime deepseek
+```
+
+In the agent, ask Threadline to organize the current conversation in its Mac app. The new app build handles exact conversation links; you can also run `threadline open --runtime claude --thread SESSION_ID` or add `--browser` to use the web interface. Notes and search are shared with the sidebar.
+
 ### Save your first conversation
 
-1. Open **Collect conversations** and choose a local Codex or Cursor conversation.
+1. Open **Collect conversations** and choose a local conversation from a supported runtime.
 2. Select the messages you want to keep, then choose **Save**.
 3. Open the saved note, add your perspective, and use **Continue with this** when you are ready for the next discussion.
 
@@ -119,7 +131,8 @@ See [local data and backups](docs/local-data.md) for storage details, attachment
 
 ## Current scope
 
-- Conversation collection reads **local Codex and Cursor Agent transcripts**. It does not download cloud history or recover older Cursor IDE databases.
+- Conversation collection reads **local Codex, Cursor Agent, Claude Code, Pi, and DeepSeek Harness transcripts**. It does not download cloud history or recover older Cursor IDE databases.
+- Pi collection shows the last persisted branch. DeepSeek Harness collection reads v3 logs; its managed attachments remain references. Compressed DeepSeek logs require Node.js 22.15 or later. See the [integration guide](docs/agent-runtime.md) for exact support boundaries.
 - The Mac app currently requires a source build and an installed Node.js runtime.
 - PNG card export downloads its Chromium rendering component on first use. Once installed, rendering runs locally.
 - Feishu, Slack, and Discord require their own connection setup. Feishu also requires `lark-cli` on the local machine.

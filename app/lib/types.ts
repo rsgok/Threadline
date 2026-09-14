@@ -1,4 +1,5 @@
-export type Runtime = "codex" | "cursor";
+import type { Runtime } from "./runtimes";
+export type { Runtime } from "./runtimes";
 export type Locale = "zh-CN" | "en";
 export type Language = Locale | "system";
 export interface Project {
