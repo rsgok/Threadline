@@ -155,11 +155,7 @@ test("page chrome keeps native headers quiet and panel navigation available", as
       await expect(menus).toHaveCount(panel ? 1 : 0);
       if (panel) await menus.click();
       const history = page.getByRole("button", { name: "分享记录", exact: true }).filter({ visible: true });
-      await expect(history).toHaveCount(1);
-      if (!panel) {
-        await history.click();
-        await expect(page.locator(".share-history-dialog")).toBeVisible();
-      }
+      await expect(history).toHaveCount(panel ? 1 : 0);
       await page.keyboard.press("Escape");
       const content = page.locator(".workspace.route-scroll, .reading, .settings-content, .session-messages").first();
       await expect(content).toHaveCSS("padding-left", panel ? "16px" : "20px");

@@ -63,3 +63,36 @@ test('production server entrypoint starts when launched through the app symlink'
   ]);
   assert.match(started, /^Rewind: http:\/\/127.0.0.1:/);
 });
+
+test('fresh preparation starts a real service and reuses it without a network request', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'threadline-fresh-start-'));
+  let child, port;
+  const stop = async () => {
+    if (child && child.exitCode === null && child.signalCode === null) { const exited = once(child, 'exit'); child.kill(); await exited; }
+  };
+  t.after(async () => { await stop(); fs.rmSync(root, { recursive: true, force: true }); });
+  const source = `import http from 'node:http';import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
+const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const server=http.createServer((req,res)=>res.end(JSON.stringify({version:'0.0.3',runtimeRoot:fs.realpathSync(root)})));
+server.listen(0,'127.0.0.1',()=>console.log(server.address().port));`;
+  const files = Object.entries({ 'package.json': JSON.stringify({ version: '0.0.3' }), 'web/server.mjs': source, 'build/client/index.html': 'matching interface' }).map(([path, value]) => ({ path, data: Buffer.from(value).toString('base64') }));
+  const bytes = gzipSync(JSON.stringify({ format: 1, files }));
+  const keys = crypto.generateKeyPairSync('ed25519');
+  const payload = Buffer.from(JSON.stringify({ format: 1, dataSchema: 1, version: '0.0.3', minNode: '22.13.0', minShellBuild: 9, url: 'https://updates.example/features', size: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex'), notes: '' }));
+  const manifest = Buffer.from(JSON.stringify({ payload: payload.toString('base64'), signature: crypto.sign(null, payload, keys.privateKey).toString('base64') }));
+  const updater = new RuntimeUpdater({ root, shellBuild: 9, config: { feedURL: 'https://updates.example/feed', publicKey: keys.publicKey.export({ type: 'spki', format: 'pem' }) }, fetchBytes: async url => url.endsWith('/feed') ? manifest : bytes,
+    restart: async () => {
+      await stop();
+      child = spawn(process.execPath, [path.join(root, 'app/web/server.mjs')], { stdio: ['ignore', 'pipe', 'ignore'] });
+      const [data] = await once(child.stdout, 'data'); port = Number(data.toString());
+    },
+    healthy: async version => {
+      const value = await (await fetch(`http://127.0.0.1:${port}/health`)).json();
+      return value.version === version && value.runtimeRoot === fs.realpathSync(path.join(root, 'app'));
+    },
+  });
+  assert.equal((await updater.prepare('0.0.3')).state, 'ready');
+  updater.fetchBytes = async () => { throw Error('network must not be required'); };
+  assert.equal((await updater.prepare('0.0.3')).state, 'ready');
+  assert.equal(fs.readFileSync(path.join(root, 'app/build/client/index.html'), 'utf8'), 'matching interface');
+});

@@ -117,3 +117,66 @@ test('future data schemas are rejected before any files are changed', async t =>
   await assert.rejects(updater.check(), /metadata/);
   assert.equal(updater.currentVersion(), '0.0.2');
 });
+
+test('fresh installation creates a verified active package without existing app files', async t => {
+  const { root, updater } = fixture(t);
+  fs.rmSync(path.join(root, 'app'), { recursive: true });
+  assert.equal(updater.currentVersion(), '0.0.0');
+  assert.equal((await updater.install('0.0.3')).state, 'installed');
+  assert.equal(updater.currentVersion(), '0.0.3');
+  assert.equal(fs.readFileSync(path.join(root, 'notes-sentinel'), 'utf8'), 'user data must survive');
+});
+test('failed first installation can be retried without a broken rollback journal', async t => {
+  const { root, updater } = fixture(t, { options: { healthy: async () => false } });
+  fs.rmSync(path.join(root, 'app'), { recursive: true });
+  await assert.rejects(updater.install('0.0.3'), /Initial installation/);
+  assert.equal(updater.currentVersion(), '0.0.0');
+  assert.equal(fs.existsSync(path.join(root, 'update-pending.json')), false);
+  updater.healthy = async () => true;
+  assert.equal((await updater.install('0.0.3')).state, 'installed');
+});
+test('interrupted first installation recovers to a clean retry state', async t => {
+  const { root, updater } = fixture(t);
+  fs.rmSync(path.join(root, 'app'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'update-pending.json'), JSON.stringify({ previous: null }));
+  await updater.recover();
+  assert.equal(updater.currentVersion(), '0.0.0');
+  assert.equal((await updater.install('0.0.3')).state, 'installed');
+});
+test('feature download resumes and verifies the full signed payload', async t => {
+  const { downloadPackage } = await import('./runtime-update.mjs');
+  const { root, bytes } = fixture(t);
+  const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+  const metadata = { sha256, size: bytes.length, url: 'https://updates.example/package' };
+  fs.mkdirSync(path.join(root, 'downloads'));
+  fs.writeFileSync(path.join(root, 'downloads', sha256 + '.partial'), bytes.subarray(0, 10));
+  const result = await downloadPackage(metadata, root, async (_, options) => {
+    assert.equal(options.headers.Range, 'bytes=10-');
+    return new Response(bytes.subarray(10), { status: 206, headers: { 'content-range': `bytes 10-${bytes.length - 1}/${bytes.length}` } });
+  });
+  assert.deepEqual(result, bytes);
+  // A complete verified cache works without any network.
+  assert.deepEqual(await downloadPackage(metadata, root, () => { throw Error('offline'); }), bytes);
+});
+test('feature resume safely restarts when server ignores Range', async t => {
+  const { downloadPackage } = await import('./runtime-update.mjs');
+  const { root, bytes } = fixture(t);
+  const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+  fs.mkdirSync(path.join(root, 'downloads'));
+  fs.writeFileSync(path.join(root, 'downloads', sha256 + '.partial'), bytes.subarray(0, 10));
+  assert.deepEqual(await downloadPackage({ sha256, size: bytes.length, url: 'https://updates.example/package' }, root, async () => new Response(bytes)), bytes);
+});
+test('prepared installation starts offline without fetching a manifest or package', async t => {
+  const { root, updater } = fixture(t);
+  fs.rmSync(path.join(root, 'app'), { recursive: true });
+  assert.equal((await updater.prepare('0.0.3')).state, 'ready');
+  updater.fetchBytes = async () => { throw Error('offline'); };
+  const result = await updater.prepare('0.0.3');
+  assert.equal(result.state, 'ready');
+  assert.equal(result.runtimeRoot, fs.realpathSync(path.join(root, 'app')));
+});
+test('first launch never accepts an older published feature package', async t => {
+  const { updater } = fixture(t);
+  await assert.rejects(updater.prepare('0.0.4'), /No compatible/);
+  assert.equal(updater.currentVersion(), '0.0.2');
+});

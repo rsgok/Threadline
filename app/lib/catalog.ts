@@ -10,7 +10,7 @@ export const english: Record<string, string> = {
   "更新说明": "Release notes",
   "错误详情": "Error details",
   "上次检查": "Last checked",
-  "此更新需要较新的 Node 运行时，请先升级 Node": "This update requires a newer Node runtime. Upgrade Node first",
+  "请先更新 Mac 程序，应用会自动准备所需运行环境": "Update the Mac app first; it will prepare the required runtime automatically",
   "请先完成 Mac 程序更新，再更新功能包": "Update the Mac app before installing this feature update",
   "仅下载所需功能包": "Download only the feature package",
   "发现新版本": "New version available",

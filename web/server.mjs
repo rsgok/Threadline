@@ -182,7 +182,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       if(analysisRoute && req.method==='POST') return send(200,{job:relations.submit(analysisRoute[1],(await readJSON(req)).relations)});
       const relationRoute=pathname.match(/^\/api\/relations\/([a-f0-9]{64})$/);
       if(relationRoute && req.method==='PUT'){const data=await readJSON(req);return send(200,{relation:data.status?relations.review(relationRoute[1],data.status):relations.manual(data.topicID,data,relationRoute[1])});}
-      if (req.method === 'GET' && pathname === '/health') return send(200, { app: 'rewind-web', version: releaseVersion });
+      if (req.method === 'GET' && pathname === '/health') return send(200, { app: 'rewind-web', version: releaseVersion, runtimeRoot: fs.realpathSync(path.resolve(here, '..')) });
       if (req.method === 'GET' && ['/landing', '/landing/', '/landing.html'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, 'landing.html')), 'text/html; charset=utf-8');
       if (req.method === 'GET' && ['/landing.css', '/landing.js'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname.slice(1))), pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
       if (serveFrontend(req, res, url, frontendDir)) return;

@@ -38,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     var handler: EventHandlerRef?
     var dragRegions: [NSRect] = []
     var dragExclusions: [NSRect] = []
+    private let bootstrap = Bootstrap()
+    private var expectedRuntime: [String: Any] = [:]
     let base = URL(string: "http://127.0.0.1:43127")!
     var interfaceLocale: String {
         let saved = UserDefaults.standard.string(forKey: "threadline-language") ?? "system"
@@ -137,7 +139,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         statusMenu.addItem(withTitle: "退出 Threadline", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         status.menu = statusMenu
         statusItem = status
-        refreshLanguage();registerKeys();show();connect(attempt:0)
+        refreshLanguage();registerKeys();show()
+        bootstrap.prepare(in: window) { value in self.expectedRuntime = value; self.connect(attempt: 0) }
     }
     func toolbarAllowedItemIdentifiers(_ toolbar:NSToolbar)->[NSToolbarItem.Identifier]{toolbarDefaultItemIdentifiers(toolbar)}
     func toolbarDefaultItemIdentifiers(_ toolbar:NSToolbar)->[NSToolbarItem.Identifier]{[.init("captureProgress"),.init("library"),.init("search"),.flexibleSpace,.init("codex"),.init("cursor")]}
@@ -154,7 +157,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         URLSession.shared.dataTask(with:request){data,response,_ in
             let valid = (try? JSONSerialization.jsonObject(with:data ?? Data())) as? [String:Any]
             DispatchQueue.main.async {
-                if valid?["app"] as? String == "rewind-web" {self.serviceReady = true;self.web.load(URLRequest(url:self.pendingConversation ?? URL(string:"http://127.0.0.1:43127/?native=1")!));self.pendingConversation = nil;return}
+                if valid?["app"] as? String == "rewind-web", let expectedRoot = self.expectedRuntime["runtimeRoot"] as? String, valid?["runtimeRoot"] as? String == expectedRoot, valid?["version"] as? String == self.expectedRuntime["version"] as? String {self.serviceReady = true;self.web.load(URLRequest(url:self.pendingConversation ?? URL(string:"http://127.0.0.1:43127/?native=1")!));self.pendingConversation = nil;return}
                 if attempt==0 {let p=Process();p.executableURL=URL(fileURLWithPath:"/bin/launchctl");p.arguments=["kickstart","gui/\(getuid())/local.rewind.web"];try? p.run()}
                 if attempt<20 {DispatchQueue.main.asyncAfter(deadline:.now()+0.3){self.connect(attempt:attempt+1)}}
                 else {let alert=NSAlert();alert.messageText=self.tr("Threadline 本机服务未能启动");alert.informativeText=self.tr("笔记仍保存在本机。请重新运行安装脚本，或重试。");alert.addButton(withTitle:self.tr("重试"));alert.addButton(withTitle:self.tr("关闭"));if alert.runModal() == .alertFirstButtonReturn{self.connect(attempt:0)}}

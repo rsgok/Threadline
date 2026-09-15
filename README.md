@@ -71,7 +71,9 @@ The app supports English and Simplified Chinese. Choose a language in **Settings
 
 ## Quick start
 
-Threadline currently installs **from source**. The Mac app uses your local Node.js installation; a standalone installer is not available yet.
+Release 0.0.2 remains a **source-based release**: its downloadable app archive contains only the shell. This branch adds a small standalone app that downloads a managed Node runtime and a signed, matching interface/service package on first launch, then reuses them offline. That distribution requires matching release assets to be published; see [download and update design](docs/updates.md).
+
+For development, install from source using the steps below.
 
 ### Requirements
 
@@ -133,7 +135,7 @@ See [local data and backups](docs/local-data.md) for storage details, attachment
 
 - Conversation collection reads **local Codex, Cursor Agent, Claude Code, Pi, and DeepSeek Harness transcripts**. It does not download cloud history or recover older Cursor IDE databases.
 - Pi collection shows the last persisted branch. DeepSeek Harness collection reads v3 logs; its managed attachments remain references. Compressed DeepSeek logs require Node.js 22.15 or later. See the [integration guide](docs/agent-runtime.md) for exact support boundaries.
-- The Mac app currently requires a source build and an installed Node.js runtime.
+- The public 0.0.2 archive requires source setup. The new first-launch installer must ship alongside its compatible feature manifest and package; a shell archive alone is insufficient.
 - PNG card export downloads its Chromium rendering component on first use. Once installed, rendering runs locally.
 - Feishu, Slack, and Discord require their own connection setup. Feishu also requires `lark-cli` on the local machine.
 

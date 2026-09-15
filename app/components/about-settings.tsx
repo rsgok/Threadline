@@ -55,7 +55,7 @@ export function AboutSettings() {
           {update.state === "available" ? <>
             <p>{t("发现新版本")} {update.release?.version}</p>
             <p className="dialog-hint">{t("仅下载所需功能包")} · {((update.release?.size ?? 0) / 1024 / 1024).toFixed(1)} MB</p>
-          </> : update.state === "incompatible" ? <p>{t(update.blocked === "shell" ? "请先完成 Mac 程序更新，再更新功能包" : "此更新需要较新的 Node 运行时，请先升级 Node")}</p>
+          </> : update.state === "incompatible" ? <p>{t(update.blocked === "shell" ? "请先完成 Mac 程序更新，再更新功能包" : "请先更新 Mac 程序，应用会自动准备所需运行环境")}</p>
             : <p>{t(update.configured === false && !busy ? "此版本尚未配置在线更新" : messages[update.state] ?? "检查是否有可用更新")}</p>}
           {update.lastChecked ? <p className="dialog-hint">{t("上次检查")} · {new Date(update.lastChecked * 1000).toLocaleString()}</p> : null}
           {update.error ? <details><summary>{t("错误详情")}</summary><p className="dialog-error">{update.error}</p></details> : null}

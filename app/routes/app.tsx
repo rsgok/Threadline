@@ -531,11 +531,6 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
               ) : null}
             </div>
           </section>
-          {isNative ? (
-            <button className="tool sidebar-share-history" onClick={() => setHistory(true)}>
-              {t("分享记录")}
-            </button>
-          ) : null}
           <button
             className="tool manual-capture"
             onClick={() => setCapture({})}
