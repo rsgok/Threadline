@@ -37,7 +37,14 @@ final class Bootstrap: NSObject {
             }
         case .failure(let error):
             try? error.localizedDescription.write(to: root.appendingPathComponent("bootstrap-error.log"), atomically: true, encoding: .utf8)
-            overlay?.fail("请检查网络后重试，笔记和设置仍保存在本机") { [weak self, weak window] in
+            let detail = error.localizedDescription
+            let message: String
+            if detail.contains("ENOENT") || detail.contains("no such file") { message = "运行文件缺失，请重新下载安装包；笔记和设置仍保留" }
+            else if detail.contains("checksum") || detail.contains("signature") { message = "下载文件未通过安全校验，请重试" }
+            else if detail.contains("health check") || detail.contains("launchctl") || detail.contains("service could not") { message = "本机服务未能启动，请重试；笔记和设置仍保留" }
+            else if detail.contains("fetch") || detail.contains("download") || detail.contains("curl") { message = "组件下载未完成，请检查网络后重试" }
+            else { message = "准备未完成，请重试；笔记和设置仍保存在本机" }
+            overlay?.fail(message) { [weak self, weak window] in
                 guard let self, let window else { return }
                 self.overlay?.removeFromSuperview(); self.prepare(in: window, completion: completion)
             }

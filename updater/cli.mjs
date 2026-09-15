@@ -42,6 +42,10 @@ try {
     : command === 'check' ? await updater.check() : await updater.install(expectedVersion);
   console.log(JSON.stringify(result));
 } catch (error) {
-  console.log(JSON.stringify({ state: 'error', error: error.message }));
+  const causes = [];
+  for (let cause = error, depth = 0; cause && depth < 5; cause = cause.cause, depth++) {
+    causes.push([cause.code, cause.message].filter(Boolean).join(': '));
+  }
+  console.log(JSON.stringify({ state: 'error', error: causes.join(' → ') }));
   process.exitCode = 1;
 }
