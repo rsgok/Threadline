@@ -71,9 +71,13 @@ The app supports English and Simplified Chinese. Choose a language in **Settings
 
 ## Quick start
 
-Release 0.0.2 remains a **source-based release**: its downloadable app archive contains only the shell. This branch adds a small standalone app that downloads a managed Node runtime and a signed, matching interface/service package on first launch, then reuses them offline. That distribution requires matching release assets to be published; see [download and update design](docs/updates.md).
+Download **Threadline 0.3.0** for Apple Silicon from [GitHub Releases](https://github.com/rsgok/Threadline/releases/tag/0.3.0), unzip it, and move `Threadline.app` to Applications. First launch downloads its own Node runtime from nodejs.org and the matching signed interface/service package from GitHub. Once prepared, installed components work offline; no npm, Python or developer tools are required for this installation.
 
-For development, install from source using the steps below.
+Existing 0.0.2 users should replace their Mac app with 0.3.0 once: the old shell has no online updater. Notes and settings remain in place. Later updates are available in Settings → About. See [download and update design](docs/updates.md).
+
+The app is Developer ID signed but this release is not notarized. The download is for Apple Silicon; Intel users can build from source below.
+
+### Development from source
 
 ### Requirements
 
@@ -135,7 +139,7 @@ See [local data and backups](docs/local-data.md) for storage details, attachment
 
 - Conversation collection reads **local Codex, Cursor Agent, Claude Code, Pi, and DeepSeek Harness transcripts**. It does not download cloud history or recover older Cursor IDE databases.
 - Pi collection shows the last persisted branch. DeepSeek Harness collection reads v3 logs; its managed attachments remain references. Compressed DeepSeek logs require Node.js 22.15 or later. See the [integration guide](docs/agent-runtime.md) for exact support boundaries.
-- The public 0.0.2 archive requires source setup. The new first-launch installer must ship alongside its compatible feature manifest and package; a shell archive alone is insufficient.
+- First launch requires access to nodejs.org and GitHub Releases. macOS may require confirmation for this non-notarized Developer ID build.
 - PNG card export downloads its Chromium rendering component on first use. Once installed, rendering runs locally.
 - Feishu, Slack, and Discord require their own connection setup. Feishu also requires `lark-cli` on the local machine.
 

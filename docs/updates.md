@@ -26,7 +26,7 @@ A release build accepts:
 
 | Variable | Purpose |
 | --- | --- |
-| `THREADLINE_BUILD_NUMBER` | Monotonically increasing native build number; current default is 9 |
+| `THREADLINE_BUILD_NUMBER` | Monotonically increasing native build number; current default is 10 |
 | `THREADLINE_RUNTIME_FEED_URL` | HTTPS URL for the signed `runtime.json` manifest |
 | `THREADLINE_RUNTIME_PUBLIC_KEY_FILE` | Ed25519 public key in PEM/SPKI format, embedded in the shell |
 | `THREADLINE_SPARKLE_FEED_URL` | HTTPS Sparkle appcast URL |
