@@ -3,7 +3,7 @@ import CryptoKit
 
 /// The app bundle pins the runtime URL and digest. No executable is resolved from PATH.
 public enum ManagedNode {
-    public struct Archive: Codable { public let url: String; public let sha256: String }
+    public struct Archive: Codable { public let url: String; public let sha256: String; public let size: Double? }
     public struct Manifest: Codable { public let version: String; public let archives: [String: Archive] }
     public static func digest(_ file: URL) throws -> String {
         let handle = try FileHandle(forReadingFrom: file)
@@ -34,7 +34,7 @@ public enum ManagedNode {
         }
         return output
     }
-    public static func prepare(root: URL, manifestURL: URL, progress: (String) -> Void) throws -> URL {
+    public static func prepare(root: URL, manifestURL: URL, transfer: @escaping (Double, Double) -> Void = { _, _ in }, progress: (String) -> Void) throws -> URL {
         let fm = FileManager.default
         let manifest = try JSONDecoder().decode(Manifest.self, from: Data(contentsOf: manifestURL))
         #if arch(arm64)
@@ -54,6 +54,14 @@ public enum ManagedNode {
         if try !fm.fileExists(atPath: cached.path) || digest(cached) != archive.sha256 {
             progress("正在下载运行环境，失败后可重试并续传")
             // System curl follows HTTPS-only redirects and resumes interrupted transfers.
+            let monitor = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .utility))
+            monitor.schedule(deadline: .now(), repeating: .milliseconds(250))
+            monitor.setEventHandler {
+                let size = (try? fm.attributesOfItem(atPath: cached.path)[.size] as? NSNumber)?.doubleValue ?? 0
+                transfer(size, archive.size ?? 0)
+            }
+            monitor.resume()
+            defer { monitor.cancel() }
             let arguments = ["--fail", "--location", "--proto", "=https", "--proto-redir", "=https", "--connect-timeout", "20", "--max-time", "600", "--max-filesize", "150000000", "--retry", "2", "--continue-at", "-", "--output", cached.path, archive.url]
             do { try run("/usr/bin/curl", arguments) }
             catch {

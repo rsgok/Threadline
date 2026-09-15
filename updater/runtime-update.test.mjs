@@ -180,3 +180,19 @@ test('first launch never accepts an older published feature package', async t =>
   await assert.rejects(updater.prepare('0.0.4'), /No compatible/);
   assert.equal(updater.currentVersion(), '0.0.2');
 });
+
+test('download progress reports actual resumed bytes and installation stages', async t => {
+  const { downloadPackage } = await import('./runtime-update.mjs');
+  const events = [];
+  const { root, bytes, updater } = fixture(t, { options: { progress: event => events.push(event) } });
+  const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+  fs.mkdirSync(path.join(root, 'downloads'));
+  fs.writeFileSync(path.join(root, 'downloads', sha256 + '.partial'), bytes.subarray(0, 10));
+  const progress = [];
+  await downloadPackage({ sha256, size: bytes.length, url: 'https://updates.example/package' }, root,
+    async () => new Response(bytes.subarray(10), { status: 206, headers: { 'content-range': `bytes 10-${bytes.length - 1}/${bytes.length}` } }), event => progress.push(event));
+  assert.deepEqual(progress[0], { stage: 'features', received: 10, total: bytes.length });
+  assert.equal(progress.at(-1).received, bytes.length);
+  await updater.install('0.0.3');
+  assert.deepEqual(events.map(event => event.stage), ['verify', 'start']);
+});

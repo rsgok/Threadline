@@ -39,12 +39,13 @@ export async function download(url, limit = MAX_DOWNLOAD, fetchURL = fetch) {
   return Buffer.concat(chunks);
 }
 // Partial downloads are keyed by the signed digest, so retries cannot mix releases.
-export async function downloadPackage(m, root, fetchURL = fetch) {
+export async function downloadPackage(m, root, fetchURL = fetch, progress = () => {}) {
   const directory = path.join(root, 'downloads');
   fs.mkdirSync(directory, { recursive: true });
   const file = path.join(directory, m.sha256 + '.partial');
   let offset = fs.existsSync(file) ? fs.statSync(file).size : 0;
   if (offset > m.size) { fs.rmSync(file); offset = 0; }
+  progress({ stage: "features", received: offset, total: m.size });
   if (offset < m.size) {
     let target = new URL(m.url), response;
     const signal = AbortSignal.timeout(600000);
@@ -68,6 +69,7 @@ export async function downloadPackage(m, root, fetchURL = fetch) {
         offset += chunk.length;
         if (offset > m.size) { fs.rmSync(file, { force: true }); throw Error('Feature download exceeds signed size'); }
         fs.writeSync(fd, chunk);
+        progress({ stage: "features", received: offset, total: m.size });
       }
     } finally { fs.closeSync(fd); }
   }
@@ -116,8 +118,8 @@ function writeJSON(file, value) {
   fs.renameSync(file + '.tmp', file);
 }
 export class RuntimeUpdater {
-  constructor({ root, config, shellBuild, restart, healthy, fetchBytes = download }) {
-    Object.assign(this, { root, config, shellBuild, restart, healthy, fetchBytes });
+  constructor({ root, config, shellBuild, restart, healthy, fetchBytes = download, progress = () => {} }) {
+    Object.assign(this, { root, config, shellBuild, restart, healthy, fetchBytes, progress });
     this.app = path.join(root, 'app');
     this.journal = path.join(root, 'update-pending.json');
   }
@@ -146,6 +148,7 @@ export class RuntimeUpdater {
         const metadata = JSON.parse(fs.readFileSync(metadataFile));
         if (metadata.minShellBuild > this.shellBuild || compareVersions(process.versions.node, metadata.minNode) < 0) throw Error('Installed features require a newer app; update the Mac application');
       }
+      this.progress({ stage: "start" });
       await this.restart();
       if (!await this.healthy(this.currentVersion())) throw Error('The matching local service could not start; another service may be using its port');
     }
@@ -182,8 +185,9 @@ export class RuntimeUpdater {
       const result = await this.check(); // Reverify signed metadata at installation time.
       if (result.state !== 'available' || result.release.version !== expectedVersion) throw Error('Update changed or is incompatible; check again');
       const m = result.release;
-      const bytes = this.fetchBytes === download ? await downloadPackage(m, this.root) : await this.fetchBytes(m.url, m.size);
+      const bytes = this.fetchBytes === download ? await downloadPackage(m, this.root, fetch, this.progress) : await this.fetchBytes(m.url, m.size);
       if (bytes.length !== m.size || crypto.createHash('sha256').update(bytes).digest('hex') !== m.sha256) throw Error('Feature package checksum is invalid');
+      this.progress({ stage: "verify" });
       const releases = path.join(this.root, 'releases');
       fs.mkdirSync(releases, { recursive: true });
       staging = fs.mkdtempSync(path.join(releases, 'release-'));
@@ -197,6 +201,7 @@ export class RuntimeUpdater {
       if (legacy) fs.renameSync(this.app, previous);
       this.switchTo(staging);
       try {
+        this.progress({ stage: "start" });
         await this.restart();
         if (!await this.healthy(m.version)) throw Error('Updated service failed its health check');
       } catch (error) {

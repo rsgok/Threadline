@@ -8,6 +8,7 @@ final class Updates {
     private var sparkle: SPUStandardUpdaterController?
     private var timer: Timer?
     private var busy = false
+    private var landing: PreparationView?
     private var state: [String: Any] = ["state": "idle"]
     private let defaults = UserDefaults.standard
     private let root = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/RewindWeb")
@@ -70,7 +71,13 @@ final class Updates {
         busy = true
         state["state"] = command == "install" ? "installing" : command == "check" ? "checking" : "loading"
         publish()
-        let arguments = [script.path, command, root.path, config.path, build, version]
+        let progressFile = root.appendingPathComponent("progress-\(UUID().uuidString).json")
+        if command == "install", let parent = web?.window?.contentView {
+            landing?.removeFromSuperview()
+            let surface = PreparationView(updating: true)
+            surface.attach(to: parent); surface.observe(progressFile); landing = surface
+        }
+        let arguments = [script.path, command, root.path, config.path, build, version, progressFile.path]
         DispatchQueue.global(qos: .userInitiated).async {
             let process = Process(), pipe = Pipe()
             process.executableURL = URL(fileURLWithPath: node); process.arguments = arguments
@@ -85,6 +92,16 @@ final class Updates {
             let response = result
             DispatchQueue.main.async {
                 self.busy = false
+                try? FileManager.default.removeItem(at: progressFile)
+                if command == "install" {
+                    self.landing?.stopObserving()
+                    if response["state"] as? String == "installed" {
+                        self.landing?.setProgress(stage: "done")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { self.landing?.removeFromSuperview(); self.landing = nil }
+                    } else {
+                        self.landing?.fail("更新尚未完成，已保留你的笔记与设置", back: { [weak self] in self?.landing?.removeFromSuperview(); self?.landing = nil }) { [weak self] in self?.run("install", version: version) }
+                    }
+                }
                 if let oldVersion = self.state["version"], response["version"] == nil { self.state = response; self.state["version"] = oldVersion }
                 else { self.state = response }
                 if command == "check", ["current", "available", "incompatible"].contains(response["state"] as? String ?? "") {
