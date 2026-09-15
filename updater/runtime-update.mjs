@@ -125,7 +125,7 @@ export class RuntimeUpdater {
   }
   currentVersion() {
     try { return JSON.parse(fs.readFileSync(path.join(this.app, 'package.json'))).version; }
-    catch (error) { if (error.code === 'ENOENT' && !fs.existsSync(this.app)) return '0.0.0'; throw error; }
+    catch (error) { if (error.code === 'ENOENT') return '0.0.0'; throw error; }
   }
   async check() {
     const version = this.currentVersion();
@@ -171,6 +171,8 @@ export class RuntimeUpdater {
     if (typeof previous !== 'string' || path.dirname(previous) !== path.join(this.root, 'releases')) throw Error('Invalid recovery journal');
     // The journal is written before either rename, so power loss is recoverable too.
     if (fs.existsSync(previous)) this.switchTo(previous);
+    // An interrupted repair has no working previous service to restart.
+    if (this.currentVersion() === '0.0.0') { fs.rmSync(this.journal); return; }
     await this.restart();
     if (!await this.healthy(this.currentVersion())) throw Error('Previous version restored but the service could not restart');
     fs.rmSync(this.journal);
@@ -211,6 +213,10 @@ export class RuntimeUpdater {
           throw Error('Initial installation failed its health check; retry', { cause: error });
         }
         this.switchTo(previous);
+        if (result.version === '0.0.0') {
+          fs.rmSync(this.journal, { force: true });
+          throw Error('Repair failed its health check; incomplete files preserved for retry', { cause: error });
+        }
         await this.restart();
         if (!await this.healthy(result.version)) throw Error('Update failed; previous files restored but the service could not restart');
         fs.rmSync(this.journal, { force: true });

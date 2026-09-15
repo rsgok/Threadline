@@ -196,3 +196,34 @@ test('download progress reports actual resumed bytes and installation stages', a
   await updater.install('0.0.3');
   assert.deepEqual(events.map(event => event.stage), ['verify', 'start']);
 });
+
+test('repairs an existing incomplete app directory without deleting its files', async t => {
+  const { root, updater } = fixture(t);
+  fs.rmSync(path.join(root, 'app/package.json'));
+  fs.writeFileSync(path.join(root, 'app/unfinished-file'), 'preserve this');
+  assert.equal((await updater.prepare('0.0.3')).state, 'ready');
+  const backup = fs.readdirSync(path.join(root, 'releases')).find(name => name.startsWith('legacy-'));
+  assert.equal(fs.readFileSync(path.join(root, 'releases', backup, 'unfinished-file'), 'utf8'), 'preserve this');
+  assert.equal(fs.readFileSync(path.join(root, 'notes-sentinel'), 'utf8'), 'user data must survive');
+});
+test('failed repair preserves incomplete files and remains retryable', async t => {
+  const { root, updater } = fixture(t, { options: { healthy: async () => false } });
+  fs.rmSync(path.join(root, 'app/package.json'));
+  fs.writeFileSync(path.join(root, 'app/unfinished-file'), 'preserve');
+  await assert.rejects(updater.prepare('0.0.3'), /Repair failed/);
+  assert.equal(fs.readFileSync(path.join(root, 'app/unfinished-file'), 'utf8'), 'preserve');
+  updater.healthy = async () => true;
+  assert.equal((await updater.prepare('0.0.3')).state, 'ready');
+});
+test('interrupted incomplete-install repair does not attempt to start missing files', async t => {
+  const { root, updater, restarts } = fixture(t);
+  fs.rmSync(path.join(root, 'app/package.json'));
+  const previous = path.join(root, 'releases/legacy-incomplete');
+  fs.mkdirSync(previous, { recursive: true });
+  fs.rmSync(path.join(root, 'app'), { recursive: true });
+  fs.symlinkSync(previous, path.join(root, 'app'));
+  fs.writeFileSync(path.join(root, 'update-pending.json'), JSON.stringify({ previous }));
+  await updater.recover();
+  assert.equal(restarts.length, 0);
+  assert.equal((await updater.prepare('0.0.3')).state, 'ready');
+});

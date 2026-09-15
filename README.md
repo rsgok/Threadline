@@ -71,9 +71,9 @@ The app supports English and Simplified Chinese. Choose a language in **Settings
 
 ## Quick start
 
-Download **Threadline 0.3.0** for Apple Silicon from [GitHub Releases](https://github.com/rsgok/Threadline/releases/tag/0.3.0), unzip it, and move `Threadline.app` to Applications. First launch downloads its own Node runtime from nodejs.org and the matching signed interface/service package from GitHub. Once prepared, installed components work offline; no npm, Python or developer tools are required for this installation.
+Download **Threadline 0.3.1** for Apple Silicon from [GitHub Releases](https://github.com/rsgok/Threadline/releases/tag/0.3.1), unzip it, and move `Threadline.app` to Applications. First launch downloads its own Node runtime from nodejs.org and the matching signed interface/service package from GitHub. Once prepared, installed components work offline; no npm, Python or developer tools are required for this installation.
 
-Existing 0.0.2 users should replace their Mac app with 0.3.0 once: the old shell has no online updater. Notes and settings remain in place. Later updates are available in Settings → About. See [download and update design](docs/updates.md).
+Existing 0.0.2 users should replace their Mac app with 0.3.1 once: the old shell has no online updater. Notes and settings remain in place. Later updates are available in Settings → About. See [download and update design](docs/updates.md).
 
 The app is Developer ID signed but this release is not notarized. The download is for Apple Silicon; Intel users can build from source below.
 
