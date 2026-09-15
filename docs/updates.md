@@ -43,8 +43,8 @@ Increment `package.json`'s version using a numeric `major.minor.patch`. Keep the
 npm ci
 npm run build
 THREADLINE_RELEASE_NOTES='Changes in this release' node scripts/release-runtime.mjs \
-  dist/feature-updates https://github.com/rsgok/Threadline/releases/download/0.0.3/ \
-  "$HOME/.config/threadline-release/runtime-ed25519.pem" 9
+  dist/feature-updates https://github.com/rsgok/Threadline/releases/download/0.3.2/ \
+  "$HOME/.config/threadline-release/runtime-ed25519.pem" 12
 ```
 
 Replace the version in the download URL for each release. Upload both the feature archive and `runtime.json` as assets of that release. The committed feed URL follows the latest release automatically; every future latest release must contain both update feeds.
