@@ -337,6 +337,7 @@ export function CarryDialog({ onClose }: { onClose(): void }) {
           }
         }}
       />
+      <div className="carry-selection-heading"><span>{tr("选择参考笔记", "Choose reference notes")}</span><small>{count(chosen.length, "note")}</small></div>
       <div id="carry-list">
         {app.library.clips.map((clip) => (
           <label className="carry-row" key={clip.id}>
@@ -349,12 +350,12 @@ export function CarryDialog({ onClose }: { onClose(): void }) {
           </label>
         ))}
       </div>
-      <details>
+      <details className="carry-content-preview">
         <summary>{t("查看完整内容")}</summary>
         <pre className="carry-preview">{content}</pre>
       </details>
       <div className="dialog-bottom">
-        <span>{count(chosen.length, "note")}</span>
+        <span className="keyboard-hint">{tr("复制后粘贴到下一次对话", "Paste into your next conversation")}</span>
         <button
           className="primary"
           disabled={!chosen.length}

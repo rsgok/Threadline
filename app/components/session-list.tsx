@@ -7,8 +7,9 @@ import { getLocale, t, tr } from "../lib/i18n";
 import type { RecentSession, Session } from "../lib/types";
 import { CodexThreadLink } from "./codex-thread-link";
 import { WindowHeading } from "./window-heading";
+import { Icon } from "./common";
 
-type Organization = {
+export type Organization = {
   tags: { name: string; color: string }[];
   sessions: Record<string, { pinned: boolean; tags: string[] }>;
 };
@@ -23,14 +24,21 @@ const colorLabels = () => [
   tr("石灰", "Gray"),
 ];
 
-export function SessionList({
-  data,
-}: {
-  data: {
-    sessions: RecentSession[];
-    errors?: { runtime: string; message: string }[];
-  };
-}) {
+export type SessionIndexData = {
+  sessions: RecentSession[];
+  details: Record<string, Session | null>;
+  organization: Organization;
+  errors?: { runtime: string; message: string }[];
+  revision: string;
+  initialized: boolean;
+  syncing: boolean;
+};
+
+export function SessionList({ data: initialData }: { data: SessionIndexData }) {
+  const [data, setData] = useState(initialData);
+  const [pendingIndex, setPendingIndex] = useState<SessionIndexData | null>(null);
+  const lastFetched = useRef(initialData.revision);
+  const browser = useRef<HTMLDivElement>(null);
   const app = useApp(),
     location = useLocation();
   const search = useRef<HTMLInputElement>(null);
@@ -38,15 +46,15 @@ export function SessionList({
     [runtime, setRuntime] = useState("all"),
     [scope, setScope] = useState("all"),
     [tagFilter, setTagFilter] = useState(""),
-    [grouped, setGrouped] = useState(true),
-    [limit, setLimit] = useState(6);
-  const [organization, setOrganization] = useState<Organization | null>(null),
+    [grouped, setGrouped] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [organization, setOrganization] = useState<Organization>(data.organization),
     [loadError, setLoadError] = useState(""),
     [busy, setBusy] = useState(false);
-  const [details, setDetails] = useState<Record<string, Session | null>>({}),
-    [ready, setReady] = useState(false);
+  const details = data.details;
   const [selected, setSelected] = useState<Set<string>>(new Set()),
     [collapsed, setCollapsed] = useState<Set<string>>(new Set()),
+    [expanded, setExpanded] = useState<Set<string>>(new Set()),
     [editing, setEditing] = useState(false),
     [name, setName] = useState(""),
     [color, setColor] = useState("sage"),
@@ -68,7 +76,6 @@ export function SessionList({
         .catch((error) => {
           if (!controller.signal.aborted) setLoadError(errorMessage(error));
         });
-    void load();
     window.addEventListener("focus", load);
     return () => {
       controller.abort();
@@ -77,31 +84,55 @@ export function SessionList({
   }, []);
   useEffect(() => {
     const controller = new AbortController();
-    let index = 0;
-    setReady(false);
-    // Bound transcript discovery so large local histories do not flood the service.
-    async function worker() {
-      while (index < data.sessions.length && !controller.signal.aborted) {
-        const session = data.sessions[index++],
-          key = keyOf(session);
-        try {
-          const result = await api<{ session: Session }>(
-            `/api/${session.runtime}/sessions/${encodeURIComponent(session.id)}?summary=1`,
-            { signal: controller.signal },
-          );
-          if (!controller.signal.aborted)
-            setDetails((old) => ({ ...old, [key]: result.session }));
-        } catch {
-          if (!controller.signal.aborted)
-            setDetails((old) => ({ ...old, [key]: null }));
+    let timer: ReturnType<typeof setTimeout>;
+    let polling = false;
+    const check = async () => {
+      if (polling || document.hidden || controller.signal.aborted) return;
+      polling = true;
+      try {
+        const status = await api<Pick<SessionIndexData, "revision" | "initialized">>(
+          "/api/sessions/index/status", { signal: controller.signal });
+        if (status.revision === data.revision && status.initialized === data.initialized) {
+          setPendingIndex(null);
+          lastFetched.current = status.revision;
+        } else if (status.revision !== lastFetched.current || status.initialized !== data.initialized) {
+          const next = await api<SessionIndexData>("/api/sessions/index", { signal: controller.signal });
+          if (controller.signal.aborted) return;
+          lastFetched.current = next.revision;
+          if (!data.initialized) {
+            setData(next); setOrganization(next.organization);
+          } else {
+            setPendingIndex(next);
+          }
         }
+        setLoadError("");
+      } catch (error) {
+        if (!controller.signal.aborted) setLoadError(errorMessage(error));
+      } finally {
+        polling = false;
       }
-    }
-    void Promise.all(Array.from({ length: 3 }, worker)).then(() => {
-      if (!controller.signal.aborted) setReady(true);
-    });
-    return () => controller.abort();
-  }, [data.sessions]);
+    };
+    const tick = async () => {
+      await check();
+      if (!controller.signal.aborted) timer = setTimeout(tick, 5000);
+    };
+    void tick();
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      controller.abort(); clearTimeout(timer);
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [data.revision, data.initialized]);
+  function applyIndex() {
+    if (!pendingIndex) return;
+    const top = browser.current?.scrollTop || 0;
+    const available = new Set(pendingIndex.sessions.map(keyOf));
+    setSelected(previous => new Set([...previous].filter(key => available.has(key))));
+    setData(pendingIndex); setPendingIndex(null);
+    requestAnimationFrame(() => { if (browser.current) browser.current.scrollTop = top; });
+  }
   async function change(command: Record<string, unknown>) {
     setBusy(true);
     try {
@@ -136,13 +167,17 @@ export function SessionList({
         Number(organization?.sessions[keyOf(b)]?.pinned || false) -
         Number(organization?.sessions[keyOf(a)]?.pinned || false),
     );
-  const visible = filtered.slice(0, limit);
+  const visible = filtered;
   const projectKey = (session: RecentSession) =>
     details[keyOf(session)]?.project?.root ||
     details[keyOf(session)]?.cwd ||
     "";
-  const groups =
-    grouped && ready ? [...new Set(visible.map(projectKey))] : ["all"];
+  const projectGroups = new Map<string, RecentSession[]>();
+  for (const session of visible) {
+    const key = grouped ? projectKey(session) : "all";
+    const entries = projectGroups.get(key);
+    if (entries) entries.push(session); else projectGroups.set(key, [session]);
+  }
   const allPinned = [...selected].every(
     (key) => organization?.sessions[key]?.pinned,
   );
@@ -154,7 +189,6 @@ export function SessionList({
   }
   function resetFilter(action: () => void) {
     action();
-    setLimit(6);
     setSelected(new Set());
     setEditing(false);
   }
@@ -176,27 +210,14 @@ export function SessionList({
               Thread<em>line</em>
             </span>
           </div>
-          <div className="dialog-head">
-            <WindowHeading>
+          <WindowHeading>
+            <div className="dialog-head collection-heading">
               <h2>{t("收录对话")}</h2>
-            </WindowHeading>
-          </div>
-          <div className="session-description-row">
-            <p className="session-subtitle">
-              {tr(
-                "浏览本机对话，留下值得继续的讨论",
-                "Browse local conversations and keep what matters",
-              )}
-            </p>
-            <button
-              className="tool session-manual-add"
-              onClick={() => app.capture()}
-            >
-              {t("手动添加 ↗")}
-            </button>
-          </div>
+
+            </div>
+          </WindowHeading>
         </div>
-        <div className="session-messages conversation-browser">
+        <div className="session-messages conversation-browser" ref={browser}>
           <div className="session-search-row">
             <input
               ref={search}
@@ -208,48 +229,56 @@ export function SessionList({
                 resetFilter(() => setQuery(event.target.value))
               }
             />
-            <select
-              className="runtime-filter"
-              aria-label={t("按 Runtime 筛选会话")}
-              value={runtime}
-              onChange={(event) =>
-                resetFilter(() => setRuntime(event.target.value))
-              }
-            >
-              <option value="all">{t("全部 Runtime")}</option>
-              {runtimes.map(value => <option key={value} value={value}>{runtimeNames[value]}</option>)}
-            </select>
-          </div>
-          <div className="conversation-filters">
-            <select
-              aria-label={tr("对话范围", "Conversation scope")}
-              value={scope}
-              onChange={(event) =>
-                resetFilter(() => setScope(event.target.value))
-              }
-            >
-              <option value="all">{t("全部对话")}</option>
-              <option value="pin">{tr("已置顶", "Pinned")}</option>
-              <option value="untagged">{tr("未打标签", "Untagged")}</option>
-            </select>
-            <small>{filtered.length}</small>
-            <span className="conversation-spacer" />
-            <select
-              aria-label={tr("标签筛选", "Filter by tag")}
-              value={tagFilter}
-              onChange={(event) =>
-                resetFilter(() => setTagFilter(event.target.value))
-              }
-            >
-              <option value="">{tr("全部标签", "All tags")}</option>
-              {organization?.tags.map((tag) => (
-                <option key={tag.name}>{tag.name}</option>
-              ))}
-            </select>
-            <button className="tool" onClick={() => setGrouped(!grouped)}>
-              {grouped ? tr("按项目", "By project") : tr("不分组", "Ungrouped")}
+            <button className="secondary" aria-expanded={filtersOpen} aria-controls="conversation-filters"
+              onClick={() => setFiltersOpen(!filtersOpen)}>
+              {tr("筛选", "Filters")}{runtime !== "all" || scope !== "all" || tagFilter || !grouped ? " ·" : ""}
             </button>
           </div>
+          {filtersOpen && <div id="conversation-filters" className="conversation-filters">
+            <label>{tr("来源", "Source")}
+              <select aria-label={t("按 Runtime 筛选会话")} value={runtime}
+                onChange={event => resetFilter(() => setRuntime(event.target.value))}>
+                <option value="all">{t("全部 Runtime")}</option>
+                {runtimes.map(value => <option key={value} value={value}>{runtimeNames[value]}</option>)}
+              </select>
+            </label>
+            <label>{tr("范围", "Scope")}
+              <select aria-label={tr("对话范围", "Conversation scope")} value={scope}
+                onChange={event => resetFilter(() => setScope(event.target.value))}>
+                <option value="all">{t("全部对话")}</option>
+                <option value="pin">{tr("已置顶", "Pinned")}</option>
+                <option value="untagged">{tr("未打标签", "Untagged")}</option>
+              </select>
+            </label>
+            <label>{tr("标签", "Tag")}
+              <select aria-label={tr("标签筛选", "Filter by tag")} value={tagFilter}
+                onChange={event => resetFilter(() => setTagFilter(event.target.value))}>
+                <option value="">{tr("全部标签", "All tags")}</option>
+                {organization.tags.map(tag => <option key={tag.name}>{tag.name}</option>)}
+              </select>
+            </label>
+            <label>{tr("排列", "Layout")}
+              <select aria-label={tr("对话排列", "Conversation layout")} value={grouped ? "project" : "recent"}
+                onChange={event => setGrouped(event.target.value === "project")}>
+                <option value="project">{tr("按项目", "By project")}</option>
+                <option value="recent">{tr("按最近时间", "By recent activity")}</option>
+              </select>
+            </label>
+            <button className="tool" onClick={() => resetFilter(() => {
+              setRuntime("all"); setScope("all"); setTagFilter(""); setGrouped(true);
+            })}>{tr("重置筛选", "Reset filters")}</button>
+          </div>}
+          {pendingIndex && <button className="secondary conversation-update" onClick={applyIndex}>
+            {pendingIndex.sessions.some(next => !data.sessions.some(old => keyOf(old) === keyOf(next)))
+              ? tr("有新对话，点击更新", "New conversations available")
+              : tr("对话有更新，点击刷新", "Conversation updates available")}
+          </button>}
+          {!data.initialized && <div className="conversation-index-loading" role="status">
+            <span>{tr("正在建立本机会话索引…", "Building the local conversation index…")}</span>
+            <div aria-hidden="true" className="conversation-skeleton" />
+            <div aria-hidden="true" className="conversation-skeleton" />
+            <div aria-hidden="true" className="conversation-skeleton" />
+          </div>}
           {loadError && (
             <p className="session-errors" role="alert">
               {loadError}
@@ -258,7 +287,9 @@ export function SessionList({
           <div
             className={`session-choices conversation-choices ${selected.size ? "has-selection" : ""}`}
           >
-            {groups.map((group) => (
+            {[...projectGroups].map(([group, sessions]) => {
+              const shown = grouped && !expanded.has(group) ? sessions.slice(0, 5) : sessions;
+              return (
               <div key={group} className="conversation-group">
                 {group !== "all" && (
                   <button
@@ -272,32 +303,19 @@ export function SessionList({
                       })
                     }
                   >
-                    {collapsed.has(group) ? "›" : "⌄"}{" "}
-                    {details[
+                    <span className="conversation-group-icon"><Icon name="dir" /></span>
+                    <span>{details[
                       keyOf(
-                        visible.find(
-                          (session) => projectKey(session) === group,
-                        )!,
+                        sessions[0],
                       )
                     ]?.project?.name ||
                       group.split(/[\\/]/).filter(Boolean).at(-1) ||
-                      tr("其他对话", "Other conversations")}{" "}
-                    <small>
-                      {
-                        visible.filter(
-                          (session) => projectKey(session) === group,
-                        ).length
-                      }
-                    </small>
+                      tr("其他对话", "Other conversations")}</span>
+
                   </button>
                 )}
                 {!collapsed.has(group) &&
-                  visible
-                    .filter(
-                      (session) =>
-                        group === "all" || projectKey(session) === group,
-                    )
-                    .map((session) => {
+                  shown.map((session) => {
                       const key = keyOf(session),
                         detail = details[key],
                         entry = organization?.sessions[key];
@@ -417,13 +435,18 @@ export function SessionList({
                         </div>
                       );
                     })}
+                {grouped && !collapsed.has(group) && sessions.length > 5 ? <button
+                  className="tool conversation-group-more"
+                  aria-expanded={expanded.has(group)}
+                  onClick={() => setExpanded(previous => {
+                    const next = new Set(previous);
+                    next.has(group) ? next.delete(group) : next.add(group);
+                    return next;
+                  })}
+                >{expanded.has(group) ? tr("收起", "Show less") : tr("展开显示", "Show more")}</button> : null}
               </div>
-            ))}
-            {filtered.length > limit && (
-              <button className="tool" onClick={() => setLimit(limit + 6)}>
-                {t("显示更多会话")}
-              </button>
-            )}
+            );})}
+
           </div>
           {data.errors
             ?.filter((error) => runtime === "all" || error.runtime === runtime)
@@ -432,11 +455,11 @@ export function SessionList({
                 {error.runtime} · {error.message}
               </p>
             ))}
-          {!filtered.length && (
+          {data.initialized && !filtered.length && (
             <p className="session-guide">
               {query || scope !== "all" || tagFilter
                 ? t("没有匹配的会话。")
-                : t("没有找到本机会话，可通过「手动添加」收录。")}
+                : tr("没有找到本机会话，可以在左侧添加笔记", "No local conversations found. Add a note from the sidebar")}
             </p>
           )}
         </div>

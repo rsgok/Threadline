@@ -24,6 +24,7 @@ import type { Library, Runtime, Topic } from "../lib/types";
 import { Icon } from "../components/common";
 import { AppUtilities } from "../components/app-utilities";
 import { Modal } from "../components/modal";
+import { useHeaderMenus } from "../lib/header-menus";
 
 const CaptureDialog = lazy(() =>
   import("../components/library-dialogs").then((m) => ({
@@ -52,6 +53,7 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
 }
 
 export default function App({ loaderData: library }: Route.ComponentProps) {
+  useHeaderMenus();
   const location = useLocation(),
     navigate = useNavigate(),
     revalidator = useRevalidator();
@@ -81,6 +83,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
       return [];
     }
   });
+  const [notePicker, setNotePicker] = useState(false);
   const drafts = useRef(new Map<string, SessionDraft>());
   const [query, setQuery] = useState(""),
     [scope, setScope] = useState("all"),
@@ -213,7 +216,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
     () => ({
       capture: (text?: string) => setCapture({ text }),
       collect: () => go("/collect"),
-      library: () => go("/library"),
+      library: () => { if (isPanel) setNotePicker(true); else go("/library"); },
       search: () => go("/collect?search=1"),
       settings: () => go("/settings"),
       about: () => go("/settings?section=about"),
@@ -221,7 +224,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
         void openInRuntime(runtime);
       },
     }),
-    [go, openInRuntime, location.pathname, location.search],
+    [go, openInRuntime, isPanel, location.pathname, location.search],
   );
   useNativeBridge(commands);
   useEffect(() => {
@@ -266,6 +269,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
       if (event.dataTransfer?.types.includes("Files")) event.preventDefault();
     };
     const drop = (event: DragEvent) => {
+      if (event.defaultPrevented || (event.target as Element)?.closest("[contenteditable=true]")) return;
       if (document.querySelector("dialog[open]")) return;
       const image = event.dataTransfer?.files[0];
       if (image) {
@@ -465,28 +469,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
             <Icon name="thoughts" />
             <span>{t("我的思路")}</span>
           </button>
-          <select
-            className="native-scope"
-            aria-label={t("筛选笔记")}
-            value={scope}
-            onChange={(event) => {
-              setScope(event.target.value);
-              go(
-                "/library" +
-                  (event.target.value === "all"
-                    ? ""
-                    : "?scope=" + encodeURIComponent(event.target.value)),
-              );
-            }}
-          >
-            <option value="all">{t("全部对话")}</option>
-            <option value="inbox">{t("未分类")}</option>
-            {library.topics.map((topic) => (
-              <option key={topic.id} value={topic.id}>
-                {topic.title}
-              </option>
-            ))}
-          </select>
+
           <section className="native-list">
             <div className="native-list-head">
               <div className="searchbox">
@@ -498,6 +481,20 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </div>
+          <select
+            className="native-scope"
+            aria-label={t("筛选笔记")}
+            value={scope}
+            onChange={(event) => setScope(event.target.value)}
+          >
+            <option value="all">{t("全部对话")}</option>
+            <option value="inbox">{t("未分类")}</option>
+            {library.topics.map((topic) => (
+              <option key={topic.id} value={topic.id}>
+                {topic.title}
+              </option>
+            ))}
+          </select>
             </div>
             <div className="native-note-list">
               {filtered.map((clip) => (
@@ -591,6 +588,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
           if (event.button === 0) {
             event.preventDefault();
             event.currentTarget.setPointerCapture(event.pointerId);
+            document.body.classList.add("resizing-sidebar");
           }
         }}
         onPointerMove={(event) => {
@@ -598,9 +596,11 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
             persistWidth(event.clientX);
         }}
         onPointerUp={(event) => {
+          document.body.classList.remove("resizing-sidebar");
           if (event.currentTarget.hasPointerCapture(event.pointerId))
             event.currentTarget.releasePointerCapture(event.pointerId);
         }}
+        onLostPointerCapture={() => document.body.classList.remove("resizing-sidebar")}
         onKeyDown={(event) => {
           if (["ArrowLeft", "ArrowRight"].includes(event.key)) {
             event.preventDefault();
@@ -611,6 +611,8 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
       {notice ? (
         <div
           id="notify-message"
+          popover="manual"
+          ref={element => { if (element && !element.matches(":popover-open")) element.showPopover(); }}
           className="notify-message react-notice"
           role={notice.error ? "alert" : "status"}
           data-kind={notice.error ? "error" : "info"}
@@ -621,6 +623,13 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
           </button>
         </div>
       ) : null}
+      {notePicker ? <Modal title={t("笔记")} onClose={() => setNotePicker(false)}>
+        <input aria-label={tr("查找笔记", "Find a note")} placeholder={t("搜索你的笔记")} value={query} onChange={event => setQuery(event.target.value)} autoFocus />
+        <div className="note-picker-list">
+          {filtered.map(clip => <button className="tool" key={clip.id} onClick={() => { setNotePicker(false); go("/notes/" + clip.id); }}>{clip.title}</button>)}
+          {!filtered.length ? <p className="dialog-hint">{tr("没有匹配的笔记", "No matching notes")}</p> : null}
+        </div>
+      </Modal> : null}
       <Suspense fallback={null}>
         {capture ? (
           <CaptureDialog {...capture} onClose={() => setCapture(null)} />

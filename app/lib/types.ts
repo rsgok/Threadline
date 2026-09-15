@@ -37,6 +37,7 @@ export interface Clip {
   version: string;
   date: string;
   createdAt: number;
+  collectedAt?: string;
   updatedAt: number;
   hasImage: boolean;
   attachment?: string;
@@ -94,6 +95,8 @@ export interface RecentSession {
   updatedAt?: string;
 }
 export interface Snapshot {
+  clipID?: string;
+  clipVersion?: string;
   runtime: Runtime;
   threadID: string;
   messageIDs: string[];

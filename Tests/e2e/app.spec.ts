@@ -21,13 +21,27 @@ test("Codex handoff targets the selected conversation and its Threadline detail"
   expect(panel.search).toBe("?panel=1");
   await page.goto(panel.href);
   await expect(page.locator("#window-page-heading h2, #session-view h2")).toHaveText("界面架构讨论");
+  for (const width of [780, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    const action = page.locator(".conversation-heading .codex-heading-link");
+    await expect(action).toBeVisible();
+    await expect(page.locator(".session-subtitle .codex-thread-link")).toHaveCount(0);
+    const titleBox = await page.locator(".conversation-title").boundingBox();
+    const actionBox = await action.boundingBox();
+    const menuBox = await page.locator(".conversation-heading .session-more").boundingBox();
+    expect(actionBox!.x).toBeGreaterThanOrEqual(titleBox!.x + titleBox!.width);
+    expect(menuBox!.x).toBeGreaterThanOrEqual(actionBox!.x + actionBox!.width);
+    await expect(action.locator(".codex-link-label")).toBeVisible({ visible: width > 480 });
+    await page.screenshot({ path: `artifacts/codex-heading-${width}-${test.info().project.name}.png` });
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`/collect/codex/${thread}?native=1`);
   await page.evaluate(() => {
     window.webkit = { messageHandlers: { openInCodex: { postMessage(message) {
       document.body.dataset.handoff = JSON.stringify(message);
     } } } };
   });
-  await page.getByRole("link", { name: "在 Codex 继续 ↗" }).click();
+  await page.getByRole("link", { name: "在 Codex 打开 ↗" }).click();
   const payload = JSON.parse((await page.locator("body").getAttribute("data-handoff"))!);
   expect(payload).toEqual({ runtime: "codex", threadID: thread, url: panel.href });
   await expect(page).toHaveURL(/native=1$/);
@@ -49,7 +63,7 @@ test("deep links, native commands, selection persistence, safe Markdown and impo
   await expect(page.locator(".article table")).toBeVisible();
   await expect(page.locator(".article script")).toHaveCount(0);
   await page.evaluate(() => window.Threadline!.library());
-  await expect(page).toHaveURL(/\/library\?native=1/);
+  await expect(page).toHaveURL(/\/notes\/.+\?native=1/);
   await page.goBack();
   await expect(page.locator(".message-select[aria-pressed=true]")).toHaveCount(
     1,
@@ -62,7 +76,7 @@ test("deep links, native commands, selection persistence, safe Markdown and impo
   await page.locator("#confirm-save-session").click();
   await expect(page.getByRole("button", { name: "查看笔记 →" })).toBeVisible();
   await page.getByRole("button", { name: "查看笔记 →" }).click();
-  await expect(page.locator("#window-page-heading h1")).toHaveText("界面架构讨论");
+  await expect(page.locator("#edit-title")).toHaveValue("界面架构讨论");
   await page.locator(".markdown-image-content").scrollIntoViewIfNeeded();
   await expect(page.locator(".markdown-image-content")).toHaveJSProperty(
     "complete",
@@ -77,14 +91,12 @@ test("autosave flushes before route changes and preserves edits on conflict", as
   page,
 }) => {
   await ready(page, `/notes/${note}`);
-  await page.getByRole("button", { name: "编辑", exact: true }).click();
   const title = "保存验证 " + test.info().project.name;
   await page.locator("#edit-title").fill(title);
   await page.evaluate(() => window.Threadline!.library());
-  await expect(page).toHaveURL(/\/library$/);
+  await expect(page).toHaveURL(/\/notes\//);
   await page.goto(`/notes/${note}`);
-  await expect(page.locator("#window-page-heading h1")).toHaveText(title);
-  await page.getByRole("button", { name: "编辑", exact: true }).click();
+  await expect(page.locator("#edit-title")).toHaveValue(title);
   await page.route(`**/api/clips/${note}`, async (route) => {
     if (route.request().method() === "PUT")
       await route.fulfill({
@@ -172,6 +184,10 @@ test("local sharing previews and downloads selected discussion", async ({
 test("manual evidence relations survive reload and render confirmed connections", async ({
   page,
 }) => {
+  for (const id of [note, 'BBBBBBBB-BBBB-4BBB-8BBB-000000000002']) {
+    const clip = (await (await page.request.get(`/api/clips/${id}`)).json()).clip;
+    expect((await page.request.put(`/api/clips/${id}`, {headers:{'X-Rewind-Request':'1'},data:{version:clip.version,body:'保留原文，才能核对依据。',topicID:topic}})).ok()).toBe(true);
+  }
   const current = await (
     await page.request.get(`/api/thoughts/${topic}/relations`)
   ).json();
@@ -212,12 +228,19 @@ test("language persists across full reload and new routes", async ({
   );
 });
 
-test("recent sessions load in bounded batches, and titles are not covered by chrome", async ({
+test("recent sessions arrive grouped without per-row browser requests", async ({
   page,
 }) => {
+  const summaries: string[] = [];
+  page.on("request", request => { if (request.url().includes("summary=1")) summaries.push(request.url()); });
   await ready(page, "/collect?native=1");
-  await expect(page.locator(".session-choice")).toHaveCount(6);
-  await page.getByRole("button", { name: "显示更多会话" }).click();
+  expect(summaries).toEqual([]);
+  await expect(page.getByRole("button", { name: "显示更多会话" })).toHaveCount(0);
+  await expect(page.locator(".conversation-group-head").first()).toBeVisible();
+  for (const group of await page.locator(".conversation-group").all()) {
+    const more = group.getByRole("button", {name:"展开显示",exact:true});
+    if (await more.count()) await more.click();
+  }
   await expect(page.locator(".session-choice")).toHaveCount(11);
   const unobscured = await page.locator("#window-page-heading h2, #session-view h2").evaluate((el) => {
     const r = el.getBoundingClientRect();
@@ -227,4 +250,27 @@ test("recent sessions load in bounded batches, and titles are not covered by chr
   await page.screenshot({
     path: `artifacts/collect-${test.info().project.name}.png`,
   });
+});
+
+test("conversation menu dismisses outside, on focus leave, Escape and window blur", async ({ page }) => {
+  await ready(page, `/collect/codex/${thread}?panel=1`);
+  const menu = page.locator(".conversation-heading .session-more");
+  const trigger = menu.locator("summary");
+  await trigger.click();
+  await expect(menu).toHaveAttribute("open", "");
+  await page.screenshot({ path: `artifacts/conversation-menu-${test.info().project.name}.png` });
+  await menu.getByRole("switch").focus();
+  await expect(menu).toHaveAttribute("open", "");
+  await page.locator(".conversation-title").click();
+  await expect(menu).not.toHaveAttribute("open", "");
+  await trigger.click();
+  await page.locator(".codex-heading-link").focus();
+  await expect(menu).not.toHaveAttribute("open", "");
+  await trigger.click();
+  await page.keyboard.press("Escape");
+  await expect(menu).not.toHaveAttribute("open", "");
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(menu).not.toHaveAttribute("open", "");
 });

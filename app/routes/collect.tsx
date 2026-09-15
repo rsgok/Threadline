@@ -1,8 +1,8 @@
 import { isRuntime } from "../lib/runtimes";
-import { SessionList } from "../components/session-list";
+import { SessionList, type SessionIndexData } from "../components/session-list";
 import type { Route } from "./+types/collect";
 import { api } from "../lib/api";
-import type { RecentSession, Runtime, Session } from "../lib/types";
+import type { Runtime, Session } from "../lib/types";
 
 import { SessionView } from "../components/session-view";
 export async function clientLoader({
@@ -14,10 +14,7 @@ export async function clientLoader({
   if (!params.threadID)
     return {
       kind: "list" as const,
-      ...(await api<{
-        sessions: RecentSession[];
-        errors?: { runtime: string; message: string }[];
-      }>("/api/sessions/recent", { signal: request.signal })),
+      ...(await api<SessionIndexData>("/api/sessions/index", { signal: request.signal })),
     };
   const runtime = params.runtime as Runtime;
   let progress = false;

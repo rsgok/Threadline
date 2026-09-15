@@ -4,6 +4,10 @@ import { getLocale, t, tr } from "../lib/i18n";
 import type { Project, Topic } from "../lib/types";
 
 const paths = {
+  share: "M12 15V3 M8 7l4-4 4 4 M5 11v9h14v-9",
+  download: "M12 3v12 M8 11l4 4 4-4 M5 17v4h14v-4",
+  carry: "M4 4h16v13H9l-5 4V4 M8 10h8 M12 7l3 3-3 3",
+  dir: "M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z",
   back: "M14 5l-7 7 7 7",
   forward: "M10 5l7 7-7 7",
   search: "M16 16 21 21 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0",

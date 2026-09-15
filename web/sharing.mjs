@@ -165,7 +165,7 @@ export class Sharing {
         for (const image of images) if (!used.has(image.id)) parts.push({ type: 'image', assetId: image.id });
         return { id: m.id, role: m.role, text: shareText(m.text), imageIDs: images.map(a => a.id), parts };
       });
-      const text = [session.title || '讨论摘录', note, ...messages.map(m => `【${m.role === 'user' ? '我' : 'AI'}】\n${m.text}`), ...attachments.map(a => `附件：${a.name}（${a.selected ? '随附发送' : '未选择，不发送'}）`)].filter(Boolean).join('\n\n');
+      const text = [session.title || '讨论摘录', note, ...messages.map(m => `【${m.role === 'note' ? '笔记' : m.role === 'user' ? '我' : 'AI'}】\n${m.text}`), ...attachments.map(a => `附件：${a.name}（${a.selected ? '随附发送' : '未选择，不发送'}）`)].filter(Boolean).join('\n\n');
       if (text.length > 2_000_000) throw fail(413, '内容超过 2 MB，请分批分享');
       const steps = platform === 'export' ? [] : [...splitText(text, capability.textLimit).map((text, i) => ({ id: crypto.randomUUID(), type: 'text', text, label: `文字 ${i + 1}`, status: 'pending' })), ...attachments.filter(a => a.selected).map(a => ({ id: crypto.randomUUID(), type: 'file', assetId: a.id, label: a.name, status: 'pending' }))];
       if (steps.length > 150) throw fail(413, '将产生超过 150 次发送，请减少所选内容');
@@ -190,7 +190,7 @@ export class Sharing {
   }
   exportEntries(id) {
     const job = this.load(id), chosen = job.attachments.filter(a => a.selected);
-    const content = ['# ' + job.title, job.note, ...job.messages.map(m => `## ${m.role === 'user' ? '我' : 'AI'}\n\n${m.text}`), ...chosen.map(a => `${a.kind === 'image' ? '!' : ''}[${a.name.replace(/[\[\]]/g, '_')}](<attachments/${a.id}-${a.name}>)`)].filter(Boolean).join('\n\n');
+    const content = ['# ' + job.title, job.note, ...job.messages.map(m => `## ${m.role === 'note' ? '笔记' : m.role === 'user' ? '我' : 'AI'}\n\n${m.text}`), ...chosen.map(a => `${a.kind === 'image' ? '!' : ''}[${a.name.replace(/[\[\]]/g, '_')}](<attachments/${a.id}-${a.name}>)`)].filter(Boolean).join('\n\n');
     return [['discussion.md', Buffer.from(content)], ...chosen.map(a => [`attachments/${a.id}-${a.name}`, this.asset(id, a.id).bytes])];
   }
   resolve(id, stepId, delivered) {

@@ -1,7 +1,7 @@
 // Executed in the isolated Chromium page. All dimensions come from real layout.
 async function paginateCards() {
   const english=document.documentElement.lang==='en';
-  const roleLabel=role=>role==='user'?(english?'My question':'我的提问'):(english?'AI answer':'AI 回答');
+  const roleLabel=role=>role==='note'?(english?'Note':'笔记'):role==='user'?(english?'My question':'我的提问'):(english?'AI answer':'AI 回答');
   await document.fonts.ready;
   await Promise.all([...document.images].map(async image => { await image.decode(); if (!image.naturalWidth) throw Error('图片无法读取'); }));
   const pages = document.querySelector('#pages'), template = document.querySelector('#page-template');

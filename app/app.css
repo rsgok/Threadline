@@ -285,9 +285,26 @@ body.react-app .session-choice-row {
 body.react-app .codex-thread-link {
   justify-self: start;
 }
-body.react-app .session-subtitle .codex-thread-link {
+body.react-app .conversation-heading .conversation-title {
+  flex: 1;
+  min-width: 0;
+}
+body.react-app .codex-heading-link {
   display: inline-flex;
-  margin-right: 8px;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.codex-link-icon {
+  display: none;
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+@media (max-width: 480px) {
+  .codex-heading-link .codex-link-label { display: none; }
+  .codex-heading-link .codex-link-icon { display: block; }
 }
 body.react-app #session-view .session-bottom {
   padding: 12px clamp(16px, 3vw, 36px);
@@ -523,7 +540,7 @@ body.react-app .note-toolbar {
   min-width: 0;
   flex: 1;
 }
-#window-page-heading .conversation-heading {
+#window-page-heading > .dialog-head {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -702,3 +719,178 @@ body.react-app .main>.bottom { border:0; }
 .about-actions { display:flex; gap:8px; flex-wrap:wrap; margin:18px 0; }
 .about-automatic { display:flex; align-items:center; gap:10px; }
 .about-release-notes { white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* Page headings align titles and actions without inherited text margins. */
+body.react-app :is(.collection-heading, .conversation-heading, .thought-heading) {
+  align-items: center;
+}
+body.react-app :is(.collection-heading, .conversation-heading, .thought-heading) > :is(h1, h2) {
+  margin-block: 0;
+}
+body.react-app .collection-heading {
+  gap: 12px;
+  margin-block: 0;
+}
+body.react-app .collection-heading h2 {
+  flex: 1;
+  min-width: 0;
+}
+body.react-app .collection-heading .tool {
+  flex-shrink: 0;
+}
+
+/* Keep collection controls and rows on a single horizontal grid. */
+body.react-app .conversation-browser .session-search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 16px;
+}
+body.react-app .conversation-browser .session-search-row input { flex: 1; min-width: 0; width: 0; }
+body.react-app .conversation-browser .conversation-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin: 0 0 20px;
+}
+body.react-app .conversation-filters label { display: grid; gap: 6px; min-width: 0; font-size: 12px; }
+body.react-app .conversation-filters label select { width: 100%; max-width: none; min-width: 0; }
+body.react-app .conversation-filters > button { justify-self: start; }
+body.react-app .conversation-group-head { padding: 8px 0; margin: 12px 0 4px; align-items: center; }
+body.react-app .conversation-row { padding: 10px 0; margin: 0; column-gap: 8px; }
+body.react-app #session-view .conversation-row .session-choice { align-items: center; min-height: 28px; }
+body.react-app #session-view .conversation-row .session-list-preview { align-items: baseline; }
+body.react-app .native-list-head { display: flex; gap: 6px; align-items: center; }
+body.react-app .native-list-head .searchbox { flex: 1; min-width: 0; margin: 0; }
+body.react-app .native-list-head .native-scope { width: 104px; min-width: 0; flex-shrink: 0; margin: 0; }
+body.react-app .page-heading-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+body.react-app .page-heading-actions h1 { flex: 1; min-width: 0; }
+.heading-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.note-detail-heading { flex-wrap: wrap; margin-bottom: 16px; }
+.note-detail-heading .heading-actions { margin-left: auto; }
+body.react-app .note-detail-heading h1 { margin: 0; min-width: min(200px, 100%); }
+body.react-app .note-detail :is(.note, .question, .project-context, .image-note, .source-badge, .review-badge) { background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+body.react-app .note-detail :is(.note, .question, .project-context) { padding: 0; margin: 18px 0; }
+body.react-app .note-detail .entry-meta { margin-top: 0; }
+body.react-app .note-detail .source-badge { padding: 0; }
+body.react-app .note-detail .image-note { padding: 0; color: var(--muted); font-size: 12px; }
+body.react-app .note-detail .note p { white-space: pre-wrap; }
+@media (max-width: 700px) {
+  body.react-app .note-detail-heading h1 { flex-basis: 100%; }
+  .note-detail-heading .heading-actions { flex-wrap: wrap; justify-content: flex-end; max-width: 100%; flex-shrink: 1; }
+}
+.thought-detail-heading .heading-actions { margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+body.react-app .thought-detail-heading h1 { min-width: min(200px, 100%); }
+@media (max-width: 700px) {
+  body.react-app .thought-detail-heading h1 { flex-basis: 100%; }
+  .thought-detail-heading .heading-actions { max-width: 100%; flex-shrink: 1; }
+}
+body.react-app .thought-description { margin: 0 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+#window-page-heading .page-heading-actions { height: var(--window-chrome-height); margin: 0; }
+#window-page-heading:has(.page-heading-actions) ~ .native-header-spacer { display: none; }
+@media (max-width: 600px) {
+  body.react-app .conversation-browser .conversation-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.react-app .page-heading-actions { gap: 8px; }
+  .heading-actions { gap: 4px; }
+}
+
+.conversation-group-icon { flex: 0 0 28px; display: flex; align-items: center; justify-content: center; align-self: center; }
+.conversation-group-icon svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Sidebar sections share one inset; spacing is owned here, not by legacy rows. */
+body.react-app .sidebar {
+  padding-inline: 14px;
+  padding-bottom: 12px;
+}
+body.react-app .sidebar > .brand { margin-bottom: 8px; }
+body.react-app .sidebar > :is(.native-sidebar-capture, .native-thoughts-entry) {
+  margin: 0 0 4px;
+}
+body.react-app .sidebar .native-list {
+  margin: 12px 0 0;
+}
+body.react-app .sidebar .native-list-head {
+  padding: 0 0 12px;
+  flex-shrink: 0;
+  gap: 8px;
+}
+body.react-app .sidebar .native-note-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+}
+body.react-app .sidebar button.native-note {
+  flex-shrink: 0;
+  margin: 0;
+}
+body.react-app .sidebar > .manual-capture { margin: 12px 0 0; }
+
+.conversation-index-loading { display: grid; gap: 12px; color: var(--muted); font-size: 12px; }
+.conversation-skeleton { height: 76px; border-radius: 8px; background: var(--side); }
+body.react-app .conversation-update { margin-bottom: 16px; }
+
+/* Notes retain their reading layout while their content is edited in place. */
+body.react-app .note-banner { background: #f0f3ee; border: 1px solid #e3e8df; border-radius: 10px; padding: 16px 18px; margin: 0 0 28px; color: #697461; font-size: 12px; line-height: 1.7; }
+.note-banner-meta { display:flex; align-items:center; flex-wrap:wrap; gap:6px 18px; }
+.note-banner-details { margin-top:8px; }
+.note-banner-details > summary { cursor:pointer; font-size:11px; }
+.note-banner-details > div { margin-top:6px; }
+.note-source-url { overflow-wrap:anywhere; }
+body.react-app .note-banner .project-context { margin:6px 0; }
+.note-conversation { display:grid; gap:28px; }
+.note-message { min-width:0; }
+.note-message-meta { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-size:11px; line-height:20px; color:#81897d; }
+.note-message-meta time { margin-left:auto; font-size:10px; }
+.note-role { font-weight:600; color:#4c5b46; }
+.note-message.from-user { padding-left:14px; border-left:2px solid #d9e0d4; }
+body.react-app .note-message .article { margin:8px 0 0; }
+.note-rich-content { outline:none; min-height:1.8em; overflow-wrap:anywhere; }
+.note-rich-content:focus { outline:none; }
+.note-rich-content img { max-width:100%; height:auto; }
+.note-rich-content table { border-collapse:collapse; width:100%; }
+.note-rich-content :is(td,th) { border:1px solid var(--line); padding:8px; }
+.note-title-input { display:block; width:100%; min-width:0; font:inherit; line-height:inherit; }
+@media(max-width:700px) { .note-title-input { flex-basis:100%; } }
+.note-source-editor { width:100%; min-height:240px; resize:vertical; font:13px/1.8 ui-monospace,monospace; }
+body.react-app .note-detail .article-end { display:flex; align-items:center; gap:16px; margin:36px 0 8px; color:#899181; font-size:10px; letter-spacing:2px; opacity:1; }
+body.react-app .note-detail .article-end::before,body.react-app .note-detail .article-end::after { content:""; display:block; height:1px; flex:1; background:#e0e5dc; }
+.note-rich-content .ProseMirror-selectednode { outline:2px solid #81976e; outline-offset:3px; }
+[data-tippy-root], div:has(> .note-format-menu) { z-index:1200; }
+
+/* Keep the sidebar scrollable without displaying scrollbars. */
+body.react-app .sidebar,body.react-app .sidebar * { scrollbar-width:none!important; }
+body.react-app .sidebar::-webkit-scrollbar,body.react-app .sidebar *::-webkit-scrollbar { display:none; width:0; height:0; }
+body.react-app .native-resizer,body.react-app .native-resizer:hover,body.react-app .native-resizer:active,body.react-app.resizing-sidebar .native-resizer { background:transparent!important; box-shadow:none; }
+body.react-app .react-notice,body.react-app .react-notice:popover-open { position:fixed; inset:auto 24px 24px auto; transform:none; margin:0; display:flex; align-items:flex-start; gap:12px; width:max-content; max-width:min(420px,calc(100vw - 32px)); padding:12px 14px; border:1px solid #dce3d6; border-radius:10px; background:#fffefb; color:#34432e; box-shadow:0 4px 18px #24352f14; font:12px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; white-space:normal; overflow-wrap:anywhere; }
+body.react-app .react-notice>span { flex:1; min-width:0; }
+body.react-app .react-notice[data-kind=error] { border-color:#dfc8c0; color:#8a4236; }
+@media(max-width:700px) { body.react-app .react-notice,body.react-app .react-notice:popover-open { right:16px; bottom:16px; } }
+body #carry-dialog.modal-surface #carry-task { min-height:100px; height:100px; margin-bottom:0; }
+.carry-selection-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:22px 0 10px; font-size:12px; color:#53634a; }
+.carry-selection-heading small { font-size:11px; color:#818a7a; }
+body #carry-dialog.modal-surface #carry-list { display:grid; gap:4px; padding:0; border:0; background:transparent; max-height:240px; scrollbar-width:none; }
+body #carry-dialog.modal-surface #carry-list::-webkit-scrollbar { display:none; }
+body #carry-dialog.modal-surface .carry-row { display:flex; align-items:center; padding:10px 12px; margin:0; gap:10px; border:0; border-radius:6px; line-height:1.6; cursor:pointer; }
+body #carry-dialog.modal-surface .carry-row span { min-width:0; overflow-wrap:anywhere; }
+body #carry-dialog.modal-surface .carry-row input { margin:0; flex-shrink:0; }
+.carry-content-preview { margin-top:18px; font-size:12px; color:#74806a; }
+.carry-content-preview summary { cursor:pointer; }
+body #carry-dialog.modal-surface .carry-content-preview pre { max-height:200px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; }
+.note-format-popover { position:fixed; z-index:1200; }
+.note-special-content>.tool { margin:0 0 8px; }
+.note-source-dialog { --modal-width:720px; }
+body dialog.modal-surface .note-source-draft { height: min(50dvh,420px); min-height:180px; font:12px/1.8 ui-monospace,monospace; resize:vertical; }
+
+.note-picker-list { display:grid; gap:6px; margin-top:16px; max-height:50dvh; overflow:auto; scrollbar-width:none; }
+.note-picker-list > button { text-align:left; white-space:normal; }
+body dialog.modal-surface .note-picker-list > button.tool { justify-content:flex-start; text-align:left; }
+
+.conversation-group-more { margin:4px 0 12px 28px; }
+
+/* Node selections use an image outline, never the browser's text highlight. */
+.note-rich-content.ProseMirror-hideselection *::selection { background:transparent; }
+.note-rich-content.ProseMirror-hideselection { caret-color:transparent; }
+.note-rich-content img { user-select:none; -webkit-user-select:none; }
+.note-rich-content img.ProseMirror-selectednode { outline:1px solid #81976e; outline-offset:2px; }

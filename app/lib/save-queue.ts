@@ -32,6 +32,11 @@ export function createSaveQueue<Draft, Saved extends Versioned>(
     return running;
   };
   return {
+    rebase(nextVersion: string) {
+      if (pending !== undefined || running) return false;
+      version = nextVersion;
+      return true;
+    },
     push(draft: Draft) {
       pending = draft;
     },

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, download, post } from "../lib/api";
 import { useApp } from "../lib/app-context";
-import { count, getLocale, t, translateError } from "../lib/i18n";
+import { count, getLocale, t, tr, translateError } from "../lib/i18n";
 import type {
   CardTheme,
   RenderState,
@@ -309,7 +309,7 @@ export function ShareDialog({
       >
         {!method ? (
           <section className="share-chooser">
-            <p className="dialog-hint">{t`已选 ${snapshot.messageIDs.length} 条消息 · 选择一种分享方式`}</p>
+            <p className="dialog-hint">{snapshot.clipID ? tr("分享这条笔记", "Share this note") : t`已选 ${snapshot.messageIDs.length} 条消息 · 选择一种分享方式`}</p>
             <h3>{t("保存到本机")}</h3>
             <div className="share-method-grid">
               {methods.slice(0, 3).map(([value, label, hint]) => (

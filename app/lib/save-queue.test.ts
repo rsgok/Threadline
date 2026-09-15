@@ -58,3 +58,13 @@ test("failed in-flight write retains the newest draft and last confirmed version
   ]);
   assert.equal(queue.dirty, false);
 });
+
+test('rebases clean queues without replacing the version of pending edits', async () => {
+  const versions: string[] = [];
+  const queue = createSaveQueue<string, {version:string}>('1', async (_, version) => { versions.push(version); return {version:'3'}; }, () => {});
+  assert.equal(queue.rebase('2'), true);
+  queue.push('draft');
+  assert.equal(queue.rebase('9'), false);
+  await queue.flush();
+  assert.deepEqual(versions, ['2']);
+});

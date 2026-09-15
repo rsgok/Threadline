@@ -170,16 +170,17 @@ function ThoughtView({
     );
   return (
     <section className="workspace route-scroll">
-      <div className="thought-heading">
-        <WindowHeading><h1 className="thinking-title">{topic.title}</h1></WindowHeading>
-        <button className="tool" onClick={() => app.editTopic(topic)}>
-          {t("编辑思路")}
-        </button>
-      </div>
-      <p className="workspace-description">
-        {topic.goal ||
-          tr("围绕这个问题，继续积累讨论", "Keep exploring this question")}
-      </p>
+      <WindowHeading>
+        <div className="thought-heading page-heading-actions thought-detail-heading">
+          <h1 className="thinking-title">{topic.title}</h1>
+          <div className="heading-actions">
+            <button className="tool" onClick={() => app.editTopic(topic)}>{t("编辑思路")}</button>
+            <button className="secondary" onClick={() => app.capture(topic.id)}>{t("添加笔记")}</button>
+            <button className="tool" disabled={!notes.length} onClick={() => app.openCarry(notes.map((note) => note.id))}>{t("使用对话")}</button>
+          </div>
+        </div>
+      </WindowHeading>
+      {topic.goal ? <p className="workspace-description thought-description">{topic.goal}</p> : null}
       <div className="thought-controls">
         <div className="thought-tabs">
           {(["timeline", "graph"] as const).map((key) => (
@@ -205,9 +206,7 @@ function ThoughtView({
             : tr("发现关联", "Discover relations")}
         </button>
       </div>
-      <p className="thought-analysis-status" role="status">
-        {status}
-      </p>
+      {data.job ? <p className="thought-analysis-status" role="status">{status}</p> : null}
       <ErrorText error={error} />
       {view === "timeline" ? (
         <>
@@ -344,18 +343,6 @@ function ThoughtView({
           ) : null}
         </div>
       )}
-      <div className="hero-actions">
-        <button className="secondary" onClick={() => app.capture(topic.id)}>
-          {t("添加笔记")}
-        </button>
-        <button
-          className="tool"
-          disabled={!notes.length}
-          onClick={() => app.openCarry(notes.map((note) => note.id))}
-        >
-          {t("使用对话")}
-        </button>
-      </div>
       {editor ? (
         <RelationEditor
           topic={topic}

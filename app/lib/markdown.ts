@@ -62,9 +62,14 @@ markdown.renderer.rules.link_open = (
   }
   return renderer.renderToken(tokens, index, options);
 };
+// Compatibility for image Markdown written before local paths were angle-quoted.
+export function normalizeNoteResources(text: string) {
+  return text.replace(/(```[\s\S]*?```|~~~[\s\S]*?~~~|`+[^`\n]*`+)|(!?\[[^\]\n]*\])\((\/[^<>\n]*?\/note-uploads\/[^<>\n]*?)\)/g,
+    (whole, code, label, path) => code ? whole : `${label}(<${path}>)`);
+}
 export function renderMarkdown(text: string, context: ResourceContext = {}) {
   return markdown
-    .render(text, context)
+    .render(normalizeNoteResources(text), context)
     .replace(
       /:codex-annotation\{index=&quot;(\d+)&quot;\}/g,
       (_, index: string) =>

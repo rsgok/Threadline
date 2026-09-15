@@ -7,13 +7,15 @@ mkdir -p "$THREADLINE_APP/Contents/MacOS" "$THREADLINE_APP/Contents/Resources/up
 cp .build/release/Threadline "$THREADLINE_APP/Contents/MacOS/Threadline"
 ditto .build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework "$THREADLINE_APP/Contents/Frameworks/Sparkle.framework"
 cp updater/cli.mjs updater/runtime-update.mjs updater/service.mjs "$THREADLINE_APP/Contents/Resources/updater/"
+mkdir -p "$THREADLINE_APP/Contents/Resources/onboarding"
+cp web/assets/onboarding/*.png "$THREADLINE_APP/Contents/Resources/onboarding/"
 cp updater/node-runtime.json "$THREADLINE_APP/Contents/Resources/node-runtime.json"
 swift scripts/make-icon.swift "$PWD/dist/Threadline.iconset"
 iconutil -c icns dist/Threadline.iconset -o "$THREADLINE_APP/Contents/Resources/ThreadlineGreen.icns"
 swift scripts/make-menu-icon.swift "$THREADLINE_APP/Contents/Resources/MenuIcon.pdf"
 python3 - <<'PY'
 import json,plistlib,pathlib,os,urllib.parse
-info={'CFBundleName':'Threadline','CFBundleDisplayName':'Threadline','CFBundleIdentifier':'local.rewind.app','CFBundleExecutable':'Threadline','CFBundlePackageType':'APPL','CFBundleShortVersionString':json.loads(pathlib.Path('package.json').read_text())['version'],'CFBundleVersion':os.getenv('THREADLINE_BUILD_NUMBER','11'),'CFBundleURLTypes':[{'CFBundleURLName':'Threadline Conversation','CFBundleURLSchemes':['threadline']}],'CFBundleIconFile':'ThreadlineGreen','LSMinimumSystemVersion':'13.0','NSHighResolutionCapable':True,'NSAppTransportSecurity':{'NSAllowsLocalNetworking':True},'SUEnableAutomaticChecks':False,'SUAutomaticallyUpdate':False,'SUAllowsAutomaticUpdates':False,'SUVerifyUpdateBeforeExtraction':True}
+info={'CFBundleName':'Threadline','CFBundleDisplayName':'Threadline','CFBundleIdentifier':'local.rewind.app','CFBundleExecutable':'Threadline','CFBundlePackageType':'APPL','CFBundleShortVersionString':json.loads(pathlib.Path('package.json').read_text())['version'],'CFBundleVersion':os.getenv('THREADLINE_BUILD_NUMBER','12'),'CFBundleURLTypes':[{'CFBundleURLName':'Threadline Conversation','CFBundleURLSchemes':['threadline']}],'CFBundleIconFile':'ThreadlineGreen','LSMinimumSystemVersion':'13.0','NSHighResolutionCapable':True,'NSAppTransportSecurity':{'NSAllowsLocalNetworking':True},'SUEnableAutomaticChecks':False,'SUAutomaticallyUpdate':False,'SUAllowsAutomaticUpdates':False,'SUVerifyUpdateBeforeExtraction':True}
 if not info['CFBundleVersion'].isdigit(): raise SystemExit('Build number must be an increasing integer')
 saved=json.loads(pathlib.Path('updater/release-config.json').read_text()) if os.getenv('THREADLINE_DISABLE_UPDATES')!='1' else {}
 feed=os.getenv('THREADLINE_SPARKLE_FEED_URL',saved.get('sparkleFeedURL','')); key=os.getenv('THREADLINE_SPARKLE_PUBLIC_KEY',saved.get('sparklePublicKey',''))

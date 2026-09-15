@@ -33,6 +33,7 @@ export function SessionView({
   runtime: Runtime;
 }) {
   const app = useApp();
+  const moreMenu = useRef<HTMLDetailsElement>(null);
   const key = runtime + ":" + initial.id;
   const [draft, setDraft] = useState(() => app.getSessionDraft(key));
   const [session, setSession] = useState(initial),
@@ -253,8 +254,12 @@ export function SessionView({
               <h2 className="conversation-title" title={session.title}>
                 {session.title}
               </h2>
+              {runtime === "codex" ? (
+                <CodexThreadLink threadID={session.id} heading />
+              ) : null}
               <details
                 className="session-more"
+                ref={moreMenu}
                 onToggle={(event) => {
                   const menu = event.currentTarget;
                   if (menu.open)
@@ -327,10 +332,7 @@ export function SessionView({
             </div>
           </WindowHeading>
           <div className="session-subtitle">
-            {runtime === "codex" ? (
-              <CodexThreadLink threadID={session.id} />
-            ) : null}
-            {count(session.messages.length)} · {t("选择值得记录的内容")}{" "}
+            {count(session.messages.length)}{" "}
             <StatusTag status={session.status} />
           </div>
           <ErrorText error={!save ? error : null} />

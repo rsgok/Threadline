@@ -7,7 +7,7 @@ final class Updates {
     weak var web: WKWebView?
     private var sparkle: SPUStandardUpdaterController?
     private var timer: Timer?
-    private var busy = false
+    private(set) var busy = false
     private var landing: PreparationView?
     private var state: [String: Any] = ["state": "idle"]
     private let defaults = UserDefaults.standard
