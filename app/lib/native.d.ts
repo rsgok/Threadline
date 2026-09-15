@@ -5,6 +5,7 @@ export interface NativeCommands {
   library(): void;
   search(): void;
   settings(): void;
+  about(): void;
   openInRuntime(runtime?: Runtime): void;
 }
 declare global {

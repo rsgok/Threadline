@@ -1,4 +1,6 @@
 import { WindowHeading } from "../components/window-heading";
+import { useSearchParams } from "react-router";
+import { AboutSettings } from "../components/about-settings";
 import { useState } from "react";
 import { getLanguage, setLanguage, t } from "../lib/i18n";
 import type { Language } from "../lib/types";
@@ -10,6 +12,8 @@ import { ErrorText } from "../components/common";
 import "../../web/feishu.css";
 
 export default function Settings() {
+  const [params, setParams] = useSearchParams();
+  const about = params.get("section") === "about";
   const [language, set] = useState<Language>(getLanguage()),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(),
@@ -21,6 +25,11 @@ export default function Settings() {
         <div className="settings-heading">
           <WindowHeading><h1>{t("设置")}</h1></WindowHeading>
         </div>
+        <nav className="settings-tabs" aria-label={t("设置分类")}>
+          <button className="tool" aria-pressed={!about} onClick={() => setParams((previous) => { const next = new URLSearchParams(previous); next.delete("section"); return next; })}>{t("通用")}</button>
+          <button className="tool" aria-pressed={about} onClick={() => setParams((previous) => { const next = new URLSearchParams(previous); next.set("section", "about"); return next; })}>{t("关于")}</button>
+        </nav>
+        {about ? <AboutSettings /> : <>
         <section className="settings-section">
           <h2>{t("通用")}</h2>
           <label className="field-label" htmlFor="language-choice">
@@ -83,7 +92,7 @@ export default function Settings() {
             ))}
           </div>
         </section>
-
+        </>}
       </div>
       {feishu ? <FeishuConnection onClose={() => setFeishu(false)} /> : null}
     </section>

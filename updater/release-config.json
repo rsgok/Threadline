@@ -1,0 +1,6 @@
+{
+  "runtimeFeedURL": "https://github.com/rsgok/Threadline/releases/latest/download/runtime.json",
+  "runtimePublicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAAarESTgftbkksKhLJpCfSvCt5d4pzVA4qcUZ89Y1gJ4=\n-----END PUBLIC KEY-----\n",
+  "sparkleFeedURL": "https://github.com/rsgok/Threadline/releases/latest/download/appcast.xml",
+  "sparklePublicKey": "lN+lwPD1hIC8DtzbNvKVgSmTILCEJ8yltkDIx/rV0zo="
+}

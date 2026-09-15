@@ -16,7 +16,7 @@ if curl -fsS http://127.0.0.1:43127/health 2>/dev/null | python3 -c 'import json
 
 fi
 if [ "$(uname)" = "Darwin" ]; then
-  node scripts/package-runtime.mjs "$HOME/Library/Application Support/RewindWeb/app"
+  node scripts/install-runtime.mjs "$HOME/Library/Application Support/RewindWeb"
   REWIND_NODE="$(command -v node)" REWIND_ROOT="$PWD" python3 - <<'PY'
 import os, pathlib, plistlib
 root = pathlib.Path.home()
@@ -43,7 +43,23 @@ PY
   fi
   launchctl bootstrap "$REWIND_DOMAIN" "$HOME/Library/LaunchAgents/local.rewind.web.plist"
   launchctl kickstart "$REWIND_DOMAIN/local.rewind.web"
-  printf 'Rewind started: http://127.0.0.1:43127\n'
+  node --input-type=module - <<'JS'
+import fs from 'node:fs';
+const expected = JSON.parse(fs.readFileSync('package.json')).version;
+for (let attempt = 0; attempt < 40; attempt++) {
+  try {
+    const response = await fetch('http://127.0.0.1:43127/health', { signal: AbortSignal.timeout(1000) });
+    const value = await response.json();
+    if (value.app === 'rewind-web' && value.version === expected) {
+      console.log('Threadline started: http://127.0.0.1:43127');
+      process.exit(0);
+    }
+  } catch {}
+  await new Promise(resolve => setTimeout(resolve, 500));
+}
+console.error('Threadline service did not become healthy; inspect ~/Library/Logs/RewindWeb.log');
+process.exit(1);
+JS
 else
   exec node web/server.mjs
 fi

@@ -687,3 +687,18 @@ body.react-app .reading .article-end::before,body.react-app .reading .article-en
 body.react-app .reading .article-end { justify-content:center; opacity:.5; }
 body.react-app .reading .review-note { border:0; margin-top:28px; background:#f1f4ec; }
 body.react-app .main>.bottom { border:0; }
+
+/* Settings owns layout; buttons.css owns the shared control appearance. */
+.settings-tabs { display:flex; gap:8px; max-width:320px; margin:8px 0 28px; }
+.about-settings { max-width:560px; }
+.about-identity { display:flex; align-items:center; gap:14px; }
+.about-identity img { object-fit:contain; }
+.about-identity p { margin:4px 0 0; }
+.about-versions { display:grid; gap:10px; margin:20px 0; }
+.about-versions>div { display:flex; gap:24px; }
+.about-versions dt { min-width:72px; }
+.about-versions dd { margin:0; font-variant-numeric:tabular-nums; }
+.about-update-status p { margin:8px 0; }
+.about-actions { display:flex; gap:8px; flex-wrap:wrap; margin:18px 0; }
+.about-automatic { display:flex; align-items:center; gap:10px; }
+.about-release-notes { white-space:pre-wrap; overflow-wrap:anywhere; }

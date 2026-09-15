@@ -58,18 +58,9 @@ test("collapsed sidebar leaves usable navigation and clear headings on every pag
     await page.goto(route + "?native=1");
     await page.getByRole("button", { name: "切换导航栏" }).click();
     await expect(page.locator(".sidebar")).toBeHidden();
-    await expect(page.locator(".collapsed-navigation")).toBeVisible();
-    expect(
-      await page
-        .locator(".collapsed-navigation button")
-        .first()
-        .evaluate((el) => {
-          const r = el.getBoundingClientRect();
-          return el.contains(
-            document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2),
-          );
-        }),
-    ).toBe(true);
+    await expect(page.locator(".collapsed-navigation")).toHaveCount(0);
+    await expect(page.locator(".native-context-header .app-more")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "切换导航栏" })).toBeVisible();
     const heading = page.locator("#window-page-heading h1, #window-page-heading h2").first();
     await expect(heading).toBeVisible();
     expect((await heading.boundingBox())!.y).toBeLessThan(46);
@@ -151,7 +142,7 @@ test("file download appears in unified sharing history and detail", async ({
   ).toContainText("我们应该怎样组织界面和数据");
 });
 
-test("shared page chrome keeps one title and one application menu across surfaces", async ({ page }) => {
+test("page chrome keeps native headers quiet and panel navigation available", async ({ page }) => {
   for (const panel of [false, true]) {
     await page.setViewportSize({ width: panel ? 390 : 1280, height: 780 });
     for (const route of ["/collect", "/library", "/thoughts", "/settings", "/notes/BBBBBBBB-BBBB-4BBB-8BBB-000000000001"]) {
@@ -161,9 +152,10 @@ test("shared page chrome keeps one title and one application menu across surface
       await expect(title).toHaveCSS("font-size", panel ? "20px" : "14px");
       await expect(title).toHaveCSS("font-weight", "500");
       const menus = page.getByLabel("更多应用操作", { exact: true }).filter({ visible: true });
-      await expect(menus).toHaveCount(1);
-      await menus.click();
-      await expect(page.getByRole("button", { name: "分享记录", exact: true }).filter({ visible: true })).toHaveCount(1);
+      await expect(menus).toHaveCount(panel ? 1 : 0);
+      if (panel) await menus.click();
+      const history = page.getByRole("button", { name: "分享记录", exact: true }).filter({ visible: true });
+      await expect(history).toHaveCount(panel ? 1 : 0);
       await page.keyboard.press("Escape");
       const content = page.locator(".workspace.route-scroll, .reading, .settings-content, .session-messages").first();
       await expect(content).toHaveCSS("padding-left", panel ? "16px" : "20px");

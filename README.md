@@ -71,7 +71,13 @@ The app supports English and Simplified Chinese. Choose a language in **Settings
 
 ## Quick start
 
-Threadline currently installs **from source**. The Mac app uses your local Node.js installation; a standalone installer is not available yet.
+Download **Threadline 0.3.0** for Apple Silicon from [GitHub Releases](https://github.com/rsgok/Threadline/releases/tag/0.3.0), unzip it, and move `Threadline.app` to Applications. First launch downloads its own Node runtime from nodejs.org and the matching signed interface/service package from GitHub. Once prepared, installed components work offline; no npm, Python or developer tools are required for this installation.
+
+Existing 0.0.2 users should replace their Mac app with 0.3.0 once: the old shell has no online updater. Notes and settings remain in place. Later updates are available in Settings → About. See [download and update design](docs/updates.md).
+
+The app is Developer ID signed but this release is not notarized. The download is for Apple Silicon; Intel users can build from source below.
+
+### Development from source
 
 ### Requirements
 
@@ -133,7 +139,7 @@ See [local data and backups](docs/local-data.md) for storage details, attachment
 
 - Conversation collection reads **local Codex, Cursor Agent, Claude Code, Pi, and DeepSeek Harness transcripts**. It does not download cloud history or recover older Cursor IDE databases.
 - Pi collection shows the last persisted branch. DeepSeek Harness collection reads v3 logs; its managed attachments remain references. Compressed DeepSeek logs require Node.js 22.15 or later. See the [integration guide](docs/agent-runtime.md) for exact support boundaries.
-- The Mac app currently requires a source build and an installed Node.js runtime.
+- First launch requires access to nodejs.org and GitHub Releases. macOS may require confirmation for this non-notarized Developer ID build.
 - PNG card export downloads its Chromium rendering component on first use. Once installed, rendering runs locally.
 - Feishu, Slack, and Discord require their own connection setup. Feishu also requires `lark-cli` on the local machine.
 
@@ -145,6 +151,7 @@ See [local data and backups](docs/local-data.md) for storage details, attachment
 | [Local data and backups](docs/local-data.md) | Storage, exports, attachment handling, and safe backups. |
 | [Development](docs/development.md) | Run from source, validate changes, and understand the project layout. |
 | [Sharing guide — 简体中文](docs/sharing.md) | Configure sharing destinations, image cards, limits, and retry behavior. |
+| [Mac updates](docs/updates.md) | Separate shell and feature updates, release configuration, and recovery. |
 | [Interface languages](docs/i18n.md) | Language preferences and translation conventions. |
 
 ## Contributing

@@ -102,6 +102,10 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
     settings = location.pathname === "/settings",
     thoughts = location.pathname.startsWith("/thoughts");
   const isPanel = new URLSearchParams(location.search).get("panel") === "1";
+  const isNative = !isPanel && (
+    new URLSearchParams(location.search).get("native") === "1" ||
+    (typeof window !== "undefined" && !!window.webkit?.messageHandlers?.windowChrome)
+  );
   const selectedID = location.pathname.startsWith("/notes/")
     ? decodeURIComponent(location.pathname.slice(7))
     : "";
@@ -146,10 +150,8 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
     document.body.classList.toggle("settings-open", settings);
     document.body.classList.toggle("native-nav-hidden", sidebarHidden);
     document.documentElement.dataset.surface = isPanel ? "panel" : "app";
-    document.documentElement.dataset.native = String(
-      new URLSearchParams(location.search).get("native") === "1",
-    );
-  }, [collecting, thoughts, settings, sidebarHidden, isPanel, location.search]);
+    document.documentElement.dataset.native = String(isNative);
+  }, [collecting, thoughts, settings, sidebarHidden, isPanel, isNative, location.search]);
   useLayoutEffect(
     () => () => {
       document.body.classList.remove(
@@ -214,6 +216,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
       library: () => go("/library"),
       search: () => go("/collect?search=1"),
       settings: () => go("/settings"),
+      about: () => go("/settings?section=about"),
       openInRuntime: (runtime?: Runtime) => {
         void openInRuntime(runtime);
       },
@@ -397,30 +400,34 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
         <div className="native-context-header">
           <div id="window-page-heading" />
           <span className="native-header-spacer" />
-          <nav
-            className="collapsed-navigation"
-            aria-label={tr(
-              "收起侧栏后的导航",
-              "Navigation with sidebar hidden",
-            )}
-          >
-            <button className="tool" onClick={commands.collect}>
-              {t("收录对话")}
-            </button>
-            <button className="tool" onClick={() => go("/thoughts")}>
-              {t("我的思路")}
-            </button>
-            <button className="tool" onClick={commands.library}>
-              {t("资料库")}
-            </button>
-            <button className="tool" onClick={commands.settings}>
-              {t("设置")}
-            </button>
-          </nav>
-          <AppUtilities
-            openInRuntime={openInRuntime}
-            history={() => setHistory(true)}
-          />
+          {!isNative ? (
+            <>
+              <nav
+                className="collapsed-navigation"
+                aria-label={tr(
+                  "收起侧栏后的导航",
+                  "Navigation with sidebar hidden",
+                )}
+              >
+                <button className="tool" onClick={commands.collect}>
+                  {t("收录对话")}
+                </button>
+                <button className="tool" onClick={() => go("/thoughts")}>
+                  {t("我的思路")}
+                </button>
+                <button className="tool" onClick={commands.library}>
+                  {t("资料库")}
+                </button>
+                <button className="tool" onClick={commands.settings}>
+                  {t("设置")}
+                </button>
+              </nav>
+              <AppUtilities
+                openInRuntime={openInRuntime}
+                history={() => setHistory(true)}
+              />
+            </>
+          ) : null}
         </div>
       </header>
       <div className="app">
