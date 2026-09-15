@@ -125,8 +125,10 @@ export function PlatformConnection({
 export function FeishuConnection({
   onClose,
   onChanged,
+  inline = false,
 }: {
-  onClose(): void;
+  inline?: boolean;
+  onClose?(): void;
   onChanged?(): void;
 }) {
   const [status, setStatus] = useState<FeishuStatus | null>(null),
@@ -178,16 +180,8 @@ export function FeishuConnection({
   }
   const waiting =
     status?.job && ["starting", "waiting"].includes(status.job.status);
-  return (
-    <Modal
-      title={t("连接飞书")}
-      className="feishu-dialog"
-      onClose={() => {
-        onChanged?.();
-        onClose();
-      }}
-      busy={busy}
-    >
+  const content = (
+    <>
       {!status ? (
         <Loading />
       ) : waiting ? (
@@ -408,6 +402,11 @@ export function FeishuConnection({
         }
       />
       {info ? <p role="status">{info}</p> : null}
+    </>
+  );
+  return inline ? <section className="platform-connection feishu-dialog">{content}</section> : (
+    <Modal title={t("连接飞书")} className="feishu-dialog" busy={busy} onClose={() => { onChanged?.(); onClose?.(); }}>
+      {content}
     </Modal>
   );
 }

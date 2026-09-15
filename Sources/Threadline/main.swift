@@ -30,6 +30,7 @@ final class ThreadlineWindow: NSWindow {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate, WKScriptMessageHandler, NSToolbarDelegate {
     var pendingConversation: URL?
     var serviceReady = false
+    private var terminating = false
     let updates = Updates()
     var statusItem: NSStatusItem?
     var window: NSWindow!
@@ -153,16 +154,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     @objc func progress(){show();web.evaluateJavaScript("window.Threadline?.collect()")}
     @objc func library(){show();web.evaluateJavaScript("window.Threadline?.library()")}
     func connect(attempt:Int){
+        guard !terminating else { return }
         var request=URLRequest(url:base.appendingPathComponent("health"));request.timeoutInterval=1
         URLSession.shared.dataTask(with:request){data,response,_ in
             let valid = (try? JSONSerialization.jsonObject(with:data ?? Data())) as? [String:Any]
             DispatchQueue.main.async {
+                guard !self.terminating else { return }
                 if valid?["app"] as? String == "rewind-web", let expectedRoot = self.expectedRuntime["runtimeRoot"] as? String, valid?["runtimeRoot"] as? String == expectedRoot, valid?["version"] as? String == self.expectedRuntime["version"] as? String {self.serviceReady = true;self.web.load(URLRequest(url:self.pendingConversation ?? URL(string:"http://127.0.0.1:43127/?native=1")!));self.pendingConversation = nil;return}
                 if attempt==0 {let p=Process();p.executableURL=URL(fileURLWithPath:"/bin/launchctl");p.arguments=["kickstart","gui/\(getuid())/local.rewind.web"];try? p.run()}
                 if attempt<20 {DispatchQueue.main.asyncAfter(deadline:.now()+0.3){self.connect(attempt:attempt+1)}}
                 else {let alert=NSAlert();alert.messageText=self.tr("Threadline 本机服务未能启动");alert.informativeText=self.tr("笔记仍保存在本机。请重新运行安装脚本，或重试。");alert.addButton(withTitle:self.tr("重试"));alert.addButton(withTitle:self.tr("关闭"));if alert.runModal() == .alertFirstButtonReturn{self.connect(attempt:0)}}
             }
         }.resume()
+    }
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard !terminating else { return .terminateLater }
+        terminating = true
+        stopServiceAndQuit()
+        return .terminateLater
+    }
+    private func stopServiceAndQuit() {
+        // Let installation finish its atomic switch before stopping its service.
+        if bootstrap.busy || updates.busy {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.stopServiceAndQuit() }
+            return
+        }
+        DispatchQueue.global(qos: .userInitiated).async {
+            let job = "gui/\(getuid())/local.rewind.web"
+            do {
+                // An absent job is already stopped.
+                if (try? ManagedNode.run("/bin/launchctl", ["print", job])) != nil {
+                    try ManagedNode.run("/bin/launchctl", ["bootout", job])
+                }
+                DispatchQueue.main.async { NSApp.reply(toApplicationShouldTerminate: true) }
+            } catch {
+                DispatchQueue.main.async {
+                    self.terminating = false
+                    let alert = NSAlert()
+                    alert.messageText = "Threadline 本机服务未能停止"
+                    alert.informativeText = "请重试退出，后台服务尚未确认关闭"
+                    alert.runModal()
+                    NSApp.reply(toApplicationShouldTerminate: false)
+                }
+            }
+        }
     }
     @objc func show(){window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
     @objc func search(){show();web.evaluateJavaScript("window.Threadline?.search()")}

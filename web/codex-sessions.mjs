@@ -169,6 +169,42 @@ export class CodexSessions {
     return [...entries.values()].sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)).slice(0,100);
   }
 
+  async indexEntries() {
+    const recent = await this.recent(), wanted = new Map(recent.map(entry => [entry.id.toLowerCase(), entry]));
+    const found = new Map();
+    const visit = async directory => {
+      let entries;
+      try { entries = await fs.promises.readdir(directory, { withFileTypes: true }); }
+      catch (error) { if (error.code === 'ENOENT') return; throw error; }
+      for (const entry of entries) {
+        const file = path.join(directory, entry.name);
+        if (entry.isDirectory()) await visit(file);
+        else if (entry.isFile() && entry.name.endsWith('.jsonl')) {
+          const id = entry.name.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0].toLowerCase();
+          if (!wanted.has(id)) continue;
+          const stat = await fs.promises.stat(file);
+          if (!found.has(id) || found.get(id).mtimeMs < stat.mtimeMs)
+            found.set(id, { ...wanted.get(id), file, mtimeMs: stat.mtimeMs, stamp: [stat.mtimeMs, stat.ctimeMs, stat.size, stat.ino, wanted.get(id).title, wanted.get(id).updatedAt].join(':') });
+        }
+      }
+    };
+    await visit(path.join(this.home, 'sessions'));
+    await visit(path.join(this.home, 'archived_sessions'));
+    let workspaceStamp = '';
+    try {
+      const config = JSON.parse(await fs.promises.readFile(path.join(this.home, '.codex-global-state.json'), 'utf8'));
+      workspaceStamp = hash(JSON.stringify([config['electron-saved-workspace-roots'], config['electron-workspace-root-labels']]));
+    } catch {}
+    return [...found.values()].map(entry => ({ ...entry, stamp: entry.stamp + ':' + workspaceStamp }));
+  }
+
+  async indexSummary(entry) {
+    const snapshot = await this.readFile(entry.file, entry.id);
+    this.paths.set(entry.id, entry.file);
+    return { ...snapshot, title: entry.title, project: await this.projectFor(snapshot.cwd),
+      messages: snapshot.messages.filter(message => message.phase !== 'commentary').slice(-1) };
+  }
+
   async title(id) {
     const file = path.join(this.home, 'session_index.jsonl');
     if (!fs.existsSync(file)) return '';

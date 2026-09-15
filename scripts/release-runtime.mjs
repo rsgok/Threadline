@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { packageRuntime } from './package-runtime.mjs';
 import { verifyManifest } from '../updater/runtime-update.mjs';
-const [output, baseURL, keyFile, minBuild = '11'] = process.argv.slice(2);
+const [output, baseURL, keyFile, minBuild = '12'] = process.argv.slice(2);
 if (!output || !keyFile || new URL(baseURL).protocol !== 'https:') throw Error('Expected output directory, HTTPS base URL and Ed25519 private key path');
 const privateKey = crypto.createPrivateKey(fs.readFileSync(keyFile));
 if (privateKey.asymmetricKeyType !== 'ed25519') throw Error('An Ed25519 signing key is required');

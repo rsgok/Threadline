@@ -1,3 +1,4 @@
+import { SessionIndex } from './session-index.mjs';
 import { SessionOrganization } from './session-organization.mjs';
 import { cardThemes } from './card-themes.mjs';
 import { serveFrontend } from './frontend.mjs';
@@ -12,7 +13,7 @@ import { CodexSessions, THREAD_ID } from './codex-sessions.mjs';
 import { CursorSessions } from './cursor-sessions.mjs';
 import { TerminalSessions } from './terminal-sessions.mjs';
 import { runtimeNames, sessionID } from './runtimes.mjs';
-import { archiveAssets, portableBody } from './session-assets.mjs';
+import { archiveAssets, portableBody, linkedAttachments } from './session-assets.mjs';
 import { Sharing } from './sharing.mjs';
 import { CardRenderer } from './card-renderer.mjs';
 import { ThoughtRelations } from './thought-relations.mjs';
@@ -90,7 +91,7 @@ function parseImage(value) {
   return { data, extension: kind === 'jpeg' ? 'jpg' : kind };
 }
 
-export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome, cursorHome, claudeHome, piHome, deepseekHome, feishu: feishuOverride, frontendDir = path.resolve(here, '../build/client') } = {}) {
+export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLegacy, ocr = true, codexHome, cursorHome, claudeHome, piHome, deepseekHome, feishu: feishuOverride, frontendDir = path.resolve(here, '../build/client'), indexBackground = false } = {}) {
   fs.mkdirSync(path.join(dataDir, 'attachments'), { recursive: true, mode: 0o700 });
   const store = new LibraryStore(dataDir, legacyDir);
   const organization = new SessionOrganization(dataDir);
@@ -103,6 +104,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
   const codex = new CodexSessions(codexHome, path.join(dataDir, 'session-assets'));
   const cursor = new CursorSessions(cursorHome, path.join(dataDir, 'session-assets'));
   const providers = { codex, cursor, ...Object.fromEntries(Object.entries({ claude: claudeHome, pi: piHome, deepseek: deepseekHome }).map(([runtime, home]) => [runtime, new TerminalSessions(runtime, home, path.join(dataDir, 'session-assets'))])) };
+  const sessionIndex = new SessionIndex(dataDir, providers);
   const provider = (runtime = 'codex') => { if (Object.hasOwn(providers, runtime)) return providers[runtime]; throw error(400,'不支持的 Runtime。'); };
   const validSessionID = (runtime, id) => ['pi', 'deepseek'].includes(runtime) ? sessionID(id) : THREAD_ID.test(id || '');
   const feishu = feishuOverride || createFeishu({ dataDir });
@@ -110,13 +112,24 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
   const sharing = new Sharing({ dataDir });
   const cardRenderer = new CardRenderer({ dataDir, sharing });
   async function selectedDiscussion(data) {
+    if (data.clipID) {
+      if (typeof data.clipID !== "string" || !/^[a-f0-9-]{36}$/i.test(data.clipID)) throw error(400, "笔记 ID 无效");
+      const clip = store.get(data.clipID);
+      if (!clip || clip.deletedAt) throw error(404, '笔记不存在');
+      if (data.clipVersion !== version(clip)) throw error(409, '笔记已变化，请重新打开分享');
+      let text = [clip.note ? `## 我的判断与适用条件\n\n${clip.note}` : '', clip.question ? `## 原问题\n\n${clip.question}` : '', clip.body].filter(Boolean).join('\n\n');
+      const attachments = (clip.assets || []).map(asset => ({ name: asset.name, path: imagePath(asset.storedName) }));
+      for (const asset of clip.assets || []) if (asset.originalPath) text = text.split(asset.originalPath).join(imagePath(asset.storedName));
+      if (clip.attachment) attachments.push({ name: clip.attachment, path: imagePath(clip.attachment) });
+      return { session: { id: clip.id, title: clip.title, runtime: clip.provenance?.runtime || 'codex' }, selected: [{ id: clip.id, role: 'note', text, timestamp: new Date((clip.createdAt + referenceEpoch) * 1000).toISOString(), attachments }] };
+    }
     if (!validSessionID(data.runtime, data.threadID) || !Array.isArray(data.messageIDs) || !data.messageIDs.length || data.messageIDs.length > 100 || new Set(data.messageIDs).size !== data.messageIDs.length) throw error(400, '请选择 1 到 100 条消息。');
     const session = await provider(data.runtime).get(data.threadID, { includeProgress: data.includeProgress === true });
     const selected = session.messages.filter(m => data.messageIDs.includes(m.id));
     if (selected.length !== data.messageIDs.length || !data.fingerprints || selected.some(m => data.fingerprints[m.id] !== m.fingerprint)) throw error(409, '消息已变化，请刷新后重新选择。');
     return { session, selected };
   }
-  const publicClip = c => ({ ...c, version: version(c), date: date(c.createdAt), hasImage: !!c.attachment });
+  const publicClip = c => ({ ...c, version: version(c), date: date(c.createdAt), collectedAt: new Date((c.createdAt + referenceEpoch) * 1000).toISOString(), hasImage: !!c.attachment });
   const imagePath = name => path.join(dataDir, 'attachments', path.basename(name));
 
   function preserveAttachments(clip, selected) {
@@ -331,6 +344,21 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         store.putTopic(topic);
         return send(200, { topic: publicTopic(topic) });
       }
+      const uploadRoute = pathname.match(/^\/api\/clips\/([A-Fa-f0-9-]{36})\/uploads$/);
+      if (uploadRoute && req.method === 'POST') {
+        const clip = store.get(uploadRoute[1]);
+        if (!clip || clip.deletedAt) throw error(404, '笔记不存在');
+        const data = await readJSON(req);
+        if (typeof data.name !== 'string' || typeof data.base64 !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(data.base64)) throw error(400, '文件格式无效');
+        const bytes = Buffer.from(data.base64, 'base64');
+        if (!bytes.length || bytes.length > 12 * 1024 * 1024) throw error(413, '请选择 12 MB 以内的非空文件');
+        const name = path.basename(data.name).replace(/[<>:"\\/\r\n\x00-\x1f]/g, '_').slice(-150) || 'file';
+        const directory = path.join(dataDir, 'note-uploads', clip.id);
+        fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+        const file = path.join(directory, crypto.randomUUID() + '-' + name);
+        fs.writeFileSync(file, bytes, { flag: 'wx', mode: 0o600 });
+        return send(201, { path: file, name });
+      }
       if (pathname === '/api/local-resource' && ['GET','POST'].includes(req.method)) {
         if (req.headers['sec-fetch-site'] === 'cross-site') throw error(403, '拒绝跨站请求。');
         const requested = url.searchParams.get('path') || '';
@@ -341,8 +369,9 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         const clip = store.get(url.searchParams.get('clip') || '');
         if (clip && !clip.deletedAt) sources.push(clip.body || '');
         const references = text=>[...text.matchAll(/!?\[[^\]]*\]\((<[^>]+>|[^)]+)\)/g)].some(m=>m[1].replace(/^<|>$/g,'').trim().replace(/:\d+(?::\d+)?$/, '')===requested.replace(/:\d+(?::\d+)?$/, ''));
-        if (!sources.some(references) && !clip?.assets?.some(a => a.originalPath === requested) && thread) sources.push(...(await provider(url.searchParams.get('runtime')).get(thread, {includeProgress:true})).messages.map(m=>m.text));
-        const referenced = sources.some(references) || (clip && !clip.deletedAt && clip.assets?.some(a => a.originalPath === requested));
+        const ownUpload = clip && !clip.deletedAt && path.dirname(requested) === path.join(dataDir, 'note-uploads', clip.id);
+        if (!ownUpload && !sources.some(references) && !clip?.assets?.some(a => a.originalPath === requested) && thread) sources.push(...(await provider(url.searchParams.get('runtime')).get(thread, {includeProgress:true})).messages.map(m=>m.text));
+        const referenced = ownUpload || sources.some(references) || (clip && !clip.deletedAt && clip.assets?.some(a => a.originalPath === requested));
         if (!referenced) throw error(404, '这段内容未引用该文件。');
         const savedAsset = clip && !clip.deletedAt && clip.assets?.find(a => a.originalPath === requested.replace(/:\d+(?::\d+)?$/, ''));
         const resourcePath = savedAsset ? imagePath(savedAsset.storedName) : requested.replace(/:\d+(?::\d+)?$/, '');
@@ -359,6 +388,11 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
         if (req.method === 'GET') return send(200, organization.read());
         if (req.method === 'POST') return send(200, organization.update(await readJSON(req)));
       }
+      if (req.method === 'GET' && pathname === '/api/sessions/index/status')
+        return send(200, sessionIndex.status());
+      if (req.method === 'GET' && (pathname === '/api/sessions/index' ||
+          (pathname === '/api/sessions/recent' && url.searchParams.get('summaries') === '1')))
+        return send(200, { ...sessionIndex.snapshot(), organization: organization.read() });
       if (req.method === 'GET' && pathname === '/api/sessions/recent') {
         const runtimes=Object.keys(providers);
         const results=await Promise.allSettled(runtimes.map(runtime=>providers[runtime].recent()));
@@ -439,6 +473,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       if (route) {
         const existing = store.get(route[1]);
         if (!existing) throw error(404, '收藏不存在。');
+        if (req.method === 'GET') return send(200, { clip: publicClip(existing) });
         if (req.method === 'PUT' && !route[2]) {
           const data = await readJSON(req); validateFields(data); validateTopic(data);
           const existing = store.get(route[1]);
@@ -446,7 +481,22 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
           if (data.version !== version(existing)) throw error(409, '这条收藏已在其他页面更新。请保留当前文字，刷新后再编辑。');
           const next = { ...existing, updatedAt: now() };
           for (const k of fields) if (k in data) next[k] = data[k];
-          store.put(next);
+          const uploads = linkedAttachments(next.body).filter(item => path.dirname(item.path) === path.join(dataDir, 'note-uploads', existing.id) && !existing.assets?.some(asset => asset.originalPath === item.path));
+          let newAssets = [];
+          try {
+            if (uploads.length) {
+              const archived = archiveAssets([{ text: '', attachments: uploads }], dataDir);
+              newAssets = archived.assets;
+              if (archived.warnings.length) throw error(400, archived.warnings[0].reason);
+              next.assets = [...(existing.assets || []), ...newAssets.map(asset => ({ ...asset, name: path.basename(asset.originalPath).slice(37) }))];
+            }
+            store.put(next);
+          } catch (failure) {
+            // A failed save keeps uploaded originals retryable and removes only new copies.
+            for (const asset of newAssets) { try { fs.unlinkSync(imagePath(asset.storedName)); } catch {} }
+            throw failure;
+          }
+          for (const item of uploads) { try { fs.unlinkSync(item.path); } catch {} }
           return send(200, { clip: publicClip(next) });
         }
         if (req.method === 'DELETE') {
@@ -484,6 +534,9 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       throw error(404, '页面不存在。');
     } catch (err) { if (!res.headersSent) send(err.status || 500, { error: err.status ? err.message : '本机保存或读取失败，原数据未被清空。' }); }
   });
+  server.sessionIndex = sessionIndex;
+  if (indexBackground) server.once('listening', () => sessionIndex.start());
+  server.once('close', () => sessionIndex.close());
   server.on('close', () => { analysis.close(); feishu.close?.(); store.close(); });
   server.on('close', () => cardRenderer.close());
   return server;
@@ -491,7 +544,7 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
 
 // Versioned installations launch through app -> releases/<version>.
 if (process.argv[1] && fs.existsSync(process.argv[1]) && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const server = createRewindServer({ dataDir: process.env.REWIND_WEB_DATA_DIR || defaultDir });
+  const server = createRewindServer({ dataDir: process.env.REWIND_WEB_DATA_DIR || defaultDir, indexBackground: true });
   const port = Number(process.env.REWIND_WEB_PORT || 43127);
   server.on('error', err => { console.error(err.message); process.exitCode = 1; });
   server.listen(port, '127.0.0.1', () => console.log(`Rewind: http://127.0.0.1:${port}`));

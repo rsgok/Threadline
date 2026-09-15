@@ -47,7 +47,7 @@ export class CursorSessions {
         if (entry.isDirectory()) await visit(file, depth + 1, inTranscripts || entry.name === 'agent-transcripts');
         else if (inTranscripts && entry.isFile() && entry.name.endsWith('.jsonl') && THREAD_ID.test(entry.name.slice(0, -6))) {
           const stat = await fs.promises.stat(file);
-          files.push({ file, id: entry.name.slice(0, -6), modified: stat.mtimeMs, size: stat.size });
+          files.push({ file, id: entry.name.slice(0, -6), modified: stat.mtimeMs, ctimeMs: stat.ctimeMs, ino: stat.ino, size: stat.size });
         }
       }
     };
@@ -65,6 +65,18 @@ export class CursorSessions {
     if (this.cache.size >= 100) this.cache.delete(this.cache.keys().next().value);
     this.cache.set(entry.file, { stamp, session });
     return structuredClone(session);
+  }
+  async indexEntries() {
+    return (await this.files()).slice(0, 100).map(entry => ({
+      ...entry, stamp: [entry.modified, entry.ctimeMs, entry.ino, entry.size, entry.file].join(':'),
+      updatedAt: new Date(entry.modified).toISOString(),
+    }));
+  }
+  async indexSummary(entry) {
+    const session = await this.snapshot(entry);
+    // The disk index is compact; do not retain every transcript in the reader cache.
+    this.cache.delete(entry.file);
+    return session;
   }
   async recent() {
     const result = [], seen = new Set();

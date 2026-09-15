@@ -1,0 +1,23 @@
+import {test,expect} from '@playwright/test';
+const note='BBBBBBBB-BBBB-4BBB-8BBB-000000000001';
+test('links, notification, dates and sidebar resizing retain consistent styles',async({page})=>{
+  await page.route('**/api/library',async route=>{const response=await route.fetch();const data=await response.json();const clip=data.clips.find((c:{id:string})=>c.id===note);clip.body='[正文链接](https://example.com)\n\n| 链接 |\n| --- |\n| [表格链接](https://example.com/table) |';await route.fulfill({response,json:data});});
+  await page.goto(`/notes/${note}?native=1`);
+  const link=page.locator('.article a').first();await expect(link).toBeVisible();
+  const links=page.locator('.article a');
+  const styles=await links.evaluateAll(elements=>elements.map(el=>{const s=getComputedStyle(el);return {color:s.color,bg:s.backgroundColor,padding:s.padding,decoration:s.textDecorationLine};}));
+  expect(styles[0]).toEqual(styles[1]);
+  await expect(page.locator('.note-banner time')).toContainText('2026');
+  expect(await page.locator('.note-banner time').getAttribute('datetime')).toMatch(/^2026-/);
+  await expect(page.locator('.sidebar .native-note-list')).toHaveCSS('scrollbar-width','none');
+  const bar=page.getByRole('separator',{name:'调整左栏宽度'});await bar.hover();await expect(bar).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  const pos=(await bar.boundingBox())!;await page.mouse.move(pos.x+pos.width/2,pos.y+50);await page.mouse.down();await page.mouse.move(pos.x+30,pos.y+50);await expect(bar).toHaveCSS('background-color','rgba(0, 0, 0, 0)');await page.mouse.up();
+  await expect(page.locator('body')).not.toHaveClass(/resizing-sidebar/);
+  await page.context().grantPermissions(['clipboard-read','clipboard-write']).catch(()=>{});
+  await page.locator('.note-detail-heading .session-more > summary').click();await page.getByRole('button',{name:'复制原文',exact:true}).click();
+  const notice=page.locator('#notify-message');await expect(notice).toBeVisible();
+  expect(await notice.evaluate(el=>el.matches(':popover-open'))).toBe(true);
+  const box=(await notice.boundingBox())!;expect(box.y).toBeGreaterThan(400);expect(box.x+box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await page.screenshot({path:`artifacts/reading-polish-${test.info().project.name}.png`});
+  await notice.getByRole('button',{name:'关闭通知'}).click();await expect(notice).toHaveCount(0);
+});

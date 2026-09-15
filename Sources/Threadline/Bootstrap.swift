@@ -3,14 +3,18 @@ import RewindCore
 import Darwin
 
 final class Bootstrap: NSObject {
-    private var busy = false
+    private(set) var busy = false
     private var overlay: PreparationView?
     private let root = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/RewindWeb")
     func prepare(in window: NSWindow, completion: @escaping ([String: Any]) -> Void) {
         guard !busy else { return }
         busy = true
         let surface = PreparationView(updating: false)
-        if let parent = window.contentView { surface.attach(to: parent) }
+        surface.onProgress = { [weak surface, weak window] stage in
+            guard ["runtime", "features", "verify"].contains(stage),
+                  let surface, surface.superview == nil, let parent = window?.contentView else { return }
+            surface.attach(to: parent)
+        }
         overlay = surface
         let progressFile = root.appendingPathComponent("progress-\(UUID().uuidString).json")
         surface.observe(progressFile)
@@ -32,10 +36,14 @@ final class Bootstrap: NSObject {
         switch result {
         case .success(let value):
             overlay?.stopObserving(); overlay?.setProgress(stage: "done")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                self.overlay?.removeFromSuperview(); self.overlay = nil; completion(value)
+            let proceed = {
+                self.overlay?.removeFromSuperview(); self.overlay = nil
+                completion(value)
             }
+            if overlay?.superview != nil { overlay?.complete(proceed) }
+            else { proceed() }
         case .failure(let error):
+            if let surface = overlay, surface.superview == nil, let parent = window.contentView { surface.attach(to: parent) }
             try? error.localizedDescription.write(to: root.appendingPathComponent("bootstrap-error.log"), atomically: true, encoding: .utf8)
             let detail = error.localizedDescription
             let message: String
@@ -62,7 +70,6 @@ final class Bootstrap: NSObject {
         let node = try ManagedNode.prepare(root: root, manifestURL: manifest, transfer: { received, total in progress("runtime", received, total) }) { _ in
             progress("runtime", 0, 0)
         }
-        progress("features", 0, 0)
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
         let data = try ManagedNode.run(node.path, [cli.path, "prepare", root.path, config.path, build, "", progressFile.path])
         guard let value = try JSONSerialization.jsonObject(with: data) as? [String: Any], value["state"] as? String == "ready" else { throw NSError(domain: "Threadline", code: 4, userInfo: [NSLocalizedDescriptionKey: "组件准备未完成，请重试"]) }

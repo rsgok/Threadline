@@ -165,3 +165,21 @@ test("page chrome keeps native headers quiet and panel navigation available", as
     }
   }
 });
+
+test("collection heading stays centered without duplicate capture action", async ({ page }) => {
+  for (const panel of [false, true]) {
+    await page.setViewportSize({ width: panel ? 390 : 1280, height: 780 });
+    await page.goto(`/collect?${panel ? "panel" : "native"}=1`);
+    const heading = page.locator(".collection-heading");
+    await expect(heading).toBeVisible();
+    const title = await heading.locator("h2").boundingBox();
+    await expect(heading.getByRole("button", { name: "手动添加 ↗" })).toHaveCount(0);
+    const center = (box: NonNullable<typeof title>) => box.y + box.height / 2;
+
+    if (!panel) {
+      const controls = await page.getByRole("button", { name: "切换导航栏" }).boundingBox();
+      expect(Math.abs(center(title!) - center(controls!))).toBeLessThan(1);
+    }
+    await page.screenshot({ path: `artifacts/header-alignment-${panel ? "panel" : "native"}-${test.info().project.name}.png` });
+  }
+});

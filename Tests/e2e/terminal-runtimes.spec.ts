@@ -6,6 +6,7 @@ for (const [runtime, name] of [["claude", "Claude Code"], ["pi", "Pi"], ["deepse
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto("/collect?native=1");
+    await page.getByRole("button", { name: "筛选", exact: true }).click();
     await page.getByRole("combobox", { name: "按 Runtime 筛选会话" }).selectOption(runtime);
     await expect(page.locator(".session-choice")).toHaveCount(1);
     await page.locator(".session-choice").click();
@@ -20,7 +21,7 @@ for (const [runtime, name] of [["claude", "Claude Code"], ["pi", "Pi"], ["deepse
     await page.screenshot({ animations: "disabled", path: `artifacts/${runtime}-collect-dialog-${test.info().project.name}.png` });
     await page.locator("#confirm-save-session").click();
     await page.getByRole("button", { name: "查看笔记 →" }).click();
-    await expect(page.locator("#window-page-heading h1")).toContainText(name + " 架构讨论");
+    await expect(page.locator("#edit-title")).toHaveValue(name + " 架构讨论");
     await expect(page.locator(".note-body, .article").first()).toContainText("保留原文和自己的判断");
     await page.goto(`/?runtime=${runtime}&thread=${id}&panel=1`);
     await expect(page).toHaveURL(new RegExp(`/collect/${runtime}/${id}\\?panel=1$`));

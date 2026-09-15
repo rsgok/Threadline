@@ -11,12 +11,13 @@ const base = runtime
   : new URL("../web/", import.meta.url).href;
 const { createRewindServer } = await import(new URL("server.mjs", base));
 const { LibraryStore } = await import(new URL("storage.mjs", base));
-const directory = fs.mkdtempSync(path.join(os.tmpdir(), "threadline-ui-"));
+const directory = fs.mkdtempSync(path.join(os.tmpdir(), "threadline ui-"));
 const codexHome = path.join(directory, "codex"),
   cursorHome = path.join(directory, "cursor");
 fs.mkdirSync(path.join(codexHome, "sessions"), { recursive: true });
 fs.mkdirSync(cursorHome);
 for (const name of ['claude', 'pi', 'deepseek']) writeTerminalFixture(directory, name);
+const tour = process.env.THREADLINE_TOUR_FIXTURE === "1";
 const png =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aCWQAAAAASUVORK5CYII=";
 const imagePath = path.join(directory, "sample.png");
@@ -24,11 +25,12 @@ fs.writeFileSync(imagePath, Buffer.from(png, "base64"));
 for (let index = 1; index <= 8; index++) {
   const id = `11111111-1111-4111-8111-${String(index).padStart(12, "0")}`;
   const title = index === 1 ? "界面架构讨论" : `设计讨论 ${index}`;
-  const text =
-    index === 1
+  const text = tour
+    ? "可以先保留三个设计判断：\n\n- 对话原文随时可回看\n- 按问题整理，而不是按文件夹层层查找\n- 下一次讨论时，把已有判断一起带上"
+    : index === 1
       ? '# 设计方案\n\n采用共享组件，让界面保持一致。\n\n```ts\nconst greeting = "<script>alert(1)</script>";\n```\n\n| 方案 | 说明 |\n| --- | --- |\n| React | 组件复用 |\n\n' +
         "保留原文，整理判断，并在下一次讨论中继续使用。\n\n".repeat(35) +
-        `![示例图片](${imagePath})`
+        `![示例图片](<${imagePath}>)`
       : "保留讨论中的判断，以后继续探索。";
   const rows = [
     { type: "session_meta", payload: { id, cwd: directory } },
@@ -91,7 +93,7 @@ store.putTopic({
 for (let index = 1; index <= 2; index++)
   store.put({
     id: `BBBBBBBB-BBBB-4BBB-8BBB-${String(index).padStart(12, "0")}`,
-    title: `已有判断 ${index}`,
+    title: tour ? (index === 1 ? "先保留原文，再写下判断" : "让下一次讨论从已有积累出发") : `已有判断 ${index}`,
     body:
       index === 1
         ? "用户需要快速找回原来的判断。\n\n保留原文，才能核对依据。"
@@ -122,6 +124,7 @@ const server = createRewindServer({
     }),
   },
 });
+await server.sessionIndex.sync();
 const port = Number(process.env.THREADLINE_TEST_PORT || 43149);
 server.listen(port, "127.0.0.1", () =>
   console.log(`Fictional UI fixture: http://127.0.0.1:${port}`),

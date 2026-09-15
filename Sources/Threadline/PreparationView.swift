@@ -2,6 +2,17 @@ import AppKit
 
 /// Shared native landing surface: it remains available while web files are replaced.
 final class PreparationView: NSView {
+    private let slideImage = NSImageView()
+    private let slidePosition = NSTextField(labelWithString: "")
+    private let previousSlide = NSButton(title: "← 上一步", target: nil, action: nil)
+    private let nextSlide = NSButton(title: "下一步 →", target: nil, action: nil)
+    private var slideIndex = 0
+    private var slideTimer: Timer?
+    private let slides = [
+        ("collect", "留下值得继续的对话", "从本机对话中挑选有价值的片段，保留原文，也记下自己的判断"),
+        ("organize", "让讨论围绕一个问题生长", "把相关对话放进同一条思路，沿时间线回看，发现判断之间的联系"),
+        ("continue", "带着积累，开始下一次讨论", "选好材料，写下下一步的问题，把上下文一起带回 AI")
+    ]
     private let heading = NSTextField(labelWithString: "")
     private let subtitle = NSTextField(wrappingLabelWithString: "")
     private let activity = NSTextField(labelWithString: "")
@@ -30,6 +41,11 @@ final class PreparationView: NSView {
         appearance = NSAppearance(named: .aqua)
         wantsLayer = true
         layer?.backgroundColor = NSColor(calibratedRed: 0.967, green: 0.976, blue: 0.95, alpha: 1).cgColor
+        if !updating {
+            buildTour()
+            setProgress(stage: "runtime")
+            return
+        }
         let content = NSStackView(); content.orientation = .vertical; content.alignment = .leading; content.spacing = 0
         addSubview(content); content.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([content.centerXAnchor.constraint(equalTo: centerXAnchor), content.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -12), content.widthAnchor.constraint(equalToConstant: 520)])
@@ -64,12 +80,115 @@ final class PreparationView: NSView {
         content.addArrangedSubview(NSStackView(views: [action, back]))
         setProgress(stage: updating ? "features" : "runtime")
     }
+    private func buildTour() {
+        let content = NSStackView()
+        content.orientation = .vertical; content.alignment = .leading; content.spacing = 10
+        addSubview(content); content.translatesAutoresizingMaskIntoConstraints = false
+        let preferredWidth = content.widthAnchor.constraint(equalToConstant: 640)
+        preferredWidth.priority = .defaultHigh
+        NSLayoutConstraint.activate([
+            content.centerXAnchor.constraint(equalTo: centerXAnchor),
+            content.centerYAnchor.constraint(equalTo: centerYAnchor, constant: 6),
+            content.widthAnchor.constraint(lessThanOrEqualTo: widthAnchor, constant: -64),
+            preferredWidth
+        ])
+        let brand = NSTextField(labelWithString: "Threadline  /  从对话到思路")
+        brand.font = .systemFont(ofSize: 12, weight: .medium); brand.textColor = muted
+        content.addArrangedSubview(brand)
+        heading.font = .systemFont(ofSize: 27, weight: .medium); heading.textColor = ink
+        content.addArrangedSubview(heading)
+        subtitle.font = .systemFont(ofSize: 13); subtitle.textColor = muted
+        content.addArrangedSubview(subtitle)
+        subtitle.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
+        slideImage.setContentCompressionResistancePriority(.init(1), for: .horizontal)
+        slideImage.setContentCompressionResistancePriority(.init(1), for: .vertical)
+        slideImage.setContentHuggingPriority(.init(1), for: .horizontal)
+        slideImage.setContentHuggingPriority(.init(1), for: .vertical)
+        slideImage.imageScaling = .scaleProportionallyUpOrDown
+        slideImage.wantsLayer = true; slideImage.layer?.cornerRadius = 10
+        slideImage.layer?.masksToBounds = true
+        content.addArrangedSubview(slideImage)
+        NSLayoutConstraint.activate([
+            slideImage.widthAnchor.constraint(equalTo: content.widthAnchor),
+            slideImage.heightAnchor.constraint(equalTo: heightAnchor, multiplier: 0.46)
+        ])
+        previousSlide.target = self; previousSlide.action = #selector(previous)
+        nextSlide.target = self; nextSlide.action = #selector(next)
+        for button in [previousSlide, nextSlide] {
+            button.bezelStyle = .rounded
+            button.font = .systemFont(ofSize: 12, weight: .medium)
+        }
+        slidePosition.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+        slidePosition.textColor = muted
+        let leftSpace = NSView(), rightSpace = NSView()
+        let navigation = NSStackView(views: [previousSlide, leftSpace, slidePosition, rightSpace, nextSlide])
+        navigation.orientation = .horizontal
+        leftSpace.widthAnchor.constraint(equalTo: rightSpace.widthAnchor).isActive = true
+        content.addArrangedSubview(navigation)
+        navigation.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
+        content.setCustomSpacing(18, after: navigation)
+        activity.font = .systemFont(ofSize: 12, weight: .medium); activity.textColor = ink
+        percentage.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium); percentage.textColor = green
+        let status = NSStackView(views: [activity, NSView(), percentage])
+        status.orientation = .horizontal
+        content.addArrangedSubview(status)
+        status.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
+        content.addArrangedSubview(bar)
+        bar.heightAnchor.constraint(equalToConstant: 4).isActive = true
+        bar.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
+        metrics.font = .systemFont(ofSize: 11); metrics.textColor = muted
+        content.addArrangedSubview(metrics)
+        action.bezelStyle = .rounded; action.target = self; action.action = #selector(performAction)
+        action.isHidden = true
+        content.addArrangedSubview(action)
+        renderSlide()
+    }
+    private func renderSlide() {
+        let slide = slides[slideIndex]
+        heading.stringValue = slide.1; subtitle.stringValue = slide.2
+        if let url = Bundle.main.url(forResource: slide.0, withExtension: "png", subdirectory: "onboarding") {
+            slideImage.image = NSImage(contentsOf: url)
+        }
+        slideImage.setAccessibilityLabel("示例界面：" + slide.1)
+        slidePosition.stringValue = "\(slideIndex + 1) / \(slides.count) · 示例数据"
+        previousSlide.isEnabled = slideIndex > 0
+        nextSlide.isEnabled = slideIndex < slides.count - 1
+    }
+    @objc private func previous() {
+        slideTimer?.invalidate(); slideTimer = nil
+        slideIndex = max(0, slideIndex - 1); renderSlide()
+    }
+    @objc private func next() {
+        slideTimer?.invalidate(); slideTimer = nil
+        slideIndex = min(slides.count - 1, slideIndex + 1); renderSlide()
+    }
+    func complete(_ completion: @escaping () -> Void) {
+        stopObserving(); slideTimer?.invalidate(); slideTimer = nil
+        setProgress(stage: "done")
+        metrics.stringValue = "已准备好，随时开始"
+        action.title = "开始使用"; action.isHidden = false
+        callback = completion
+    }
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        slideTimer?.invalidate(); slideTimer = nil
+        guard window != nil, !updating, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+        slideTimer = Timer.scheduledTimer(withTimeInterval: 8, repeats: true) { [weak self] timer in
+            guard let self, self.slideIndex < self.slides.count - 1 else { timer.invalidate(); return }
+            // Do not move the slide while the user is navigating its controls.
+            guard self.window?.firstResponder !== self.previousSlide,
+                  self.window?.firstResponder !== self.nextSlide else { return }
+            self.slideIndex += 1; self.renderSlide()
+        }
+    }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     func attach(to parent: NSView) {
         parent.addSubview(self); translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([leadingAnchor.constraint(equalTo: parent.leadingAnchor), trailingAnchor.constraint(equalTo: parent.trailingAnchor), topAnchor.constraint(equalTo: parent.topAnchor), bottomAnchor.constraint(equalTo: parent.bottomAnchor)])
     }
+    var onProgress: ((String) -> Void)?
     func setProgress(stage: String, received: Double = 0, total: Double = 0) {
+        onProgress?(stage)
         let names = ["运行环境", "界面与功能", "安全校验与安装", "启动应用"]
         let index = ["runtime": 0, "features": 1, "verify": 2, "start": 3, "done": 4][stage] ?? 1
         if currentStage != stage || (currentTotal == 0 && total > 0) { previousBytes = received; previousTime = Date(); speed = 0; currentStage = stage }
@@ -100,7 +219,8 @@ final class PreparationView: NSView {
         setAccessibilityLabel(activity.stringValue + " " + percentage.stringValue + " " + metrics.stringValue)
     }
     func fail(_ message: String, back: (() -> Void)? = nil, retry: @escaping () -> Void) {
-        stopObserving(); bar.stopAnimation(nil); bar.isIndeterminate = false
+        stopObserving(); slideTimer?.invalidate(); slideTimer = nil; bar.stopAnimation(nil); bar.isIndeterminate = false
+        previousSlide.isEnabled = false; nextSlide.isEnabled = false
         heading.stringValue = "准备暂时停在这里"; activity.stringValue = "未能完成准备"; percentage.stringValue = ""
         subtitle.stringValue = message; metrics.stringValue = "已下载的内容会保留，重试时继续"; callback = retry
         action.isHidden = false
@@ -115,7 +235,7 @@ final class PreparationView: NSView {
         }
     }
     func stopObserving() { timer?.invalidate(); timer = nil }
-    override func removeFromSuperview() { stopObserving(); bar.stopAnimation(nil); super.removeFromSuperview() }
+    override func removeFromSuperview() { slideTimer?.invalidate(); slideTimer = nil; stopObserving(); bar.stopAnimation(nil); super.removeFromSuperview() }
     @objc private func goBack() { backCallback?() }
     @objc private func performAction() { callback?() }
 }

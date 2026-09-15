@@ -1,6 +1,6 @@
 import { tr } from "../lib/i18n";
 
-export function CodexThreadLink({ threadID }: { threadID: string }) {
+export function CodexThreadLink({ threadID, heading = false }: { threadID: string; heading?: boolean }) {
   const panel = new URL(
     `/collect/codex/${encodeURIComponent(threadID)}?panel=1`,
     window.location.origin,
@@ -9,7 +9,8 @@ export function CodexThreadLink({ threadID }: { threadID: string }) {
   link.searchParams.set("browserUrl", panel.href);
   return (
     <a
-      className="tool codex-thread-link"
+      className={`tool codex-thread-link${heading ? " codex-heading-link" : ""}`}
+      aria-label={heading ? tr("在 Codex 打开 ↗", "Open in Codex ↗") : undefined}
       href={link.href}
       title={tr("打开 Codex 原对话，并在右侧显示本页", "Open the Codex conversation with this page alongside")}
       onClick={(event) => {
@@ -20,7 +21,13 @@ export function CodexThreadLink({ threadID }: { threadID: string }) {
         }
       }}
     >
-      {tr("在 Codex 继续 ↗", "Continue in Codex ↗")}
+      {heading ? (
+        <>
+          <img className="codex-link-icon" src="/assets/codex-avatar.png" alt="" />
+          <span className="codex-link-label">{tr("在 Codex 打开", "Open in Codex")}</span>
+          <span aria-hidden="true">↗</span>
+        </>
+      ) : tr("在 Codex 继续 ↗", "Continue in Codex ↗")}
     </a>
   );
 }

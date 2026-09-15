@@ -34,7 +34,7 @@ export class CardRenderer {
     const job = this.sharing.load(id);
     const task = this.tasks.get(id);
     if (task) return { ...task.status };
-    if (job.cardEngine === 'chromium-v1' && job.cardCount && Array.from({ length: job.cardCount }, (_, i) => fs.existsSync(this.pageFile(id, i))).every(Boolean)) {
+    if (job.cardStyleVersion === 2 && job.cardEngine === 'chromium-v1' && job.cardCount && Array.from({ length: job.cardCount }, (_, i) => fs.existsSync(this.pageFile(id, i))).every(Boolean)) {
       return { phase: 'done', total: job.cardCount, completed: job.cardCount, message: `已生成 ${job.cardCount} 张图卡` };
     }
     return { phase: 'idle', message: this.runtime().ready ? '图卡引擎已就绪' : '首次生成会下载图卡引擎，之后可离线使用', runtimeReady: this.runtime().ready };
@@ -126,7 +126,7 @@ export class CardRenderer {
       if (fs.existsSync(destination)) fs.rmSync(destination, { recursive: true, force: true });
       fs.renameSync(stage, destination);
       const latest = this.sharing.load(job.id);
-      latest.cardEngine = 'chromium-v1'; latest.cardCount = layout.pageCount; latest.cardPages = layout.pages.map((_, i) => i);
+      latest.cardEngine = 'chromium-v1'; latest.cardStyleVersion = 2; latest.cardCount = layout.pageCount; latest.cardPages = layout.pages.map((_, i) => i);
       this.sharing.save(latest);
       task.status = { phase: 'done', completed: layout.pageCount, total: layout.pageCount, message: `已生成 ${layout.pageCount} 张图卡` };
     } finally { fs.rmSync(stage, { recursive: true, force: true }); }

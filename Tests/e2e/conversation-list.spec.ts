@@ -57,6 +57,7 @@ for (const mode of ["native", "panel"]) {
       .click();
     await expect(page.locator(".conversation-bottom")).toHaveCount(0);
     await page.reload();
+    await page.getByRole("button", { name: "筛选", exact: true }).click();
     await page.getByLabel("标签筛选", { exact: true }).selectOption(tag);
     await expect(page.locator(".session-choice")).toHaveCount(1);
     await page.locator(".session-choice").click();
@@ -70,3 +71,22 @@ for (const mode of ["native", "panel"]) {
     expect(overflow).toBe(false);
   });
 }
+
+test("collection filters are disclosed on demand and page actions stay in the heading", async ({ page }) => {
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 780 });
+    await page.goto(`/collect?${width === 390 ? "panel" : "native"}=1`);
+    await expect(page.getByRole("combobox", { name: "按 Runtime 筛选会话" })).toHaveCount(0);
+    await page.getByRole("button", { name: "筛选", exact: true }).click();
+    await expect(page.getByRole("combobox", { name: "按 Runtime 筛选会话" })).toBeVisible();
+    await page.getByRole("combobox", { name: "按 Runtime 筛选会话" }).selectOption("codex");
+    await expect(page.locator(".conversation-runtime").first()).toHaveText("Codex");
+    await page.screenshot({path: `artifacts/collection-filters-${width}-${test.info().project.name}.png`});
+    await page.getByRole("button", { name: "重置筛选" }).click();
+    await page.goto(`/thoughts?${width === 390 ? "panel" : "native"}=1`);
+    await expect(page.locator(".hero-actions")).toHaveCount(0);
+    await expect(page.locator(".page-heading-actions button")).toHaveCount(2);
+    await page.screenshot({path: `artifacts/thought-actions-${width}-${test.info().project.name}.png`});
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  }
+});

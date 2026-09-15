@@ -397,3 +397,27 @@ body :is(.settings-connection,.question,.project-context)>summary:hover { color:
   html body select,html body input[type=checkbox] { appearance:auto; }
   html body input[role=switch]::before { display:none; }
 }
+
+/* Project disclosure uses the same leading selection column as conversation rows. */
+body button.tool.conversation-group-head {
+  padding: 8px 0!important;
+  gap: 8px!important;
+}
+
+body input.note-title-input { border:0; border-radius:0; padding:0; background:transparent; color:var(--ink); box-shadow:none; }
+body input.note-title-input:focus { outline:none; box-shadow:0 1px var(--line); }
+
+body button.icon-tool { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; min-width:28px; min-height:28px; padding:0!important; background:transparent!important; }
+body button.icon-tool svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+body button.icon-tool:hover { background:#edf1e8!important; }
+
+body .note-format-menu { display:flex; flex-wrap:wrap; align-items:center; gap:3px; max-width:min(360px,calc(100vw - 24px)); padding:6px; border:1px solid #dfe5d9; border-radius:8px; background:#fffefb; box-shadow:0 4px 18px #24352f18; }
+body .note-format-menu button.tool { min-height:28px; padding:4px 8px!important; font-size:12px; }
+body .note-format-menu button[aria-pressed=true] { background:#e5eddc!important; }
+
+/* Text links share their surrounding typography, including inside tables. */
+body.react-app .article a,body.react-app #session-view .message-markdown a { color:#526b45; font:inherit; background:transparent; border:0; border-radius:0; padding:0; box-shadow:none; text-decoration:underline; text-decoration-color:#a9b99d; text-decoration-thickness:1px; text-underline-offset:3px; overflow-wrap:anywhere; word-break:normal; white-space:normal; }
+body.react-app .article a:hover,body.react-app #session-view .message-markdown a:hover { color:#344d29; text-decoration-color:currentColor; background:transparent; }
+body.react-app .react-notice button { flex:0 0 24px; width:24px; height:24px; min-height:24px; padding:0!important; margin:0; font:18px/24px sans-serif; }
+body #carry-dialog.modal-surface .carry-row:hover { background:#f1f4ec; }
+body #carry-dialog.modal-surface .carry-row:has(input:checked) { background:#eaf0e3; }

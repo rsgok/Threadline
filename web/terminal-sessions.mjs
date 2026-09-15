@@ -198,6 +198,18 @@ export class TerminalSessions {
     if (cost <= 16 * 1024 * 1024) this.cache.set(entry.file, { stamp, session, cost });
     return structuredClone(session);
   }
+  async indexEntries() {
+    return (await this.files()).slice(0, 100).map(entry => ({
+      ...entry, stamp: [entry.mtimeMs, entry.ctimeMs, entry.ino, entry.size, entry.file].join(':'),
+      updatedAt: new Date(entry.mtimeMs).toISOString(),
+    }));
+  }
+  async indexSummary(entry) {
+    const session = await this.snapshot(entry);
+    // The disk index is compact; do not retain every transcript in the reader cache.
+    this.cache.delete(entry.file);
+    return session;
+  }
   async recent() {
     const result = [], seen = new Set(), errors = [];
     for (const entry of (await this.files()).slice(0, 100)) {

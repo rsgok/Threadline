@@ -69,12 +69,10 @@ export default function Settings() {
           <h2>{t("连接与集成")}</h2>
           <p className="dialog-hint">{t("管理分享讨论时使用的应用连接")}</p>
           <div className="settings-integrations">
-            <button
-              className="tool settings-integration-action"
-              onClick={() => setFeishu(true)}
-            >
-              {t("连接飞书")}
-            </button>
+            <details className="settings-connection" onToggle={event => setFeishu(event.currentTarget.open)}>
+              <summary>{t("飞书")}</summary>
+              {feishu ? <FeishuConnection inline /> : null}
+            </details>
             {(["slack", "discord"] as const).map((platform) => (
               <details
                 className="settings-connection"
@@ -94,7 +92,6 @@ export default function Settings() {
         </section>
         </>}
       </div>
-      {feishu ? <FeishuConnection onClose={() => setFeishu(false)} /> : null}
     </section>
   );
 }
