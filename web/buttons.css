@@ -213,21 +213,6 @@ body dialog.feishu-dialog .feishu-target-switch button[aria-pressed=true],body d
   color:#3e5430!important;
   border-color:#d5e0c9!important
 }
-body label.upload {
-  display:inline-flex;
-  align-items:center;
-  min-height:32px;
-  padding:6px 10px;
-  border:1px solid #dce2d5;
-  border-radius:7px;
-  font-size:12px;
-  font-weight:500;
-  background:#fcfcfa;
-  color:#4c5845
-}
-body button.manage-topics {
-  justify-content:flex-end
-}
 body dialog.feishu-dialog button[data-intent=danger] {
   color:#a05447!important
 }
@@ -261,7 +246,6 @@ body.native-app button.native-note{padding:12px!important;margin:0 0 3px;text-al
 
 body button.settings-entry{width:28px!important;min-width:28px!important;height:28px!important;min-height:28px!important;padding:5px!important;flex-shrink:0}
 body button.settings-entry svg{width:18px;height:18px}
-body button.settings-integration-action{justify-content:flex-start!important;text-align:left!important;padding:12px 0!important;border-radius:0!important;border-bottom:1px solid var(--button-line)!important}
 body .settings-connection input{border:1px solid var(--button-line);border-radius:7px;background:#fff;padding:10px;font-size:13px}
 body .thought-controls button[aria-pressed=true]{background:#edf2e7!important;border-color:#708b60!important;color:#3e5534!important}
 
@@ -381,8 +365,6 @@ body .session-more-body button { width:100%; justify-content:flex-start!importan
 body :is(.feishu-target-switch,.share-mode-picker,.share-targets,.settings-tabs) { display:flex; flex-wrap:wrap; gap:3px; padding:3px; border:0; border-radius:9px; background:#edf1e7; }
 html body :is(.feishu-target-switch,.share-mode-picker,.share-targets,.settings-tabs) button { flex:1; border-color:transparent!important; border-radius:6px!important; background:transparent!important; }
 html body :is(.feishu-target-switch,.share-mode-picker,.share-targets,.settings-tabs) button[aria-pressed=true] { background:#fcfdf9!important; border-color:#dce4d4!important; color:#3e5430!important; }
-body button.settings-integration-action { padding:12px 14px!important; min-height:46px!important; border:0!important; border-radius:9px!important; background:#f1f4ec!important; }
-body button.settings-integration-action::after { content:'↗'; margin-left:auto; color:#89957e; }
 body :is(.settings-connection,.question,.project-context)>summary { display:flex; align-items:center; gap:10px; list-style:none; border-radius:6px; cursor:pointer; }
 body :is(.settings-connection,.question,.project-context)>summary::-webkit-details-marker { display:none; }
 body :is(.settings-connection,.question,.project-context)>summary::before { content:''; width:6px; height:6px; flex:0 0 6px; border-right:1.5px solid #89957e; border-bottom:1.5px solid #89957e; transform:rotate(-45deg); }

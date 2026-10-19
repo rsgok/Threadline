@@ -429,3 +429,31 @@ test('unified sharing previews, stages selected attachments and exports without 
   assert.equal((await request(`/api/share/jobs/${next.data.id}/cards`,'POST',{index:0,total:1,image:'data:image/png;base64,'+png})).response.status,200);
   const cards=await request(`/api/share/jobs/${next.data.id}/cards`);assert.equal(cards.response.status,200);assert.ok(cards.data.includes(Buffer.from('Threadline-001.png')));
 });
+
+test('bundled artwork is revalidated, cached and answers HEAD without a body', async t => {
+  const { origin } = await fixture(t);
+  const first = await fetch(origin + '/assets/threadline-icon.png');
+  assert.equal(first.status, 200);
+  assert.equal(first.headers.get('content-type'), 'image/png');
+  const etag = first.headers.get('etag');
+  assert.ok(etag, 'assets should carry an ETag');
+  assert.equal(first.headers.get('cache-control'), 'no-cache');
+  const body = Buffer.from(await first.arrayBuffer());
+  assert.ok(body.length > 0);
+  assert.equal(body.readUInt32BE(0), 0x89504e47);
+
+  const revalidated = await fetch(origin + '/assets/threadline-icon.png', { headers: { 'If-None-Match': etag } });
+  assert.equal(revalidated.status, 304);
+  assert.equal((await revalidated.arrayBuffer()).byteLength, 0);
+
+  const head = await fetch(origin + '/assets/threadline-icon.png', { method: 'HEAD' });
+  assert.equal(head.status, 200);
+  assert.equal(head.headers.get('content-length'), String(body.length));
+  assert.equal((await head.arrayBuffer()).byteLength, 0);
+
+  const favicon = await fetch(origin + '/favicon.svg');
+  assert.equal(favicon.status, 200);
+  assert.equal(favicon.headers.get('content-type'), 'image/png');
+
+  assert.equal((await fetch(origin + '/assets/not-a-real-file.png')).status, 404);
+});

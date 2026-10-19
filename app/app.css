@@ -30,19 +30,8 @@ body.react-app .settings-page {
   width: 100%;
   padding: 0;
 }
-body.react-app .note-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 6px 24px;
-  flex-shrink: 0;
-}
 body.react-app .editor.route-scroll {
   width: 100%;
-}
-.reading-spacer {
-  height: 24px;
 }
 .reading .article {
   margin: 18px 0;
@@ -104,10 +93,6 @@ body.react-app .editor.route-scroll {
   display: flex;
   gap: 10px;
   margin-left: auto;
-}
-body.react-app #session-view .session-back {
-  margin: 0;
-  flex-shrink: 0;
 }
 body.react-app #session-view .session-top h2 {
   min-width: 0;
@@ -407,9 +392,6 @@ body.react-app #session-view .session-messages {
 body.react-app .message-card {
   content-visibility: visible;
   contain-intrinsic-size: none;
-}
-body.react-app .note-toolbar {
-  justify-content: flex-end;
 }
 
 @media (min-width: 701px) {
@@ -853,7 +835,6 @@ body.react-app .note-message .article { margin:8px 0 0; }
 .note-rich-content :is(td,th) { border:1px solid var(--line); padding:8px; }
 .note-title-input { display:block; width:100%; min-width:0; font:inherit; line-height:inherit; }
 @media(max-width:700px) { .note-title-input { flex-basis:100%; } }
-.note-source-editor { width:100%; min-height:240px; resize:vertical; font:13px/1.8 ui-monospace,monospace; }
 body.react-app .note-detail .article-end { display:flex; align-items:center; gap:16px; margin:36px 0 8px; color:#899181; font-size:10px; letter-spacing:2px; opacity:1; }
 body.react-app .note-detail .article-end::before,body.react-app .note-detail .article-end::after { content:""; display:block; height:1px; flex:1; background:#e0e5dc; }
 .note-rich-content .ProseMirror-selectednode { outline:2px solid #81976e; outline-offset:3px; }

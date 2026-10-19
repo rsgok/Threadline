@@ -20,6 +20,7 @@ import { ThoughtRelations } from './thought-relations.mjs';
 import { ThoughtAnalysis } from './thought-analysis.mjs';
 import { LibraryStore } from './storage.mjs';
 import { createFeishu, buildDiscussionCards, discussionAttachments, readSharedAttachment } from './feishu.mjs';
+import { assetBody, assetEtag, assetPaths, isAsset } from './assets.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const releaseVersion = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
@@ -175,9 +176,24 @@ export function createRewindServer({ dataDir = defaultDir, legacyDir = defaultLe
       if (req.headers.origin && req.headers.origin !== origin) throw error(403, '拒绝跨站请求。');
       if (!['GET', 'HEAD'].includes(req.method) && req.headers['x-rewind-request'] !== '1') throw error(403, '请求缺少本机页面标记。');
       const url = new URL(req.url, origin), pathname = url.pathname;
-      if (req.method === 'GET' && ['/assets/landing-collect.png', '/assets/landing-library.png'].includes(pathname)) return send(200, fs.readFileSync(path.join(here, pathname)), 'image/png');
-      if (req.method === 'GET' && ['/assets/threadline-icon.png','/assets/user-avatar.png','/assets/codex-avatar.png','/assets/cursor-avatar.png'].includes(pathname)) return send(200,fs.readFileSync(path.join(here,pathname)),'image/png');
-      if (req.method === 'GET' && pathname === '/favicon.svg') return send(200,fs.readFileSync(path.join(here,'assets','threadline-icon.png')),'image/png');
+      if (isAsset(pathname)) {
+        const file = assetPaths[pathname];
+        let stat;
+        try { stat = fs.statSync(file); } catch { throw error(404, '文件不存在。'); }
+        const etag = assetEtag(stat);
+        res.setHeader('ETag', etag);
+        res.setHeader('Content-Type', 'image/png');
+        // Always revalidate: a feature update can replace artwork, and a stale
+        // icon would outlast the release that shipped it. The ETag keeps the
+        // revalidation cheap and the payload out of the response.
+        res.setHeader('Cache-Control', 'no-cache');
+        if (req.headers['if-none-match'] === etag) { res.writeHead(304); res.end(); return; }
+        res.setHeader('Content-Length', stat.size);
+        if (req.method === 'HEAD') { res.writeHead(200); res.end(); return; }
+        res.writeHead(200);
+        res.end(assetBody(file, stat));
+        return;
+      }
       if (req.method === 'POST' && pathname === '/api/app/open') {
         if (process.platform !== 'darwin') throw error(400, '此入口用于打开 Mac 应用');
         const app = [path.join(os.homedir(), 'Applications/Threadline.app'), '/Applications/Threadline.app'].find(file => fs.existsSync(file));

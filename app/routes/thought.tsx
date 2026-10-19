@@ -4,6 +4,7 @@ import type { Route } from "./+types/thought";
 import { api, post } from "../lib/api";
 import { useApp } from "../lib/app-context";
 import { t, tr } from "../lib/i18n";
+import { notePreview } from "../lib/note-preview";
 import type {
   Clip,
   Relation,
@@ -360,16 +361,9 @@ function ThoughtView({
   );
 }
 function excerpt(note: Clip) {
-  return (note.note || note.body)
-    .replace(
-      /```[\s\S]*?```/g,
-      tr("〔代码片段，打开原对话查看〕", "[Code in original conversation]"),
-    )
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/[#*_`>|]/g, "")
-    .replace(/\s+/g, " ")
-    .slice(0, 260);
+  return notePreview(note.note || note.body, 260,
+    tr("〔代码片段，打开原对话查看〕", "[Code in original conversation]"),
+  );
 }
 function RelationCard({
   relation,
