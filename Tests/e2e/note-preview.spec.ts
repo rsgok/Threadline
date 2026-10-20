@@ -33,3 +33,31 @@ test("the note preview shows the conversation instead of its markup", async ({
   expect(text).not.toContain("2026-09-10");
   expect(text).not.toContain("---");
 });
+
+test("the note preview keeps table rows and code examples", async ({ page }) => {
+  const body = [
+    "方案对比",
+    "",
+    "| 方案 | 说明 |",
+    "| --- | --- |",
+    "| React | 组件复用 |",
+    "",
+    "```md",
+    "### AI 回答",
+    "```",
+  ].join("\n");
+  const created = await page.request.post("/api/clips", {
+    headers: { "X-Rewind-Request": "1", "Content-Type": "application/json" },
+    data: { body, source: "Codex" },
+  });
+  expect(created.status()).toBe(201);
+
+  await page.goto("/thoughts?native=1");
+  const excerpt = page.locator(".native-note-excerpt").first();
+  await expect(excerpt).toBeVisible();
+  const text = (await excerpt.innerText()).trim();
+  // A table row is content, not structure.
+  expect(text).toContain("组件复用");
+  // A heading inside a code example is part of the example.
+  expect(text).toContain("AI 回答");
+});
