@@ -488,8 +488,8 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
             value={scope}
             onChange={(event) => setScope(event.target.value)}
           >
-            <option value="all">{t("全部对话")}</option>
-            <option value="inbox">{t("未分类")}</option>
+            <option value="all">{t("全部笔记")}</option>
+            <option value="inbox">{t("未归类")}</option>
             {library.topics.map((topic) => (
               <option key={topic.id} value={topic.id}>
                 {topic.title}
@@ -549,16 +549,25 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
             </button>
             {!location.pathname.startsWith("/collect/") ? <AppUtilities openInRuntime={openInRuntime} history={() => setHistory(true)} /> : null}
             <nav className="panel-navigation" aria-label={t("工作区导航")}>
-              <button className="tool panel-collect" onClick={commands.collect}>
+              <button
+                className="tool panel-collect"
+                aria-current={collecting ? "page" : undefined}
+                onClick={commands.collect}
+              >
                 {t("对话")}
               </button>
               <button
                 className="tool panel-thoughts"
+                aria-current={thoughts ? "page" : undefined}
                 onClick={() => go("/thoughts")}
               >
                 {t("我的思路")}
               </button>
-              <button className="tool" onClick={commands.library}>
+              <button
+                className="tool"
+                aria-current={selectedID ? "page" : undefined}
+                onClick={commands.library}
+              >
                 {t("笔记")}
               </button>
             </nav>

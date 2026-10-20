@@ -200,6 +200,7 @@ export const english: Record<string, string> = {
   "为什么记录？下次什么时候用？（可选）":
     "Why save this? When will you use it again? (optional)",
   未分类: "Uncategorized",
+  未归类: "Not filed",
   "已加入「使用对话」，可组合多篇笔记":
     "Added to Use conversations. You can combine several notes",
   "✓ 已加入": "✓ Added",

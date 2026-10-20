@@ -104,8 +104,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let windowMenuItem=NSMenuItem(title:"窗口",action:nil,keyEquivalent:"");menu.title="窗口";windowMenuItem.submenu=menu;main.addItem(windowMenuItem)
         window=ThreadlineWindow(contentRect:NSRect(x:0,y:0,width:1120,height:780),styleMask:[.titled,.closable,.miniaturizable,.resizable,.fullSizeContentView],backing:.buffered,defer:false)
         window.title="Threadline · 思续";window.minSize=NSSize(width:820,height:560);window.center();window.setFrameAutosaveName("ThreadlineWindow");window.isReleasedWhenClosed=false;window.delegate=self
-        window.appearance=NSAppearance(named:.aqua)
-        window.backgroundColor=NSColor(calibratedRed:1,green:0.996,blue:0.984,alpha:1)
+        // The interface follows the system appearance, so the window chrome
+        // matches the page the user sees.
+        window.appearance=nil
+        window.backgroundColor=NSColor.windowBackgroundColor
         window.titlebarAppearsTransparent=true;window.titleVisibility = .hidden;window.isMovableByWindowBackground=false
         window.titlebarSeparatorStyle = .none
         window.toolbar=nil

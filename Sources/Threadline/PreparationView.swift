@@ -25,9 +25,11 @@ final class PreparationView: NSView {
     private let action = NSButton(title: "重试", target: nil, action: nil)
     private var callback: (() -> Void)?
     private let updating: Bool
-    private let ink = NSColor(calibratedRed: 0.22, green: 0.28, blue: 0.21, alpha: 1)
-    private let muted = NSColor(calibratedRed: 0.52, green: 0.57, blue: 0.49, alpha: 1)
-    private let green = NSColor(calibratedRed: 0.35, green: 0.46, blue: 0.31, alpha: 1)
+    // The tour follows the system appearance, so it matches the interface the
+    // user is about to open.
+    private let ink = NSColor.labelColor
+    private let muted = NSColor.secondaryLabelColor
+    private let green = NSColor.controlAccentColor
     private var previousBytes: Double = 0
     private var previousTime = Date()
     private var currentStage = ""
@@ -38,9 +40,9 @@ final class PreparationView: NSView {
     init(updating: Bool) {
         self.updating = updating
         super.init(frame: .zero)
-        appearance = NSAppearance(named: .aqua)
+        appearance = nil
         wantsLayer = true
-        layer?.backgroundColor = NSColor(calibratedRed: 0.967, green: 0.976, blue: 0.95, alpha: 1).cgColor
+        layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         if !updating {
             buildTour()
             setProgress(stage: "runtime")
@@ -57,8 +59,8 @@ final class PreparationView: NSView {
         subtitle.font = .systemFont(ofSize: 14); subtitle.textColor = muted
         subtitle.stringValue = updating ? "只下载需要更新的内容，完成后自动回到应用" : "首次使用需要下载运行组件，准备完成后即可离线使用"
         content.addArrangedSubview(subtitle); content.setCustomSpacing(28, after: subtitle)
-        let card = NSView(); card.wantsLayer = true; card.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.8).cgColor
-        card.layer?.cornerRadius = 18; card.layer?.borderWidth = 1; card.layer?.borderColor = NSColor(calibratedWhite: 0.88, alpha: 1).cgColor
+        let card = NSView(); card.wantsLayer = true; card.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        card.layer?.cornerRadius = 18; card.layer?.borderWidth = 1; card.layer?.borderColor = NSColor.separatorColor.cgColor
         content.addArrangedSubview(card); card.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
         let body = NSStackView(); body.orientation = .vertical; body.alignment = .leading; body.spacing = 18
         card.addSubview(body); body.translatesAutoresizingMaskIntoConstraints = false
@@ -254,11 +256,11 @@ private final class PreparationProgressBar: NSView {
     func stopAnimation(_ sender: Any?) { timer?.invalidate(); timer = nil }
     override func viewDidMoveToWindow() { if window == nil { stopAnimation(nil) } }
     override func draw(_ dirtyRect: NSRect) {
-        NSColor(calibratedRed: 0.91, green: 0.93, blue: 0.89, alpha: 1).setFill()
+        NSColor.controlBackgroundColor.setFill()
         NSBezierPath(roundedRect: bounds, xRadius: 3, yRadius: 3).fill()
         let width = isIndeterminate ? bounds.width * 0.2 : bounds.width * CGFloat(max(0, min(100, doubleValue))) / 100
         let rect = NSRect(x: isIndeterminate ? (bounds.width - width) * phase : 0, y: 0, width: width, height: bounds.height)
-        NSColor(calibratedRed: 0.43, green: 0.55, blue: 0.36, alpha: 1).setFill()
+        NSColor.controlAccentColor.setFill()
         NSBezierPath(roundedRect: rect, xRadius: 3, yRadius: 3).fill()
     }
 }
