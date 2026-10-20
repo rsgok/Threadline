@@ -53,3 +53,65 @@ test("a code placeholder replaces the code block when one is given", () => {
   assert.equal(notePreview(body, 160, "〔代码〕"), "说明文字 〔代码〕 更多内容");
   assert.equal(notePreview(body), "说明文字 let x = 1 更多内容");
 });
+
+test("a table keeps its cell text", () => {
+  const table = [
+    "| 方案 | 说明 |",
+    "| --- | --- |",
+    "| React | 组件复用 |",
+    "| Vue | 渐进式 |",
+  ].join("\n");
+  const preview = notePreview(table);
+  assert.ok(preview.includes("React"), "table rows must keep their content");
+  assert.ok(preview.includes("组件复用"), "table rows must keep their content");
+  assert.ok(!preview.includes("---"), "the alignment row must be dropped");
+});
+
+test("a table inside a note does not hide the rest of it", () => {
+  const body = ["| 方案 | 说明 |", "| --- | --- |", "| React | 组件复用 |", "", "结尾说明"].join("\n");
+  const preview = notePreview(body);
+  assert.ok(preview.includes("组件复用"));
+  assert.ok(preview.includes("结尾说明"));
+});
+
+test("a role heading inside a code example is kept", () => {
+  // The conversation format is often shown as an example. Such an example is
+  // content, so its role headings must survive.
+  const body = [
+    "说明文字",
+    "",
+    "```md",
+    "### AI 回答",
+    "这是示例",
+    "```",
+    "",
+    "结尾",
+  ].join("\n");
+  const preview = notePreview(body);
+  assert.ok(preview.includes("AI 回答"), "a heading inside a fence is part of the example");
+  assert.ok(preview.includes("这是示例"));
+  assert.ok(preview.includes("说明文字"));
+  assert.ok(preview.includes("结尾"));
+});
+
+test("a role heading outside a code example is still removed", () => {
+  const body = [
+    "### 我的问题 · 2026-09-10T04:00:00 UTC",
+    "",
+    "问题正文",
+    "",
+    "```md",
+    "### AI 回答",
+    "```",
+  ].join("\n");
+  const preview = notePreview(body);
+  assert.ok(!preview.includes("我的问题"), "a real role heading must be removed");
+  assert.ok(preview.includes("AI 回答"), "the example heading must be kept");
+});
+
+test("an unterminated fence does not swallow the rest of the note", () => {
+  const body = "开头\n\n```ts\nlet x = 1";
+  const preview = notePreview(body);
+  assert.ok(preview.includes("开头"));
+  assert.ok(preview.includes("let x = 1"));
+});
