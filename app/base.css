@@ -743,11 +743,6 @@ h1 {
 .submeta {
   font-size: 11px;
 }
-.mobile-library,
-.mobile-close,
-.mobile-capture {
-  display: none;
-}
 dialog {
   padding: 0;
   border: 1px solid #e5e6dc;
@@ -799,37 +794,11 @@ dialog::backdrop {
 .capture-input:focus {
   border-style: solid;
 }
-.dialog-fields {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 15px 0;
-  color: #838d77;
-  font-size: 11px;
-}
-.dialog-fields select {
-  background: #f3f5ec;
-  border: 1px solid #e2e7d8;
-  border-radius: 5px;
-  padding: 6px;
-  color: #637153;
-}
 .dialog-bottom {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top: 23px;
-}
-.upload {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #8a977c;
-  font-size: 11px;
-  cursor: pointer;
-}
-.upload input {
-  display: none;
 }
 .capture-preview {
   margin: 15px 0;
@@ -877,25 +846,9 @@ dialog::backdrop {
   object-fit: contain;
   margin: auto;
 }
-.trash-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  padding: 15px 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 13px;
-}
-.trash-row button {
-  color: #8b9b73;
-  white-space: nowrap;
-}
 .keyboard-hint {
   font-size: 10px;
   color: #a2ab94;
-}
-.offline {
-  color: #b26450 !important;
 }
 .primary:disabled {
   opacity: 0.5;
@@ -997,23 +950,6 @@ dialog::backdrop {
     font-size: 11px;
   }
 }
-
-.session-entry {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 13px;
-  margin-top: 12px;
-  border: 1px solid #e3d5c3;
-  border-radius: 8px;
-  color: #9a6845;
-  background: #fbf3e8;
-  font-size: 12px;
-}
-.session-entry:hover {
-  background: #f7ead9;
-}
 .session-view {
   width: min(850px, calc(100vw - 26px));
   max-height: calc(100vh - 36px);
@@ -1037,22 +973,6 @@ dialog::backdrop {
   color: #949c87;
   margin-top: 10px;
   line-height: 1.7;
-}
-.session-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 15px;
-  font-size: 11px;
-  color: #8e997e;
-}
-.session-toolbar label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.session-toolbar input {
-  accent-color: #748461;
 }
 .session-messages {
   overflow: auto;
@@ -1126,9 +1046,6 @@ dialog::backdrop {
   color: #647153;
   font-size: 12px;
 }
-.session-note {
-  margin-top: 8px;
-}
 .selection-footer {
   display: flex;
   align-items: center;
@@ -1156,15 +1073,6 @@ dialog::backdrop {
   color: #b56950;
   font-size: 12px;
   line-height: 1.7;
-}
-.refresh-session {
-  margin-left: auto;
-}
-.session-warning {
-  font-size: 10px;
-  line-height: 1.7;
-  color: #ab8d65;
-  margin: 8px 0 0;
 }
 @media (max-width: 700px) {
   .session-top {

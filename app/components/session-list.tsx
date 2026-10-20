@@ -4,6 +4,7 @@ import { useLocation } from "react-router";
 import { api, post, errorMessage } from "../lib/api";
 import { useApp } from "../lib/app-context";
 import { getLocale, t, tr } from "../lib/i18n";
+import { notePreview } from "../lib/note-preview";
 import type { RecentSession, Session } from "../lib/types";
 import { CodexThreadLink } from "./codex-thread-link";
 import { WindowHeading } from "./window-heading";
@@ -331,12 +332,7 @@ export function SessionList({ data: initialData }: { data: SessionIndexData }) {
                       const preview =
                         detail === null
                           ? t("本机暂时无法读取，可选择其他会话")
-                          : detail?.messages
-                              .at(-1)
-                              ?.text.replace(/!?\[([^\]]+)\]\([^)]*\)/g, "$1")
-                              .replace(/[#*`>|]/g, "")
-                              .replace(/\s+/g, " ")
-                              .slice(0, 160) ||
+                          : notePreview(detail?.messages.at(-1)?.text || "", 160) ||
                             (detail
                               ? t("暂无完整消息")
                               : tr("正在读取摘要…", "Loading preview…"));

@@ -17,6 +17,7 @@ import {
   type SessionDraft,
 } from "../lib/app-context";
 import { initializeLanguage, t, tr } from "../lib/i18n";
+import { notePreview } from "../lib/note-preview";
 import { usePageHistory } from "../lib/use-page-history";
 import { surfacePath } from "../lib/navigation";
 import { useNativeBridge } from "../lib/native";
@@ -506,9 +507,7 @@ export default function App({ loaderData: library }: Route.ComponentProps) {
                 >
                   <strong className="native-note-title">{clip.title}</strong>
                   <p className="native-note-excerpt">
-                    {(clip.note || clip.body)
-                      .replace(/[#*`>|]/g, "")
-                      .slice(0, 160)}
+                    {notePreview(clip.note || clip.body)}
                   </p>
                   <span className="native-note-meta">
                     <span className="native-note-source">{clip.source}</span>

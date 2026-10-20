@@ -69,3 +69,20 @@ The installer preserves the `web/` and `build/client/` directory structure under
 | `scripts/` | Development, build and installation helpers. |
 
 Keep screenshots, private conversations, exports and build output out of Git. Public screenshots must use sample content. Keep English and Chinese READMEs aligned when changing product claims or installation instructions.
+
+## Interface assets and styles
+
+The interface never shows the application icon larger than 96 pixels, and a message avatar is 30 pixels wide. `web/assets/threadline-icon.png` and the avatars are therefore kept at the size the interface actually uses. `scripts/make-display-icon.swift` regenerates them from the approved artwork in `web/assets/threadline-app-icon.png`, which the Dock icon also uses.
+
+```sh
+swift scripts/make-display-icon.swift
+```
+
+`scripts/prune-css.mjs` reports stylesheet rules that no longer match anything in the interface. The React app loads `app/base.css`, `web/threadline.css`, `web/buttons.css` and `app/app.css` together, so a rule is only removed when every class it names is absent from the markup and scripts.
+
+```sh
+node scripts/prune-css.mjs          # report
+node scripts/prune-css.mjs --write  # remove
+```
+
+A rule inside an at-rule such as `@media` is only ever removed on its own, so the conditions a stylesheet applies never change. `web/styles.test.mjs` keeps the shipped stylesheets inside a size budget.
