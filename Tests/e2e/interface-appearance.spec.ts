@@ -76,3 +76,37 @@ test("the interface never renders text below a readable size", async ({ page }) 
   // 9 and 10 pixel text is a blur at normal viewing distance.
   expect(smallest).toBeGreaterThanOrEqual(11);
 });
+
+test("the appearance can be chosen in Settings", async ({ page }) => {
+  await page.goto("/settings?native=1");
+  const choice = page.getByLabel("界面外观");
+  await expect(choice).toBeVisible();
+  await expect(choice).toHaveValue("system");
+
+  // A dark choice paints a dark page, even while the system is light.
+  await choice.selectOption("dark");
+  await expect
+    .poll(() =>
+      page.evaluate(() => getComputedStyle(document.body).backgroundColor),
+    )
+    .toBe("rgb(26, 27, 24)");
+
+  // A light choice paints a light page, even while the system is dark.
+  await page.emulateMedia({ colorScheme: "dark" });
+  await choice.selectOption("light");
+  await expect
+    .poll(() =>
+      page.evaluate(() => getComputedStyle(document.body).backgroundColor),
+    )
+    .toBe("rgb(252, 252, 250)");
+
+  // The choice is kept, so it survives a reload.
+  await page.emulateMedia({ colorScheme: "light" });
+  await choice.selectOption("dark");
+  await page.reload();
+  await expect
+    .poll(() =>
+      page.evaluate(() => getComputedStyle(document.body).backgroundColor),
+    )
+    .toBe("rgb(26, 27, 24)");
+});

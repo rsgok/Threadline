@@ -104,3 +104,9 @@ The dark appearance keeps the same hues and inverts the lightness, so the relati
 `--paper`, `--side`, `--muted`, `--soft` and `--green` are older names kept as aliases of the current palette, because page styles still refer to them. A new rule should use the name that says what the colour is for.
 
 Text is never set below 11 pixels. 9 and 10 pixel text is a blur at normal viewing distance, and the notes are meant to be read.
+
+## The appearance preference
+
+**Settings / 设置 / 通用** offers `跟随系统`, `浅色` and `深色`. The choice is stored per browser profile under `threadline-appearance`, and it is applied to the document as `data-appearance`, so the stylesheet decides which palette to offer. A `system` preference leaves the attribute off and lets the stylesheet follow `prefers-color-scheme`, including a change made while the app is open.
+
+The native web view sends the preference through the same localhost-validated bridge the language preference uses, so the Mac window chrome and the page agree. The native side stores it under `threadline-appearance` in `UserDefaults` and applies it to the window appearance.

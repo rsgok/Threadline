@@ -616,6 +616,12 @@ export const english: Record<string, string> = {
   简体中文: "简体中文",
   跟随系统: "System default",
   界面语言: "Interface language",
+  外观: "Appearance",
+  界面外观: "Interface appearance",
+  "跟随系统会随 macOS 的深色模式一起变化":
+    "System default follows the dark mode of macOS",
+  浅色: "Light",
+  深色: "Dark",
   "选择界面语言，笔记和对话保持原文":
     "Choose the interface language. Notes and conversations keep their original text",
   应用语言: "App language",

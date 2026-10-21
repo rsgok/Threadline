@@ -74,8 +74,10 @@
 /* The same palette for a dark appearance. The hues are kept and the
    lightness is inverted, so the relationships between surfaces and text
    survive the change. */
-@media (prefers-color-scheme: dark) {
-  :root {
+/* The dark palette. It applies when the system is dark, and when the
+   user has chosen dark in Settings. The choice is stored on the document, so
+   it survives a reload and travels with the Mac app. */
+:root[data-appearance="dark"] {
     --surface: #1a1b18;
     --surface-raised: #212219;
     --surface-card: #262722;
@@ -84,7 +86,6 @@
     --surface-soft: #282b24;
     --surface-hover: #2e312a;
     --surface-line: #33362e;
-
     --ink: #eceee7;
     --ink-strong: #f6f7f2;
     --ink-warm: #f2f3ec;
@@ -101,29 +102,72 @@
     --ink-quiet: #a4a89c;
     --ink-faint: #8b9482;
     --ink-fainter: #939c8a;
-
     --line: #3b3c36;
     --line-soft: #2f302b;
     --line-strong: #45483d;
     --line-warm: #4a463c;
-
     --accent: #93b49c;
     --accent-ink: #b6cead;
     --accent-wash: #2b3026;
     --accent-line: #4a5442;
-
     --button-primary: #2c3127;
     --button-hover: #333830;
     --button-ink: #c2cdba;
     --button-line: #3d4437;
-
     --focus-ring: #c9a227;
     --focus-ring-alt: #c98f6e;
     --shadow-card: #10120e;
     --shadow-pop: #0e100c;
     --shadow-wordmark: #0b0d0a;
     --paper-dot: #2b2d26;
+    --ink-purple: #c3b1dd;
+    --danger-wash: #3a2320;
+}
 
+@media (prefers-color-scheme: dark) {
+  :root:not([data-appearance="light"]) {
+    --surface: #1a1b18;
+    --surface-raised: #212219;
+    --surface-card: #262722;
+    --surface-side: #1e1f1b;
+    --surface-wash: #2a2d26;
+    --surface-soft: #282b24;
+    --surface-hover: #2e312a;
+    --surface-line: #33362e;
+    --ink: #eceee7;
+    --ink-strong: #f6f7f2;
+    --ink-warm: #f2f3ec;
+    --ink-cool: #e7ecf3;
+    --ink-sage: #c2d3b9;
+    --ink-sage-deep: #b3c8a8;
+    --ink-sage-bright: #c9d9c0;
+    --ink-blue: #c3d2e6;
+    --ink-blue-soft: #b3c1d6;
+    --ink-amber: #e2d5ae;
+    --ink-danger: #e5a396;
+    --ink-secondary: #aebea5;
+    --ink-muted: #b6c1ae;
+    --ink-quiet: #a4a89c;
+    --ink-faint: #8b9482;
+    --ink-fainter: #939c8a;
+    --line: #3b3c36;
+    --line-soft: #2f302b;
+    --line-strong: #45483d;
+    --line-warm: #4a463c;
+    --accent: #93b49c;
+    --accent-ink: #b6cead;
+    --accent-wash: #2b3026;
+    --accent-line: #4a5442;
+    --button-primary: #2c3127;
+    --button-hover: #333830;
+    --button-ink: #c2cdba;
+    --button-line: #3d4437;
+    --focus-ring: #c9a227;
+    --focus-ring-alt: #c98f6e;
+    --shadow-card: #10120e;
+    --shadow-pop: #0e100c;
+    --shadow-wordmark: #0b0d0a;
+    --paper-dot: #2b2d26;
     --ink-purple: #c3b1dd;
     --danger-wash: #3a2320;
   }

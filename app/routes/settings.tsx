@@ -3,6 +3,11 @@ import { useSearchParams } from "react-router";
 import { AboutSettings } from "../components/about-settings";
 import { useState } from "react";
 import { getLanguage, setLanguage, t } from "../lib/i18n";
+import {
+  getAppearance,
+  setAppearance,
+  type Appearance,
+} from "../lib/appearance";
 import type { Language } from "../lib/types";
 import {
   FeishuConnection,
@@ -15,6 +20,7 @@ export default function Settings() {
   const [params, setParams] = useSearchParams();
   const about = params.get("section") === "about";
   const [language, set] = useState<Language>(getLanguage()),
+    [appearance, setAppearanceChoice] = useState<Appearance>(getAppearance()),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(),
     [feishu, setFeishu] = useState(false),
@@ -64,6 +70,30 @@ export default function Settings() {
             {t("应用并重新加载")}
           </button>
           <ErrorText error={error} />
+        </section>
+        <section className="settings-section">
+          <h2>{t("外观")}</h2>
+          <label className="field-label" htmlFor="appearance-choice">
+            {t("界面外观")}
+          </label>
+          <p className="dialog-hint">
+            {t("跟随系统会随 macOS 的深色模式一起变化")}
+          </p>
+          <select
+            className="topic-select"
+            id="appearance-choice"
+            value={appearance}
+            onChange={(event) => {
+              const value = event.target.value as Appearance;
+              setAppearanceChoice(value);
+              setAppearance(value);
+            }}
+            disabled={busy}
+          >
+            <option value="system">{t("跟随系统")}</option>
+            <option value="light">{t("浅色")}</option>
+            <option value="dark">{t("深色")}</option>
+          </select>
         </section>
         <section className="settings-section">
           <h2>{t("连接与集成")}</h2>

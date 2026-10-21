@@ -17,6 +17,7 @@ import {
   type SessionDraft,
 } from "../lib/app-context";
 import { initializeLanguage, t, tr } from "../lib/i18n";
+import { initializeAppearance } from "../lib/appearance";
 import { notePreview } from "../lib/note-preview";
 import { usePageHistory } from "../lib/use-page-history";
 import { surfacePath } from "../lib/navigation";
@@ -50,6 +51,7 @@ const ShareHistory = lazy(() =>
 
 export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   initializeLanguage();
+  initializeAppearance();
   return api<Library>("/api/library", { signal: request.signal });
 }
 
