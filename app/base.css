@@ -662,7 +662,7 @@ h1 {
 .article code {
   font-family: Menlo, monospace;
   font-size: 11px;
-  background: #edf0e6;
+  background: var(--surface-wash);
   border-radius: 4px;
   padding: 2px 5px;
   color: #62714e;
@@ -680,9 +680,9 @@ h1 {
     monospace;
   text-transform: uppercase;
   letter-spacing: 1px;
-  border-bottom: 1px solid #e6e9de;
+  border-bottom: 1px solid var(--line);
   padding: 9px 14px;
-  color: #939d84;
+  color: var(--ink-faint);
   display: flex;
   justify-content: space-between;
 }
@@ -691,7 +691,7 @@ h1 {
   margin: 0;
   overflow: auto;
   line-height: 1.85;
-  color: #5a6b4a;
+  color: var(--ink-sage);
   font:
     11px/1.85 Menlo,
     monospace;
