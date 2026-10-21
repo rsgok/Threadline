@@ -39,7 +39,7 @@ body.react-app .editor.route-scroll {
 .article pre {
   overflow: auto;
   padding: 16px;
-  background: #f1f3ed;
+  background: var(--surface-wash);
   border-radius: 8px;
 }
 .article pre code {
@@ -342,8 +342,7 @@ body.react-app .capture-preview img {
 body.react-app .capture-preview span {
   flex: 1;
   font-size: 12px;
-}
-/* Shared chrome geometry: native controls and web content use the same row. */
+}/* Shared chrome geometry: native controls and web content use the same row. */
 :root {
   --window-chrome-height: 46px;
   --window-controls-inset: 16px;
@@ -583,6 +582,23 @@ body.react-app .message-card {
     gap: 4px;
     padding-inline: 8px;
   }
+  /* A narrow panel must not push its last control past the edge. The
+     navigation keeps its labels, the utility buttons give up their space. */
+  html[data-surface="panel"] body.react-app .panel-header {
+    gap: 2px;
+    padding-inline: 6px;
+  }
+  html[data-surface="panel"] body.react-app .panel-navigation {
+    gap: 0;
+    min-width: 0;
+  }
+  html[data-surface="panel"] body.react-app .panel-navigation .tool {
+    padding-inline: 4px;
+  }
+  html[data-surface="panel"] body.react-app .panel-header > .tool {
+    min-width: 0;
+    padding-inline: 4px;
+  }
 }
 
 /* Page layout contract: one title in the chrome and one shared content inset. */
@@ -645,10 +661,10 @@ body.react-app .conversation-row { position:relative; display:grid; grid-templat
 body.react-app #session-view .conversation-row .session-choice { grid-column:2; display:flex; align-items:center; gap:12px; min-width:0; width:100%; padding:0; border:0; }
 body.react-app #session-view .conversation-row .session-choice:after { content:none; }
 body.react-app #session-view .conversation-row .session-choice strong { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:24px; }
-body.react-app .conversation-row time { flex-shrink:0; font-size:10px; }
+body.react-app .conversation-row time { flex-shrink:0; font-size: 11px; }
 body.react-app .conversation-select { grid-column:1; grid-row:1; width:28px; height:28px; display:flex; justify-content:center; align-items:center; padding:0; }
 body.react-app #session-view .conversation-row .session-list-preview { grid-column:2; display:flex; align-items:center; gap:7px; margin:0; min-width:0; line-height:20px; }
-.conversation-runtime { flex-shrink:0; font-size:10px; }
+.conversation-runtime { flex-shrink:0; font-size: 11px; }
 .conversation-preview-text { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
 body.react-app .conversation-tag { max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0; }
 body.react-app .conversation-bottom { flex-shrink:0; max-height:50%; overflow-y:auto; }
@@ -673,10 +689,10 @@ body.react-app .conversation-group-head { justify-content:flex-start; }
 body.react-app .settings-section { border:0; padding:0; gap:14px; margin:0 0 36px; }
 body.react-app .settings-section h2 { margin:0 0 4px; color:#394632; font-weight:550; }
 body.react-app .settings-section .field-label { margin:0; color:#56624f; font-size:12px; }
-body.react-app .settings-section .dialog-hint { color:#818a79; font-size:12px; }
+body.react-app .settings-section .dialog-hint { color:var(--ink-faint); font-size:12px; }
 body.react-app .settings-section>select { width:100%; max-width:320px; }
 body.react-app .settings-integrations { gap:8px; max-width:640px; }
-body.react-app .settings-connection { display:block; border:0; padding:0; border-radius:9px; background:#f1f4ec; }
+body.react-app .settings-connection { display:block; border:0; padding:0; border-radius:9px; background:var(--surface-side); }
 body.react-app .settings-connection>summary { min-height:46px; padding:12px 14px; box-sizing:border-box; font-size:12px; font-weight:500; }
 body.react-app .settings-connection>.platform-connection { padding:0 14px 14px; display:grid; gap:12px; }
 body.react-app .reading .question { border:0; margin:18px 0; padding:12px 14px; border-radius:8px; background:#f1f4ec; }
@@ -745,7 +761,16 @@ body.react-app #session-view .conversation-row .session-choice { align-items: ce
 body.react-app #session-view .conversation-row .session-list-preview { align-items: baseline; }
 body.react-app .native-list-head { display: flex; gap: 6px; align-items: center; }
 body.react-app .native-list-head .searchbox { flex: 1; min-width: 0; margin: 0; }
-body.react-app .native-list-head .native-scope { width: 104px; min-width: 0; flex-shrink: 0; margin: 0; }
+/* The scope names a note, not a conversation. It needs room for the longest
+   label the user can pick, so it sizes to its content instead of clipping. */
+body.react-app .native-list-head .native-scope {
+  width: auto;
+  min-width: 0;
+  max-width: 58%;
+  flex: 0 1 auto;
+  margin: 0;
+  text-overflow: ellipsis;
+}
 body.react-app .page-heading-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
 body.react-app .page-heading-actions h1 { flex: 1; min-width: 0; }
 .heading-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -814,7 +839,7 @@ body.react-app .sidebar > .manual-capture { margin: 12px 0 0; }
 body.react-app .conversation-update { margin-bottom: 16px; }
 
 /* Notes retain their reading layout while their content is edited in place. */
-body.react-app .note-banner { background: #f0f3ee; border: 1px solid #e3e8df; border-radius: 10px; padding: 16px 18px; margin: 0 0 28px; color: #697461; font-size: 12px; line-height: 1.7; }
+body.react-app .note-banner { background: var(--surface-wash); border: 1px solid var(--surface-line); border-radius: 10px; padding: 16px 18px; margin: 0 0 28px; color: var(--ink-faint); font-size: 12px; line-height: 1.7; }
 .note-banner-meta { display:flex; align-items:center; flex-wrap:wrap; gap:6px 18px; }
 .note-banner-details { margin-top:8px; }
 .note-banner-details > summary { cursor:pointer; font-size:11px; }
@@ -823,8 +848,8 @@ body.react-app .note-banner { background: #f0f3ee; border: 1px solid #e3e8df; bo
 body.react-app .note-banner .project-context { margin:6px 0; }
 .note-conversation { display:grid; gap:28px; }
 .note-message { min-width:0; }
-.note-message-meta { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-size:11px; line-height:20px; color:#81897d; }
-.note-message-meta time { margin-left:auto; font-size:10px; }
+.note-message-meta { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-size:11px; line-height:20px; color:var(--ink-faint); }
+.note-message-meta time { margin-left:auto; font-size: 11px; }
 .note-role { font-weight:600; color:#4c5b46; }
 .note-message.from-user { padding-left:14px; border-left:2px solid #d9e0d4; }
 body.react-app .note-message .article { margin:8px 0 0; }
@@ -835,7 +860,7 @@ body.react-app .note-message .article { margin:8px 0 0; }
 .note-rich-content :is(td,th) { border:1px solid var(--line); padding:8px; }
 .note-title-input { display:block; width:100%; min-width:0; font:inherit; line-height:inherit; }
 @media(max-width:700px) { .note-title-input { flex-basis:100%; } }
-body.react-app .note-detail .article-end { display:flex; align-items:center; gap:16px; margin:36px 0 8px; color:#899181; font-size:10px; letter-spacing:2px; opacity:1; }
+body.react-app .note-detail .article-end { display:flex; align-items:center; gap:16px; margin:36px 0 8px; color:var(--ink-faint); font-size: 11px; letter-spacing:2px; opacity:1; }
 body.react-app .note-detail .article-end::before,body.react-app .note-detail .article-end::after { content:""; display:block; height:1px; flex:1; background:#e0e5dc; }
 .note-rich-content .ProseMirror-selectednode { outline:2px solid #81976e; outline-offset:3px; }
 [data-tippy-root], div:has(> .note-format-menu) { z-index:1200; }

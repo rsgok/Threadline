@@ -86,3 +86,27 @@ node scripts/prune-css.mjs --write  # remove
 ```
 
 A rule inside an at-rule such as `@media` is only ever removed on its own, so the conditions a stylesheet applies never change. `web/styles.test.mjs` keeps the shipped stylesheets inside a size budget.
+
+## The interface palette
+
+`app/base.css` owns the colour tokens. Every colour the interface paints comes from there, so the light and dark appearances share one palette and a colour is changed in one place.
+
+| Group | Tokens |
+| --- | --- |
+| Surfaces | `--surface`, `--surface-raised`, `--surface-card`, `--surface-side`, `--surface-wash`, `--surface-soft`, `--surface-hover`, `--surface-line` |
+| Ink | `--ink`, `--ink-strong`, `--ink-warm`, `--ink-cool`, `--ink-sage`, `--ink-sage-deep`, `--ink-sage-bright`, `--ink-blue`, `--ink-blue-soft`, `--ink-amber`, `--ink-danger`, `--ink-secondary`, `--ink-muted`, `--ink-quiet`, `--ink-faint`, `--ink-fainter` |
+| Lines | `--line`, `--line-soft`, `--line-strong`, `--line-warm` |
+| Accent | `--accent`, `--accent-ink`, `--accent-wash`, `--accent-line` |
+| Buttons | `--button-primary`, `--button-hover`, `--button-ink`, `--button-line` |
+
+The dark appearance keeps the same hues and inverts the lightness, so the relationships between surfaces and text survive. The macOS window and the first-use tour follow the system appearance as well.
+
+`--paper`, `--side`, `--muted`, `--soft` and `--green` are older names kept as aliases of the current palette, because page styles still refer to them. A new rule should use the name that says what the colour is for.
+
+Text is never set below 11 pixels. 9 and 10 pixel text is a blur at normal viewing distance, and the notes are meant to be read.
+
+## The appearance preference
+
+**Settings / 设置 / 通用** offers `跟随系统`, `浅色` and `深色`. The choice is stored per browser profile under `threadline-appearance`, and it is applied to the document as `data-appearance`, so the stylesheet decides which palette to offer. A `system` preference leaves the attribute off and lets the stylesheet follow `prefers-color-scheme`, including a change made while the app is open.
+
+The native web view sends the preference through the same localhost-validated bridge the language preference uses, so the Mac window chrome and the page agree. The native side stores it under `threadline-appearance` in `UserDefaults` and applies it to the window appearance.

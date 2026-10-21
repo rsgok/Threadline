@@ -1,12 +1,176 @@
+/* The interface palette. Every colour the app paints comes from here, so the
+   light and dark appearances stay in step and a colour can be changed in one
+   place. The older page styles still refer to --paper, --side, --ink,
+   --muted, --line, --accent, --soft and --green, so those names remain as
+   aliases of the current palette. */
 :root {
-  --paper: #fffefa;
-  --side: #f4f3ef;
-  --ink: #272923;
-  --muted: #888b80;
-  --line: #e7e7df;
-  --accent: #d66a42;
-  --soft: #f9eee5;
-  --green: #64806b;
+  /* surfaces, from the page background up to the raised card */
+  --surface: #fcfcfa;
+  --surface-raised: #fcfdf9;
+  --surface-card: #fffefb;
+  --surface-side: #f0f1ee;
+  --surface-wash: #e0e8d8;
+  --surface-soft: #e5ecde;
+  --surface-hover: #edf1e7;
+  --surface-line: #e0e6d9;
+
+  /* ink, from the strongest to the faintest */
+  --ink: #191917;
+  --ink-strong: #171713;
+  --ink-warm: #292720;
+  --ink-cool: #17202e;
+  --ink-sage: #35432f;
+  --ink-sage-deep: #3f5133;
+  --ink-sage-bright: #53604b;
+  --ink-blue: #243751;
+  --ink-blue-soft: #46546b;
+  --ink-amber: #48412a;
+  --ink-danger: #a05447;
+  --ink-secondary: #53604b;
+  --ink-muted: #4c5845;
+  --ink-quiet: #64635d;
+  --ink-faint: #818a7a;
+  --ink-fainter: #7b8673;
+
+  /* lines */
+  --line: #d9d7cf;
+  --line-soft: #e2ded3;
+  --line-strong: #d6e0ca;
+  --line-warm: #c8c0ac;
+
+  /* the sage accent */
+  --accent: #315e49;
+  --accent-ink: #354a29;
+  --accent-wash: #e5ecde;
+  --accent-line: #d6e0ca;
+
+  /* the shared button appearance */
+  --button-primary: #e5ecdc;
+  --button-hover: #edf1e7;
+  --button-ink: #4c5845;
+  --button-line: #dce2d5;
+
+  /* the focus ring, the raised shadows and the dotted paper behind a
+     conversation. They are not surfaces, so they carry their own values. */
+  --focus-ring: #b68b00;
+  --focus-ring-alt: #d9a184;
+  --shadow-card: #ded6be;
+  --shadow-pop: #d3c9a9;
+  --shadow-wordmark: #cbd9eb;
+  --paper-dot: #dbd7ca;
+
+  /* the tag inks, one per colour the tag picker offers */
+  --ink-purple: #816599;
+  --danger-wash: #f8eee9;
+
+  /* names used by the older page styles */
+  --paper: var(--surface);
+  --side: var(--surface-side);
+  --muted: var(--ink-quiet);
+  --soft: var(--accent-wash);
+  --green: var(--ink-sage);
+}
+
+/* The same palette for a dark appearance. The hues are kept and the
+   lightness is inverted, so the relationships between surfaces and text
+   survive the change. */
+/* The dark palette. It applies when the system is dark, and when the
+   user has chosen dark in Settings. The choice is stored on the document, so
+   it survives a reload and travels with the Mac app. */
+:root[data-appearance="dark"] {
+    --surface: #1a1b18;
+    --surface-raised: #212219;
+    --surface-card: #262722;
+    --surface-side: #1e1f1b;
+    --surface-wash: #2a2d26;
+    --surface-soft: #282b24;
+    --surface-hover: #2e312a;
+    --surface-line: #33362e;
+    --ink: #eceee7;
+    --ink-strong: #f6f7f2;
+    --ink-warm: #f2f3ec;
+    --ink-cool: #e7ecf3;
+    --ink-sage: #c2d3b9;
+    --ink-sage-deep: #b3c8a8;
+    --ink-sage-bright: #c9d9c0;
+    --ink-blue: #c3d2e6;
+    --ink-blue-soft: #b3c1d6;
+    --ink-amber: #e2d5ae;
+    --ink-danger: #e5a396;
+    --ink-secondary: #aebea5;
+    --ink-muted: #b6c1ae;
+    --ink-quiet: #a4a89c;
+    --ink-faint: #8b9482;
+    --ink-fainter: #939c8a;
+    --line: #3b3c36;
+    --line-soft: #2f302b;
+    --line-strong: #45483d;
+    --line-warm: #4a463c;
+    --accent: #93b49c;
+    --accent-ink: #b6cead;
+    --accent-wash: #2b3026;
+    --accent-line: #4a5442;
+    --button-primary: #2c3127;
+    --button-hover: #333830;
+    --button-ink: #c2cdba;
+    --button-line: #3d4437;
+    --focus-ring: #c9a227;
+    --focus-ring-alt: #c98f6e;
+    --shadow-card: #10120e;
+    --shadow-pop: #0e100c;
+    --shadow-wordmark: #0b0d0a;
+    --paper-dot: #2b2d26;
+    --ink-purple: #c3b1dd;
+    --danger-wash: #3a2320;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-appearance="light"]) {
+    --surface: #1a1b18;
+    --surface-raised: #212219;
+    --surface-card: #262722;
+    --surface-side: #1e1f1b;
+    --surface-wash: #2a2d26;
+    --surface-soft: #282b24;
+    --surface-hover: #2e312a;
+    --surface-line: #33362e;
+    --ink: #eceee7;
+    --ink-strong: #f6f7f2;
+    --ink-warm: #f2f3ec;
+    --ink-cool: #e7ecf3;
+    --ink-sage: #c2d3b9;
+    --ink-sage-deep: #b3c8a8;
+    --ink-sage-bright: #c9d9c0;
+    --ink-blue: #c3d2e6;
+    --ink-blue-soft: #b3c1d6;
+    --ink-amber: #e2d5ae;
+    --ink-danger: #e5a396;
+    --ink-secondary: #aebea5;
+    --ink-muted: #b6c1ae;
+    --ink-quiet: #a4a89c;
+    --ink-faint: #8b9482;
+    --ink-fainter: #939c8a;
+    --line: #3b3c36;
+    --line-soft: #2f302b;
+    --line-strong: #45483d;
+    --line-warm: #4a463c;
+    --accent: #93b49c;
+    --accent-ink: #b6cead;
+    --accent-wash: #2b3026;
+    --accent-line: #4a5442;
+    --button-primary: #2c3127;
+    --button-hover: #333830;
+    --button-ink: #c2cdba;
+    --button-line: #3d4437;
+    --focus-ring: #c9a227;
+    --focus-ring-alt: #c98f6e;
+    --shadow-card: #10120e;
+    --shadow-pop: #0e100c;
+    --shadow-wordmark: #0b0d0a;
+    --paper-dot: #2b2d26;
+    --ink-purple: #c3b1dd;
+    --danger-wash: #3a2320;
+  }
 }
 * {
   box-sizing: border-box;
@@ -32,7 +196,7 @@ button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 summary:focus-visible {
-  outline: 2px solid #d9a184;
+  outline: 2px solid var(--focus-ring-alt);
   outline-offset: 3px;
 }
 button {
@@ -101,10 +265,10 @@ svg {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: #eaeae3;
+  background: var(--surface-soft);
   border: 1px solid transparent;
   border-radius: 9px;
-  color: #8a8e81;
+  color: var(--ink-faint);
 }
 .searchbox:focus-within {
   background: #fffefa;
@@ -384,7 +548,7 @@ h1 {
   letter-spacing: 0.1px;
   line-height: 1.5;
   margin: 0 0 20px;
-  color: #30352a;
+  color: var(--ink-sage-deep);
   overflow-wrap: anywhere;
 }
 .submeta {
@@ -399,8 +563,8 @@ h1 {
   height: 13px;
 }
 .note {
-  background: linear-gradient(120deg, #faf2e9, #fbf6ef);
-  border: 1px solid #f0e5d8;
+  background: linear-gradient(120deg, var(--surface-side), var(--surface));
+  border: 1px solid var(--line-soft);
   border-radius: 9px;
   padding: 16px 19px;
   margin: 27px 0 21px;
@@ -409,8 +573,8 @@ h1 {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
-  color: #b38466;
+  font-size: 11px;
+  color: var(--ink-amber);
   letter-spacing: 0.6px;
   margin-bottom: 9px;
 }
@@ -498,7 +662,7 @@ h1 {
 .article code {
   font-family: Menlo, monospace;
   font-size: 11px;
-  background: #edf0e6;
+  background: var(--surface-wash);
   border-radius: 4px;
   padding: 2px 5px;
   color: #62714e;
@@ -516,9 +680,9 @@ h1 {
     monospace;
   text-transform: uppercase;
   letter-spacing: 1px;
-  border-bottom: 1px solid #e6e9de;
+  border-bottom: 1px solid var(--line);
   padding: 9px 14px;
-  color: #939d84;
+  color: var(--ink-faint);
   display: flex;
   justify-content: space-between;
 }
@@ -527,7 +691,7 @@ h1 {
   margin: 0;
   overflow: auto;
   line-height: 1.85;
-  color: #5a6b4a;
+  color: var(--ink-sage);
   font:
     11px/1.85 Menlo,
     monospace;
@@ -544,7 +708,7 @@ h1 {
   align-items: center;
   gap: 10px;
   margin-top: 32px;
-  color: #bdc1b3;
+  color: var(--ink-faint);
   font:
     10px Georgia,
     serif;
@@ -561,12 +725,12 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f1f3eb;
+  background: var(--surface-side);
   border-radius: 8px;
   padding: 14px 16px;
   margin: 22px 0;
   font-size: 11px;
-  color: #839173;
+  color: var(--ink-faint);
 }
 .bottom {
   height: 76px;
@@ -617,7 +781,7 @@ h1 {
   height: 15px;
 }
 .secondary {
-  color: #87927a;
+  color: var(--ink-faint);
   font-size: 11px;
   padding: 11px 12px;
 }
@@ -745,7 +909,7 @@ h1 {
 }
 dialog {
   padding: 0;
-  border: 1px solid #e5e6dc;
+  border: 1px solid var(--line-soft);
   border-radius: 15px;
   box-shadow: 0 24px 100px #26301c26;
   background: var(--paper);
@@ -774,7 +938,7 @@ dialog::backdrop {
 }
 .dialog-hint {
   font-size: 12px;
-  color: #929885;
+  color: var(--ink-faint);
   line-height: 1.8;
   margin-bottom: 20px;
 }
@@ -782,7 +946,7 @@ dialog::backdrop {
   display: block;
   width: 100%;
   border: 1px dashed #cbd2bf;
-  background: #f5f7ef;
+  background: var(--surface-side);
   border-radius: 9px;
   padding: 15px;
   min-height: 185px;
@@ -978,7 +1142,7 @@ dialog::backdrop {
   overflow: auto;
   flex: 1;
   min-height: 100px;
-  background: #f8f8f2;
+  background: var(--surface);
   padding: 18px 25px;
 }
 .message-card {

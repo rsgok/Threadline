@@ -67,6 +67,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         window?.title = tr("Threadline · 思续")
         statusItem?.button?.toolTip = tr("Threadline · 思续")
     }
+    // The window follows the appearance the interface chose, so the chrome and
+    // the page agree.
+    func applyAppearance() {
+        let preference = UserDefaults.standard.string(forKey: "threadline-appearance") ?? "system"
+        let dark: Bool
+        switch preference {
+        case "light": dark = false
+        case "dark": dark = true
+        default: dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        }
+        window?.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+    }
     func application(_ application: NSApplication, open urls: [URL]) {
         guard let target = urls.compactMap(ThreadlineLink.destination).last else { return }
         pendingConversation = target
@@ -104,12 +116,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let windowMenuItem=NSMenuItem(title:"窗口",action:nil,keyEquivalent:"");menu.title="窗口";windowMenuItem.submenu=menu;main.addItem(windowMenuItem)
         window=ThreadlineWindow(contentRect:NSRect(x:0,y:0,width:1120,height:780),styleMask:[.titled,.closable,.miniaturizable,.resizable,.fullSizeContentView],backing:.buffered,defer:false)
         window.title="Threadline · 思续";window.minSize=NSSize(width:820,height:560);window.center();window.setFrameAutosaveName("ThreadlineWindow");window.isReleasedWhenClosed=false;window.delegate=self
-        window.appearance=NSAppearance(named:.aqua)
-        window.backgroundColor=NSColor(calibratedRed:1,green:0.996,blue:0.984,alpha:1)
+        // The interface follows the system appearance, so the window chrome
+        // matches the page the user sees.
+        window.appearance=nil
+        window.backgroundColor=NSColor.windowBackgroundColor
         window.titlebarAppearsTransparent=true;window.titleVisibility = .hidden;window.isMovableByWindowBackground=false
         window.titlebarSeparatorStyle = .none
         window.toolbar=nil
-        let config=WKWebViewConfiguration();config.userContentController.add(self,name:"openInCodex");config.userContentController.add(self,name:"windowChrome");config.userContentController.add(self,name:"language");config.userContentController.add(self,name:"updates")
+        let config=WKWebViewConfiguration();config.userContentController.add(self,name:"openInCodex");config.userContentController.add(self,name:"windowChrome");config.userContentController.add(self,name:"language");config.userContentController.add(self,name:"appearance");config.userContentController.add(self,name:"updates")
         let systemLanguage = (Locale.preferredLanguages.first ?? "en").hasPrefix("zh") ? "zh-CN" : "en"
         config.userContentController.addUserScript(WKUserScript(source:"window.THREADLINE_SYSTEM_LANGUAGE = '\(systemLanguage)';",injectionTime:.atDocumentStart,forMainFrameOnly:true))
         web=WKWebView(frame:.zero,configuration:config);web.navigationDelegate=self;web.uiDelegate=self;let content=NSView(frame:NSRect(x:0,y:0,width:1120,height:780))
@@ -199,7 +213,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             }
         }
     }
-    @objc func show(){window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
+    @objc func show(){applyAppearance();window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
     @objc func search(){show();web.evaluateJavaScript("window.Threadline?.search()")}
     @objc func capture(){show();let text=NSPasteboard.general.string(forType:.string) ?? "";let data=try! JSONSerialization.data(withJSONObject:[text]);let argument=String(data:data,encoding:.utf8)!;web.evaluateJavaScript("window.Threadline?.capture(\(argument)[0])")}
     @objc func openInCodex(){web.evaluateJavaScript("window.Threadline?.openInRuntime('codex')")}
@@ -219,6 +233,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
                   let preference = body["preference"], ["system", "zh-CN", "en"].contains(preference) else { return }
             UserDefaults.standard.set(preference, forKey: "threadline-language")
             refreshLanguage()
+            return
+        }
+        if message.name == "appearance" {
+            guard message.frameInfo.isMainFrame,
+                  message.frameInfo.securityOrigin.host == "127.0.0.1",
+                  message.frameInfo.securityOrigin.port == 43127,
+                  let body = message.body as? [String:String],
+                  let preference = body["preference"], ["system", "light", "dark"].contains(preference) else { return }
+            UserDefaults.standard.set(preference, forKey: "threadline-appearance")
+            applyAppearance()
             return
         }
         if message.name == "windowChrome" {

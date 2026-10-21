@@ -200,6 +200,7 @@ export const english: Record<string, string> = {
   "为什么记录？下次什么时候用？（可选）":
     "Why save this? When will you use it again? (optional)",
   未分类: "Uncategorized",
+  未归类: "Not filed",
   "已加入「使用对话」，可组合多篇笔记":
     "Added to Use conversations. You can combine several notes",
   "✓ 已加入": "✓ Added",
@@ -615,6 +616,12 @@ export const english: Record<string, string> = {
   简体中文: "简体中文",
   跟随系统: "System default",
   界面语言: "Interface language",
+  外观: "Appearance",
+  界面外观: "Interface appearance",
+  "跟随系统会随 macOS 的深色模式一起变化":
+    "System default follows the dark mode of macOS",
+  浅色: "Light",
+  深色: "Dark",
   "选择界面语言，笔记和对话保持原文":
     "Choose the interface language. Notes and conversations keep their original text",
   应用语言: "App language",
